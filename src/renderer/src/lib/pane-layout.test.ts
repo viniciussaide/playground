@@ -65,6 +65,10 @@ describe('pane layout constants', () => {
     expect(SIDEBAR_DEFAULT_WIDTH).toBe(230)
   })
 
+  it('exposes the tasks pane default width (PANE-08)', () => {
+    expect(TASKS_DEFAULT_WIDTH).toBe(322)
+  })
+
   it('exposes the sidebar drag bounds (PANE-02)', () => {
     expect(SIDEBAR_BOUNDS).toEqual({ min: 170, max: 420 })
   })

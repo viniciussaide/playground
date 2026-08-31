@@ -2,22 +2,32 @@ import { describe, expect, it } from 'vitest'
 import { typeClass } from './task-pills'
 
 describe('typeClass', () => {
-  it('maps each ADO type to its tp-* class (TYPE-01)', () => {
+  it('maps each MultiClubes process type to its tp-* class (TYPE-01)', () => {
     expect(typeClass('Bug')).toBe('tp-bug')
     expect(typeClass('Task')).toBe('tp-task')
     expect(typeClass('User Story')).toBe('tp-user-story')
     expect(typeClass('Feature')).toBe('tp-feature')
     expect(typeClass('Epic')).toBe('tp-epic')
     expect(typeClass('Issue')).toBe('tp-issue')
-    expect(typeClass('Impediment')).toBe('tp-issue')
-    expect(typeClass('Product Backlog Item')).toBe('tp-pbi')
+    expect(typeClass('Code Review Request')).toBe('tp-code-review')
+    expect(typeClass('Code Review Response')).toBe('tp-code-review')
     expect(typeClass('Fault')).toBe('tp-fault')
+    expect(typeClass('Initiative')).toBe('tp-initiative')
+    expect(typeClass('Request')).toBe('tp-request')
+    expect(typeClass('Test Case')).toBe('tp-test-case')
+    expect(typeClass('Test Plan')).toBe('tp-test-plan')
+    expect(typeClass('Test Suite')).toBe('tp-test-suite')
+    expect(typeClass('Feedback Request')).toBe('tp-feedback')
+    expect(typeClass('Feedback Response')).toBe('tp-feedback')
+    expect(typeClass('Shared Steps')).toBe('tp-shared-steps')
+    expect(typeClass('Shared Parameter')).toBe('tp-shared-parameter')
   })
 
-  it('falls back to muted for unmapped custom types (TYPE-02, TYPE-06)', () => {
+  it('falls back to muted for types the process does not define (TYPE-02, TYPE-06)', () => {
+    expect(typeClass('Product Backlog Item')).toBe('muted')
+    expect(typeClass('Impediment')).toBe('muted')
+    expect(typeClass('Chore')).toBe('muted')
     expect(typeClass('Requirement')).toBe('muted')
-    expect(typeClass('Test Case')).toBe('muted')
-    expect(typeClass('Test Plan')).toBe('muted')
   })
 
   it('matches types case-insensitively and trim-safe (TYPE-03)', () => {

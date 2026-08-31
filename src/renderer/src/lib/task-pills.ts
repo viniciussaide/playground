@@ -1,7 +1,7 @@
-/** Handoff §Semantic color usage — type pills. ADO palette per TYPE-01
- * (Bug #CC293D, Task #F2CB1D, User Story #009F5B, Feature #0078D7,
- * Epic #773B93, Issue/Impediment #FF9D00, PBI #009CCC, Fault #B4009E);
- * unmapped types fall back to neutral `muted` (TYPE-02). */
+/** Handoff §Semantic color usage — type pills. Colors sourced from the
+ * MultiClubes ADO process (`wit/workitemtypes`, triadesolucoes/MultiClubes,
+ * 2026-08-31) per TYPE-01; types the process does not define fall back to
+ * neutral `muted` (TYPE-02). */
 export function typeClass(type: string): string {
   switch (type.trim().toLowerCase()) {
     case 'bug':
@@ -15,12 +15,29 @@ export function typeClass(type: string): string {
     case 'epic':
       return 'tp-epic'
     case 'issue':
-    case 'impediment':
       return 'tp-issue'
-    case 'product backlog item':
-      return 'tp-pbi'
+    case 'code review request':
+    case 'code review response':
+      return 'tp-code-review'
     case 'fault':
       return 'tp-fault'
+    case 'initiative':
+      return 'tp-initiative'
+    case 'request':
+      return 'tp-request'
+    case 'test case':
+      return 'tp-test-case'
+    case 'test plan':
+      return 'tp-test-plan'
+    case 'test suite':
+      return 'tp-test-suite'
+    case 'feedback request':
+    case 'feedback response':
+      return 'tp-feedback'
+    case 'shared steps':
+      return 'tp-shared-steps'
+    case 'shared parameter':
+      return 'tp-shared-parameter'
     default:
       return 'muted'
   }

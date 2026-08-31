@@ -9,7 +9,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: None - Medium scope, design is inline in the task bodies below
-**Status**: Draft
+**Status**: Done
 
 ---
 
@@ -108,7 +108,7 @@ T1 → T2 → T3
 
 ### T3: Audit all badge surfaces for consistent typeClass usage
 
-**Status**: ⬜ Pending
+**Status**: ✅ Complete
 
 **What**: Confirm every type-badge surface (Sidebar, TasksPane, BoardView, WorktreeDetail, AgentsView, SessionRail) renders via `typeClass(pin.details.type)` and that no surface hard-codes a type color class; fix any straggler found.
 **Where**: `src/renderer/src/components/{Sidebar,TasksPane,BoardView,WorktreeDetail,AgentsView,SessionRail}.tsx`

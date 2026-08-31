@@ -9,7 +9,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: None - Medium scope, design is inline in the task bodies below
-**Status**: In Progress
+**Status**: Done
 
 ---
 
@@ -174,7 +174,7 @@ T4 → T5
 
 ### T5: Re-source the pill stylesheet to the process colors
 
-**Status**: ⬜ Pending
+**Status**: ✅ Complete
 
 **What**: Replace the `tp-*` hex values in `global.css` with the MultiClubes process colors, grouping selectors that share a color (Issue + Code Review → #b4009e; Test Case/Plan/Suite + Feedback + Shared → #004b50).
 **Where**: `src/renderer/src/styles/global.css`

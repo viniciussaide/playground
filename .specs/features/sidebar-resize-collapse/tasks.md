@@ -87,6 +87,8 @@ T1      T2
 
 ### T2: Add pane-layout helpers with unit tests
 
+**Status**: ✅ Complete
+
 **What**: Pure, testable width/collapse resolution: per-pane bounds (sidebar 170-420, tasks 260-460), rail width, default resolution, and out-of-bounds clamping. Co-located unit tests in `pane-layout.test.ts`.
 **Where**: `src/renderer/src/lib/pane-layout.ts` (new)
 **Depends on**: None

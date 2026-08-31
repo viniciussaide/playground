@@ -30,13 +30,12 @@ use the same color Azure DevOps uses for that work item type.
 
 | Assumption / decision | Chosen default | Rationale | Confirmed? |
 | --------------------- | -------------- | --------- | ---------- |
-| ADO palette source | Azure DevOps default process colors (Microsoft Learn `process-configuration-xml-element` + current ADO Services palette) | The user's org runs a customized process, but the standard palette is the only authoritative static source | y |
-| Color map | Bug #CC293D, Task #F2CB1D, User Story #009F5B, Feature #0078D7, Epic #773B93, Issue/Impediment #FF9D00, Product Backlog Item #009CCC | The colors ADO uses for these types in its default processes | y |
-| Fault (custom MultiClubes type) | #B4009E (magenta) | ADO defines no default for it; user asked for a color. #B4009E is an ADO-used tone (Issue/Code Review in the MSF Agile process) and stays distinct from Bug red | y |
-| Unknown types (Requirement, Test Case, Test Plan, Shared Steps, Code Review, Feedback, empty) | Neutral `muted` badge, as today | No ADO default color exists for them; avoids inventing colors | y |
+| ADO palette source | The **MultiClubes process real colors**, fetched from `wit/workitemtypes` API (organization `triadesolucoes`, project `MultiClubes`, queried 2026-08-31) | The user's Azure shows these colors; the default-process palette differs (Bug is orange, Fault is red there) | y |
+| Color map | Bug #f58b1f, Task #fbbc3d, User Story #0098c7, Feature #773b93, Epic #e06c00, Issue #b4009e, Code Review Req/Resp #b4009e, Fault #e60017, Initiative #339947, Request #666666, Test Case/Plan/Suite #004b50, Feedback Req/Resp #004b50, Shared Steps/Param #004b50 | Exact colors returned by the process API | y |
+| Unknown types (Product Backlog Item, Impediment, Chore, Requirement, empty) | Neutral `muted` badge, as today | Not defined in the MultiClubes process; no color to mirror | y |
 | Match is case-insensitive and trim-safe | `"user story"` == `"User Story"` == `"USER STORY"` | ADO returns display names with casing; current switch already lowercases | y |
 | Light/dark theme behavior | Keep the existing pill pattern: text in the ADO color, background `color-mix(… 16%, transparent)`; the ADO colors keep adequate contrast on both themes | Consistent with every other pill in the app; no new theme tokens | y |
-| Remaining implicit dimensions (concurrency, auth, persistence, data lifecycle, external calls) | N/A | Pure renderer-side mapping of an existing string field; no async or shared state | y |
+| Remaining implicit dimensions (concurrency, auth, persistence, data lifecycle, external calls) | N/A | Pure renderer-side mapping of an existing string field; no async or shared state (the API query was a one-time source-of-truth lookup, not a runtime call) | y |
 
 **Open questions:** none - all resolved or logged above (required before the spec is confirmed).
 
@@ -54,19 +53,19 @@ Bug from a Task from an Epic at a glance.
 
 **Acceptance Criteria** (each line is one EARS pattern):
 
-1. WHEN a work item of type Bug, Task, User Story, Feature, Epic, Issue, Impediment, Product Backlog Item or Fault is displayed THEN the type badge SHALL render with the ADO color for that type (Bug #CC293D, Task #F2CB1D, User Story #009F5B, Feature #0078D7, Epic #773B93, Issue/Impediment #FF9D00, Product Backlog Item #009CCC, Fault #B4009E). <!-- event-driven -->
-2. WHEN the work item type is not one of the mapped types THEN the type badge SHALL render with the neutral `muted` colors. <!-- unwanted-behavior -->
+1. WHEN a work item of a type defined in the MultiClubes process is displayed THEN the type badge SHALL render with that type's process color (Bug #f58b1f, Task #fbbc3d, User Story #0098c7, Feature #773b93, Epic #e06c00, Issue/Code Review #b4009e, Fault #e60017, Initiative #339947, Request #666666, Test Case/Plan/Suite/Feedback/Shared Steps/Shared Parameter #004b50). <!-- event-driven -->
+2. WHEN the work item type is not defined in the MultiClubes process THEN the type badge SHALL render with the neutral `muted` colors. <!-- unwanted-behavior -->
 3. The type match SHALL be case-insensitive (`"user story"` matches `"User Story"`). <!-- ubiquitous -->
 4. WHILE the app is in light or dark theme the type badge SHALL keep the mapped color with the standard tinted background. <!-- state-driven -->
 
-**Independent Test**: Pin a Bug, a Task, a User Story, an Epic, a Fault and a custom type (e.g. Requirement); the badges show six distinct colors, matching ADO's palette plus the Fault magenta, and the unassigned one stays neutral.
+**Independent Test**: Pin a Bug, a Task, a User Story, an Epic, a Fault, an Initiative and a type from another process (e.g. Product Backlog Item); the badges show the process colors (Bug orange, Fault red), and the foreign type stays neutral.
 
 ---
 
 ## Edge Cases
 
 - IF the type string is empty or whitespace THEN the badge SHALL render neutral (`muted`). <!-- unwanted-behavior -->
-- IF the type is a custom type without an assigned color (e.g. `Requirement`, `Test Case`) THEN the badge SHALL render neutral (`muted`). <!-- unwanted-behavior -->
+- IF the type is from another process (e.g. `Product Backlog Item`, `Impediment`, `Chore`) THEN the badge SHALL render neutral (`muted`). <!-- unwanted-behavior -->
 
 ---
 
@@ -91,6 +90,6 @@ Bug from a Task from an Epic at a glance.
 
 ## Success Criteria
 
-- [ ] A Bug, Task, User Story, Feature, Epic, Issue, PBI and Fault badge are visually distinct on the board and sidebar
+- [ ] A Bug, Task, User Story, Feature, Epic, Issue, Fault and Initiative badge are visually distinct on the board and sidebar, using the MultiClubes process colors
 - [ ] No badge regresses to a single flat color across the six surfaces
 - [ ] Gate (`typecheck && lint && test`) stays green

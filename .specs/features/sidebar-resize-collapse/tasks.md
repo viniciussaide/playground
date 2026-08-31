@@ -175,6 +175,8 @@ T1      T2
 
 ### T5: Make the tasks pane resizable and collapsible
 
+**Status**: ✅ Complete
+
 **What**: Wrap the tasks pane in `ResizablePane` with the same optional-props pattern, defaulting to 322px. Rail/handle styles live in `TasksPane.css`.
 **Where**: `src/renderer/src/components/TasksPane.tsx`
 **Depends on**: T3

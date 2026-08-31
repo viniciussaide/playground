@@ -147,6 +147,8 @@ T1      T2
 
 ### T4: Make the sidebar resizable and collapsible
 
+**Status**: ✅ Complete
+
 **What**: Wrap the sidebar in `ResizablePane` with optional props, defaulting to the 230px default when nothing is persisted; rail keeps an expand affordance. Rail/handle styles live in `Sidebar.css`.
 **Where**: `src/renderer/src/components/Sidebar.tsx`
 **Depends on**: T3

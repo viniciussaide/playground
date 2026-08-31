@@ -74,12 +74,12 @@ Bug from a Task from an Epic at a glance.
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| TYPE-01        | P1    | Design | Implementing |
-| TYPE-02        | P1    | Design | Implementing |
-| TYPE-03        | P1    | Design | Implementing |
-| TYPE-04        | P1    | Design | Implementing |
-| TYPE-05        | Edge  | -      | Implementing |
-| TYPE-06        | Edge  | -      | Implementing |
+| TYPE-01        | P1    | Design | Verified |
+| TYPE-02        | P1    | Design | Verified |
+| TYPE-03        | P1    | Design | Verified |
+| TYPE-04        | P1    | Design | Verified |
+| TYPE-05        | Edge  | -      | Verified |
+| TYPE-06        | Edge  | -      | Verified |
 
 **ID format:** `TYPE-[NUMBER]`
 

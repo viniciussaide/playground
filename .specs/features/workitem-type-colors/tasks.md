@@ -80,7 +80,7 @@ T1 → T2 → T3
 
 ### T2: Add the ADO color classes to the pill stylesheet
 
-**Status**: ⬜ Pending
+**Status**: ✅ Complete
 
 **What**: Add `.task-pill.tp-*` classes in `global.css` using the ADO hex colors with the existing tinted-background pattern (text in the ADO color, `color-mix(in oklab, <hex> 16%, transparent)` background).
 **Where**: `src/renderer/src/styles/global.css`

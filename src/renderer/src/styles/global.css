@@ -111,6 +111,48 @@ code,
   color: var(--text-muted);
 }
 
+/* ADO work item type colors (TYPE-01): text in the ADO hex, tinted background
+   like the state pills — readable on light and dark themes (TYPE-04) */
+.task-pill.tp-bug {
+  background: color-mix(in oklab, #cc293d 16%, transparent);
+  color: #cc293d;
+}
+
+.task-pill.tp-task {
+  background: color-mix(in oklab, #f2cb1d 16%, transparent);
+  color: #f2cb1d;
+}
+
+.task-pill.tp-user-story {
+  background: color-mix(in oklab, #009f5b 16%, transparent);
+  color: #009f5b;
+}
+
+.task-pill.tp-feature {
+  background: color-mix(in oklab, #0078d7 16%, transparent);
+  color: #0078d7;
+}
+
+.task-pill.tp-epic {
+  background: color-mix(in oklab, #773b93 16%, transparent);
+  color: #773b93;
+}
+
+.task-pill.tp-issue {
+  background: color-mix(in oklab, #ff9d00 16%, transparent);
+  color: #ff9d00;
+}
+
+.task-pill.tp-pbi {
+  background: color-mix(in oklab, #009ccc 16%, transparent);
+  color: #009ccc;
+}
+
+.task-pill.tp-fault {
+  background: color-mix(in oklab, #b4009e 16%, transparent);
+  color: #b4009e;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

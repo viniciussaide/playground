@@ -38,9 +38,7 @@ describe('resolvePaneWidth', () => {
     expect(resolvePaneWidth(undefined, SIDEBAR_BOUNDS, SIDEBAR_DEFAULT_WIDTH)).toBe(
       SIDEBAR_DEFAULT_WIDTH
     )
-    expect(resolvePaneWidth(undefined, TASKS_BOUNDS, TASKS_DEFAULT_WIDTH)).toBe(
-      TASKS_DEFAULT_WIDTH
-    )
+    expect(resolvePaneWidth(undefined, TASKS_BOUNDS, TASKS_DEFAULT_WIDTH)).toBe(TASKS_DEFAULT_WIDTH)
   })
 
   it('returns the persisted width when it is inside the bounds', () => {

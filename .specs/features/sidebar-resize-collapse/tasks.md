@@ -116,6 +116,8 @@ T1      T2
 
 ### T3: Create the ResizablePane component
 
+**Status**: ✅ Complete
+
 **What**: A reusable pane wrapper with a drag handle (pointer-based), header collapse/expand chevron, 36px collapsed rail, double-click-to-toggle, and width clamping during drag. Pane styles live in `ResizablePane.css`.
 **Where**: `src/renderer/src/components/ResizablePane.tsx` (new)
 **Depends on**: T2

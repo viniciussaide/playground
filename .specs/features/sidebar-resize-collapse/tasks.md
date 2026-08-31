@@ -9,7 +9,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: None - Medium scope, design is inline in the task bodies below
-**Status**: Approved
+**Status**: Done
 
 ---
 
@@ -201,6 +201,8 @@ T1      T2
 ---
 
 ### T6: Wire pane layout state into the app config
+
+**Status**: ✅ Complete
 
 **What**: `App.tsx` resolves persisted widths via `resolvePaneWidth`, holds sidebar/tasks width+collapsed state, persists changes through the existing `update()`/`config:patch` path, and passes props to both panes.
 **Where**: `src/renderer/src/App.tsx`

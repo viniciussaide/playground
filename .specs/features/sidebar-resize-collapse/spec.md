@@ -98,19 +98,19 @@ resizable and collapsible too, so the detail column is never squeezed by both fi
 
 | Requirement ID | Story       | Phase  | Status  |
 | -------------- | ----------- | ------ | ------- |
-| PANE-01        | P1: Sidebar | Design | Implementing |
-| PANE-02        | P1: Sidebar | Design | Implementing |
-| PANE-03        | P1: Sidebar | Design | Implementing |
-| PANE-04        | P1: Sidebar | Design | Implementing |
-| PANE-05        | P1: Sidebar | Design | Implementing |
-| PANE-06        | P1: Sidebar | Design | Implementing |
-| PANE-07        | P1: Sidebar | Design | Implementing |
-| PANE-08        | P2: Tasks   | -      | Implementing |
-| PANE-09        | P2: Tasks   | -      | Implementing |
-| PANE-10        | P2: Tasks   | -      | Implementing |
-| PANE-11        | Edge cases  | -      | Implementing |
-| PANE-12        | Edge cases  | -      | Implementing |
-| PANE-13        | Edge cases  | -      | Implementing |
+| PANE-01        | P1: Sidebar | Design | Verified |
+| PANE-02        | P1: Sidebar | Design | Verified |
+| PANE-03        | P1: Sidebar | Design | Verified |
+| PANE-04        | P1: Sidebar | Design | Verified |
+| PANE-05        | P1: Sidebar | Design | Verified |
+| PANE-06        | P1: Sidebar | Design | Verified |
+| PANE-07        | P1: Sidebar | Design | Verified |
+| PANE-08        | P2: Tasks   | -      | Verified |
+| PANE-09        | P2: Tasks   | -      | Verified |
+| PANE-10        | P2: Tasks   | -      | Verified |
+| PANE-11        | Edge cases  | -      | Verified |
+| PANE-12        | Edge cases  | -      | Verified |
+| PANE-13        | Edge cases  | -      | Verified |
 
 **ID format:** `PANE-[NUMBER]`
 

@@ -3,7 +3,7 @@ import type { JSX } from 'react'
 import { FitAddon } from '@xterm/addon-fit'
 import { Terminal, type ITheme } from '@xterm/xterm'
 import { api } from '../lib/api'
-import { pickTerminalFont } from '../lib/terminal-font'
+import { FONT_STACK_FALLBACK, pickTerminalFont } from '../lib/terminal-font'
 import { classifyTerminalKey } from '../lib/terminal-keys'
 import '@xterm/xterm/css/xterm.css'
 import './TerminalPane.css'
@@ -76,8 +76,10 @@ export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
       cursorBlink: true,
       // Font picked per pane width (INPUT-12): narrow panes use the Cascadia
       // Mono fallback stack (Claude Code's corner glyphs are missing from
-      // JetBrains Mono); wide panes keep the JetBrains Mono look.
-      fontFamily: pickTerminalFont(80),
+      // JetBrains Mono); wide panes keep the JetBrains Mono look. The first
+      // sendResize below re-picks before measuring, so this value only covers
+      // the first frame.
+      fontFamily: FONT_STACK_FALLBACK,
       fontSize: 13,
       theme: readTheme()
     })
@@ -145,8 +147,11 @@ export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
     // Keep the PTY's dimensions matched to the container; coalesced by the
     // browser's resize delivery so rapid drags don't crash the PTY.
     const sendResize = (): void => {
-      fit.fit()
+      // Pick the font BEFORE measuring: fit() measures cells with the current
+      // font, so a late font swap would render cells at stale metrics and
+      // break the grid (UAT: logo corrupted on pane resize, 2026-08-31).
       term.options.fontFamily = pickTerminalFont(term.cols)
+      fit.fit()
       api.send('session:resize', { id: sessionId, cols: term.cols, rows: term.rows })
     }
     sendResize()

@@ -34,10 +34,12 @@ recognizes — neither of which the app provides.
 | Assumption / decision | Chosen default | Rationale | Confirmed? |
 | --------------------- | -------------- | --------- | ---------- |
 | `TERM=xterm-256color` + `COLORTERM=truecolor` fix the banner | Yes — the degraded box-drawing/colors are Claude Code's documented response to a minimal `TERM` (issue #61569 family); 256color advertises the real capabilities of xterm.js | y |
-| `TERM_PROGRAM=WezTerm` on agent PTYs | WezTerm is on Claude Code's kitty-protocol allow-list (`{ghostty, kitty, iTerm.app, WezTerm, WarpTerminal}`); the app claims it so Claude Code enables CSI-u parsing. Same pattern shipped by Superset/Gastown | y |
-| The app's env wins over `process.env` for these three vars | `TERM`, `TERM_PROGRAM`, `COLORTERM` are forced after merging `process.env`, because the whole point is to override a broken/missing environment | y |
-| xterm.js stays at 6.0.0 | No dependency change; Shift+Enter is injected manually (the documented Option A fix) | y |
+| `TERM_PROGRAM` is NOT claimed | UAT 2026-08-31: with `TERM_PROGRAM=WezTerm`, Claude Code enters kitty-protocol mode and its CSI-u parsing on Windows misbehaves (newline + submit on Shift+Enter). Without it, Claude stays in legacy mode where a line feed is the universal newline | y |
+| Shift+Enter sends a plain line feed (`\n`, 0x0A) | Same byte as Claude Code's documented Ctrl+J newline; works on every terminal, no protocol negotiation | y |
+| The app's env wins over `process.env` for `TERM`/`COLORTERM` | Forced after merging, because the whole point is to override a broken/missing environment | y |
+| xterm.js stays at 6.0.0 | No dependency change; newline is injected manually | y |
 | Paste via explicit handler | Intercept Ctrl+V with `preventDefault` + `navigator.clipboard.readText()` + `term.paste()`, avoiding double-paste from the browser's native event | y |
+| Terminal font fallbacks | `'JetBrains Mono', Consolas, 'Cascadia Mono', 'Segoe UI Symbol', monospace` — JetBrains Mono lacks the U+23BE/U+23BF corner glyphs Claude Code draws its boxed TUI with (issue #39127); the per-glyph fallbacks cover them | y |
 | Non-agent sessions (ad-hoc) get the same env | Yes — the env is applied at the PTY port, which serves every session type | y |
 | Validation is manual | TUI rendering and key chords need a live Claude session (repo convention: thin shells hand-verified; CDP smoke only) | y |
 | Remaining implicit dimensions (concurrency, auth, persistence, external calls) | N/A — renderer key handling and PTY env; no async beyond clipboard reads | y |
@@ -60,9 +62,9 @@ the Claude-side refusal to parse extended keys.
 **Acceptance Criteria** (each line is one EARS pattern):
 
 1. The PTY SHALL spawn with `TERM=xterm-256color` and `COLORTERM=truecolor` in its environment. <!-- ubiquitous -->
-2. The agent PTY SHALL spawn with `TERM_PROGRAM=WezTerm` in its environment. <!-- ubiquitous -->
+2. The PTY SHALL NOT set `TERM_PROGRAM` (Claude Code's CSI-u mode misbehaves on Windows). <!-- ubiquitous -->
 3. WHEN the user runs Claude Code in a session THEN the banner SHALL render with box-drawing characters and the full color palette (manual check). <!-- event-driven -->
-4. WHEN the user presses Shift+Enter in the terminal THEN the app SHALL send the kitty protocol sequence `ESC[13;2u` to the PTY. <!-- event-driven -->
+4. WHEN the user presses Shift+Enter in the terminal THEN the app SHALL send a line feed (`\n`, 0x0A) to the PTY. <!-- event-driven -->
 5. WHEN the user presses Shift+Enter in Claude Code THEN a newline SHALL be inserted instead of the prompt submitting (manual check). <!-- event-driven -->
 
 **Independent Test**: Run `claude` in a session: banner renders correctly; type a line, press Shift+Enter, type another line — the prompt stays open with two lines.

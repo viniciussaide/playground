@@ -68,7 +68,7 @@ T1      T2
 
 **Done when**:
 
-- [ ] `buildPtyEnv(parent)` sets `TERM=xterm-256color`, `COLORTERM=truecolor`, `TERM_PROGRAM=WezTerm` (INPUT-01, INPUT-02)
+- [ ] `buildPtyEnv(parent)` sets `TERM=xterm-256color` and `COLORTERM=truecolor` and does NOT set `TERM_PROGRAM` (INPUT-01, INPUT-02 — revised after UAT)
 - [ ] Other parent env entries survive the merge (INPUT-01)
 - [ ] The three forced vars win even when the parent sets them (assumption: app env wins)
 - [ ] `PtyPort.spawn` uses the helper and spawns with `name: 'xterm-256color'`
@@ -116,7 +116,7 @@ T1      T2
 
 **Status**: ✅ Complete
 
-**What**: In `TerminalPane.tsx`, extend the existing `attachCustomKeyEventHandler`: Ctrl+C with a selection copies (via `navigator.clipboard.writeText`) and returns false; Shift+Enter sends `ESC[13;2u` via `term.input` and returns false; Ctrl+V prevents default, reads the clipboard and calls `term.paste`, returning false; Ctrl+Shift+C keeps copying (unify with the classifier).
+**What**: In `TerminalPane.tsx`, extend the existing `attachCustomKeyEventHandler`: Ctrl+C with a selection copies (via `navigator.clipboard.writeText`) and returns false; Shift+Enter sends a line feed (`\n`, 0x0A — revised after UAT: CSI-u misbehaves on Windows) via `term.input` and returns false; Ctrl+V prevents default, reads the clipboard and calls `term.paste`, returning false; Ctrl+Shift+C keeps copying (unify with the classifier). Terminal font stack gains box-drawing/symbol fallbacks (UAT: JetBrains Mono lacks the U+23BE/U+23BF corners Claude Code draws).
 **Where**: `src/renderer/src/components/TerminalPane.tsx`
 **Depends on**: T2
 **Reuses**: The existing custom key handler (lines 90-97), `classifyTerminalKey`

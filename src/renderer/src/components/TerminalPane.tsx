@@ -73,7 +73,10 @@ export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
 
     const term = new Terminal({
       cursorBlink: true,
-      fontFamily: "'JetBrains Mono', monospace",
+      // JetBrains Mono lacks the corner glyphs (U+23BE/U+23BF) Claude Code
+      // uses for its boxed TUI; the fallbacks below cover them per-glyph
+      // (Consolas: box drawing; Segoe UI Symbol: miscellaneous symbols).
+      fontFamily: "'JetBrains Mono', Consolas, 'Cascadia Mono', 'Segoe UI Symbol', monospace",
       fontSize: 13,
       theme: readTheme()
     })
@@ -99,7 +102,10 @@ export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
         return false
       }
       if (action === 'shift-enter') {
-        term.input('\x1b[13;2u')
+        // Line feed (Ctrl+J byte) — the one newline signal Claude Code honors
+        // on every terminal. CSI-u (`ESC[13;2u`) was tried first; Claude's
+        // CSI-u parsing on Windows misbehaves (newline + submit), UAT 2026-08-31.
+        term.input('\n')
         return false
       }
       if (action === 'paste') {

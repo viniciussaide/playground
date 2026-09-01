@@ -2,11 +2,15 @@ import { describe, expect, it } from 'vitest'
 import { PTY_ENV_FORCED, buildPtyEnv } from './terminal-env'
 
 describe('buildPtyEnv', () => {
-  it('forces TERM, COLORTERM and TERM_PROGRAM (INPUT-01, INPUT-02)', () => {
+  it('forces TERM and COLORTERM (INPUT-01)', () => {
     const env = buildPtyEnv({})
     expect(env.TERM).toBe('xterm-256color')
     expect(env.COLORTERM).toBe('truecolor')
-    expect(env.TERM_PROGRAM).toBe('WezTerm')
+  })
+
+  it('does not claim a TERM_PROGRAM (UAT finding: CSI-u misbehaves on Windows)', () => {
+    const env = buildPtyEnv({})
+    expect(env.TERM_PROGRAM).toBeUndefined()
   })
 
   it('preserves the rest of the parent environment', () => {
@@ -16,9 +20,8 @@ describe('buildPtyEnv', () => {
   })
 
   it('overrides the forced vars even when the parent sets them', () => {
-    const env = buildPtyEnv({ TERM: 'xterm', TERM_PROGRAM: 'vscode', COLORTERM: '' })
+    const env = buildPtyEnv({ TERM: 'xterm', COLORTERM: '' })
     expect(env.TERM).toBe(PTY_ENV_FORCED.TERM)
-    expect(env.TERM_PROGRAM).toBe(PTY_ENV_FORCED.TERM_PROGRAM)
     expect(env.COLORTERM).toBe(PTY_ENV_FORCED.COLORTERM)
   })
 })

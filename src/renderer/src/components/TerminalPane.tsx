@@ -3,6 +3,7 @@ import type { JSX } from 'react'
 import { FitAddon } from '@xterm/addon-fit'
 import { Terminal, type ITheme } from '@xterm/xterm'
 import { api } from '../lib/api'
+import { classifyTerminalKey } from '../lib/terminal-keys'
 import '@xterm/xterm/css/xterm.css'
 import './TerminalPane.css'
 
@@ -81,16 +82,32 @@ export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
     term.open(container)
     fit.fit()
 
-    // Copy the selection on Ctrl+Shift+C (symmetric with xterm's built-in
-    // Ctrl+Shift+V paste). xterm renders selection on its own layer, not as a
-    // native DOM selection, so the browser's Ctrl+C copies nothing — we read
-    // term.getSelection() ourselves. Ctrl+C is left untouched so it still
-    // sends SIGINT to the PTY. Returning false stops xterm from forwarding the
-    // chord to the shell.
+    // Key chords (INPUT-04..08): xterm renders selection on its own layer,
+    // not as a native DOM selection, so the browser's Ctrl+C copies nothing —
+    // we read term.getSelection() ourselves. Ctrl+C without a selection is
+    // left untouched so it still sends SIGINT to the PTY. Shift+Enter is
+    // injected as the kitty-protocol CSI-u sequence the Claude CLI needs to
+    // tell newline from submit (the xterm 6.0 we ship cannot emit it).
+    // Ctrl+V is intercepted so paste does not depend on the browser's native
+    // paste event reaching xterm's hidden textarea. Returning false stops
+    // xterm from forwarding the chord to the shell.
     term.attachCustomKeyEventHandler((event) => {
-      if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyC') {
+      const action = classifyTerminalKey(event, term.getSelection().length > 0)
+      if (action === 'copy-selection') {
         const selection = term.getSelection()
         if (selection) navigator.clipboard.writeText(selection).catch(console.error)
+        return false
+      }
+      if (action === 'shift-enter') {
+        term.input('\x1b[13;2u')
+        return false
+      }
+      if (action === 'paste') {
+        event.preventDefault()
+        navigator.clipboard
+          .readText()
+          .then((text) => term.paste(text))
+          .catch(console.error)
         return false
       }
       return true

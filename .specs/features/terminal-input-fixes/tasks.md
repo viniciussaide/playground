@@ -9,7 +9,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: None - Medium scope, design is inline in the task bodies below
-**Status**: Draft
+**Status**: Done
 
 ---
 
@@ -114,7 +114,7 @@ T1      T2
 
 ### T3: Wire the key handling into TerminalPane
 
-**Status**: ⬜ Pending
+**Status**: ✅ Complete
 
 **What**: In `TerminalPane.tsx`, extend the existing `attachCustomKeyEventHandler`: Ctrl+C with a selection copies (via `navigator.clipboard.writeText`) and returns false; Shift+Enter sends `ESC[13;2u` via `term.input` and returns false; Ctrl+V prevents default, reads the clipboard and calls `term.paste`, returning false; Ctrl+Shift+C keeps copying (unify with the classifier).
 **Where**: `src/renderer/src/components/TerminalPane.tsx`

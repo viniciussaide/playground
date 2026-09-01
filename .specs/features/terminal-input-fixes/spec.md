@@ -98,23 +98,23 @@ interrupt without one) and Ctrl+V to paste, like every modern terminal.
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| INPUT-01        | P1: Env | Design | Pending |
-| INPUT-02        | P1: Env | Design | Pending |
-| INPUT-03        | P1: Env | Design | Pending |
-| INPUT-04        | P1: Env | Design | Pending |
-| INPUT-05        | P1: Env | Design | Pending |
-| INPUT-06        | P1: Keys | Design | Pending |
-| INPUT-07        | P1: Keys | Design | Pending |
-| INPUT-08        | P1: Keys | Design | Pending |
-| INPUT-09        | Edge | -      | Pending |
-| INPUT-10        | Edge | -      | Pending |
-| INPUT-11        | Edge | -      | Pending |
+| INPUT-01        | P1: Env | Design | Implementing |
+| INPUT-02        | P1: Env | Design | Implementing |
+| INPUT-03        | P1: Env | Design | Implementing |
+| INPUT-04        | P1: Env | Design | Implementing |
+| INPUT-05        | P1: Env | Design | Implementing |
+| INPUT-06        | P1: Keys | Design | Implementing |
+| INPUT-07        | P1: Keys | Design | Implementing |
+| INPUT-08        | P1: Keys | Design | Implementing |
+| INPUT-09        | Edge | -      | Implementing |
+| INPUT-10        | Edge | -      | Implementing |
+| INPUT-11        | Edge | -      | Implementing |
 
 **ID format:** `INPUT-[NUMBER]`
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 11 total, 0 mapped to tasks, 11 unmapped ⚠️
+**Coverage:** 11 total, 11 mapped to tasks, 0 unmapped
 
 ---
 

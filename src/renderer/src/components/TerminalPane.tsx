@@ -92,7 +92,7 @@ export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
     // paste event reaching xterm's hidden textarea. Returning false stops
     // xterm from forwarding the chord to the shell.
     term.attachCustomKeyEventHandler((event) => {
-      const action = classifyTerminalKey(event, term.getSelection().length > 0)
+      const action = classifyTerminalKey(event, term.getSelection().trim().length > 0)
       if (action === 'copy-selection') {
         const selection = term.getSelection()
         if (selection) navigator.clipboard.writeText(selection).catch(console.error)

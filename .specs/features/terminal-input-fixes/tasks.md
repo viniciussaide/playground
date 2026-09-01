@@ -84,7 +84,7 @@ T1      T2
 
 ### T2: Terminal key classifier + unit tests
 
-**Status**: ⬜ Pending
+**Status**: ✅ Complete
 
 **What**: Add a pure helper `classifyTerminalKey(event)` in `src/renderer/src/lib/terminal-keys.ts` returning `'copy-selection' | 'shift-enter' | 'paste' | 'pass'` for: Ctrl+C with a selection → copy; Ctrl+C without selection → pass (SIGINT); Shift+Enter → shift-enter; Ctrl+V → paste; everything else → pass. Co-located unit tests live in `terminal-keys.test.ts`.
 **Where**: `src/renderer/src/lib/terminal-keys.ts` (new)

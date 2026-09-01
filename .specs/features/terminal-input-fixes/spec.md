@@ -35,11 +35,12 @@ recognizes — neither of which the app provides.
 | --------------------- | -------------- | --------- | ---------- |
 | `TERM=xterm-256color` + `COLORTERM=truecolor` fix the banner | Yes — the degraded box-drawing/colors are Claude Code's documented response to a minimal `TERM` (issue #61569 family); 256color advertises the real capabilities of xterm.js | y |
 | `TERM_PROGRAM` is NOT claimed | UAT 2026-08-31: with `TERM_PROGRAM=WezTerm`, Claude Code enters kitty-protocol mode and its CSI-u parsing on Windows misbehaves (newline + submit on Shift+Enter). Without it, Claude stays in legacy mode where a line feed is the universal newline | y |
-| Shift+Enter sends a plain line feed (`\n`, 0x0A) | Same byte as Claude Code's documented Ctrl+J newline; works on every terminal, no protocol negotiation | y |
+| Shift+Enter / Ctrl+Enter send a plain line feed (`\n`, 0x0A) | Same byte as Claude Code's documented Ctrl+J newline; works on every terminal, no protocol negotiation | y |
+| Intercepted keydowns call `preventDefault` | xterm 6.0.0 only calls `preventDefault` when it processes the keydown itself; a bare `return false` lets the browser's follow-up `keypress` of Enter leak `\r` (root cause of "newline + submit", found by reading the xterm bundle) | y |
+| Terminal font is Cascadia Mono first, at every pane width | UAT 2026-08-31: the logo rendered broken with JetBrains Mono at ANY width (maximized = broken, narrow = correct; the only variable was the font — JetBrains lacks Claude's U+23BE/U+23BF corners, issue #39127). The user chose "Cascadia always" | y |
 | The app's env wins over `process.env` for `TERM`/`COLORTERM` | Forced after merging, because the whole point is to override a broken/missing environment | y |
 | xterm.js stays at 6.0.0 | No dependency change; newline is injected manually | y |
 | Paste via explicit handler | Intercept Ctrl+V with `preventDefault` + `navigator.clipboard.readText()` + `term.paste()`, avoiding double-paste from the browser's native event | y |
-| Terminal font fallbacks | `'JetBrains Mono', Consolas, 'Cascadia Mono', 'Segoe UI Symbol', monospace` — JetBrains Mono lacks the U+23BE/U+23BF corner glyphs Claude Code draws its boxed TUI with (issue #39127); the per-glyph fallbacks cover them | y |
 | Non-agent sessions (ad-hoc) get the same env | Yes — the env is applied at the PTY port, which serves every session type | y |
 | Validation is manual | TUI rendering and key chords need a live Claude session (repo convention: thin shells hand-verified; CDP smoke only) | y |
 | Remaining implicit dimensions (concurrency, auth, persistence, external calls) | N/A — renderer key handling and PTY env; no async beyond clipboard reads | y |
@@ -93,7 +94,8 @@ interrupt without one) and Ctrl+V to paste, like every modern terminal.
 - IF the clipboard read fails on Ctrl+V THEN the app SHALL do nothing and log the error (no crash, no partial paste). <!-- unwanted-behavior -->
 - IF the selection is empty/whitespace on Ctrl+C THEN the app SHALL forward the chord to the PTY (SIGINT). <!-- unwanted-behavior -->
 - IF the user presses Shift+Enter in a non-TUI shell THEN the shell SHALL receive a line feed and handle it like Enter (no visible side effect beyond the shell's own behavior). <!-- unwanted-behavior -->
-- WHILE the terminal has fewer than 100 columns the font stack SHALL include the box-drawing fallbacks; WHILE it has 100+ columns the default JetBrains Mono stack SHALL be used. <!-- state-driven -->
+- WHILE the terminal is rendered, its font family SHALL start with the Cascadia Mono fallback stack (`'Cascadia Mono', Consolas, 'JetBrains Mono', monospace`). <!-- state-driven -->
+- IF the user presses Shift+Enter or Ctrl+Enter while a program is not running (bare shell prompt) THEN the shell SHALL receive a line feed and behave as it would for an Enter. <!-- unwanted-behavior -->
 
 ---
 

@@ -73,10 +73,10 @@ export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
 
     const term = new Terminal({
       cursorBlink: true,
-      // JetBrains Mono lacks the corner glyphs (U+23BE/U+23BF) Claude Code
-      // uses for its boxed TUI; the fallbacks below cover them per-glyph
-      // (Consolas: box drawing; Segoe UI Symbol: miscellaneous symbols).
-      fontFamily: "'JetBrains Mono', Consolas, 'Cascadia Mono', 'Segoe UI Symbol', monospace",
+      // Cascadia Mono first: it is the Windows Terminal default the user sees
+      // rendering Claude Code correctly (full box-drawing + symbol coverage).
+      // JetBrains Mono lacks the U+23BE/U+23BF corner glyphs Claude draws.
+      fontFamily: "'Cascadia Mono', Consolas, 'JetBrains Mono', monospace",
       fontSize: 13,
       theme: readTheme()
     })

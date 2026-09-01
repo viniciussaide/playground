@@ -56,7 +56,7 @@ T1      T2
 
 **Status**: ✅ Complete
 
-**What**: Add a pure helper `buildPtyEnv(parentEnv)` that returns the PTY env with `TERM=xterm-256color`, `COLORTERM=truecolor` and `TERM_PROGRAM=WezTerm` forced after merging the parent env; use it in `pty-port.ts` (env + `name: 'xterm-256color'`). Co-located unit tests live in `terminal-env.test.ts`.
+**What**: Add a pure helper `buildPtyEnv(parentEnv)` that returns the PTY env with `TERM=xterm-256color` and `COLORTERM=truecolor` forced after merging the parent env (revised after UAT: `TERM_PROGRAM` is deliberately NOT claimed — Claude's CSI-u mode misbehaves on Windows); use it in `pty-port.ts` (env + `name: 'xterm-256color'`). Co-located unit tests live in `terminal-env.test.ts`.
 **Where**: `src/main/terminal-env.ts` (new)
 **Depends on**: None
 **Reuses**: `PtyPort.spawn` env merge shape (`{ ...process.env, ...env }`)
@@ -116,7 +116,7 @@ T1      T2
 
 **Status**: ✅ Complete
 
-**What**: In `TerminalPane.tsx`, extend the existing `attachCustomKeyEventHandler`: Ctrl+C with a selection copies (via `navigator.clipboard.writeText`) and returns false; Shift+Enter and Ctrl+Enter send a line feed (`\n`, 0x0A — revised after UAT: CSI-u misbehaves on Windows; the intercepted keydown gets `preventDefault` so the browser's follow-up keypress does not leak `\r`) via `term.input` and return false; Ctrl+V prevents default, reads the clipboard and calls `term.paste`, returning false; Ctrl+Shift+C keeps copying (unify with the classifier). Terminal font picks per pane width (INPUT-12): narrow panes (<100 cols) use the Cascadia Mono fallback stack, wide panes keep JetBrains Mono.
+**What**: In `TerminalPane.tsx`, extend the existing `attachCustomKeyEventHandler`: Ctrl+C with a selection copies (via `navigator.clipboard.writeText`) and returns false; Shift+Enter and Ctrl+Enter send a line feed (`\n`, 0x0A — revised after UAT: CSI-u misbehaves on Windows; the intercepted keydown gets `preventDefault` so the browser's follow-up keypress does not leak `\r`) via `term.input` and return false; Ctrl+V prevents default, reads the clipboard and calls `term.paste`, returning false; Ctrl+Shift+C keeps copying (unify with the classifier). Terminal font is the Cascadia Mono stack at every pane width (revised after UAT: JetBrains Mono lacks Claude's corner glyphs at any width).
 **Where**: `src/renderer/src/components/TerminalPane.tsx`
 **Depends on**: T2
 **Reuses**: The existing custom key handler (lines 90-97), `classifyTerminalKey`

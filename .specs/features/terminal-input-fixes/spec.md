@@ -64,7 +64,7 @@ the Claude-side refusal to parse extended keys.
 1. The PTY SHALL spawn with `TERM=xterm-256color` and `COLORTERM=truecolor` in its environment. <!-- ubiquitous -->
 2. The PTY SHALL NOT set `TERM_PROGRAM` (Claude Code's CSI-u mode misbehaves on Windows). <!-- ubiquitous -->
 3. WHEN the user runs Claude Code in a session THEN the banner SHALL render with box-drawing characters and the full color palette (manual check). <!-- event-driven -->
-4. WHEN the user presses Shift+Enter in the terminal THEN the app SHALL send a line feed (`\n`, 0x0A) to the PTY. <!-- event-driven -->
+4. WHEN the user presses Shift+Enter or Ctrl+Enter in the terminal THEN the app SHALL send a line feed (`\n`, 0x0A) to the PTY. <!-- event-driven -->
 5. WHEN the user presses Shift+Enter in Claude Code THEN a newline SHALL be inserted instead of the prompt submitting (manual check). <!-- event-driven -->
 
 **Independent Test**: Run `claude` in a session: banner renders correctly; type a line, press Shift+Enter, type another line — the prompt stays open with two lines.
@@ -92,7 +92,8 @@ interrupt without one) and Ctrl+V to paste, like every modern terminal.
 
 - IF the clipboard read fails on Ctrl+V THEN the app SHALL do nothing and log the error (no crash, no partial paste). <!-- unwanted-behavior -->
 - IF the selection is empty/whitespace on Ctrl+C THEN the app SHALL forward the chord to the PTY (SIGINT). <!-- unwanted-behavior -->
-- IF the user presses Shift+Enter in a non-TUI shell THEN the shell SHALL receive `ESC[13;2u` and ignore it harmlessly (bash/psh show no visible side effect). <!-- unwanted-behavior -->
+- IF the user presses Shift+Enter in a non-TUI shell THEN the shell SHALL receive a line feed and handle it like Enter (no visible side effect beyond the shell's own behavior). <!-- unwanted-behavior -->
+- WHILE the terminal has fewer than 100 columns the font stack SHALL include the box-drawing fallbacks; WHILE it has 100+ columns the default JetBrains Mono stack SHALL be used. <!-- state-driven -->
 
 ---
 
@@ -111,12 +112,13 @@ interrupt without one) and Ctrl+V to paste, like every modern terminal.
 | INPUT-09        | Edge | -      | Implementing |
 | INPUT-10        | Edge | -      | Implementing |
 | INPUT-11        | Edge | -      | Implementing |
+| INPUT-12        | Edge | -      | Implementing |
 
 **ID format:** `INPUT-[NUMBER]`
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 11 total, 11 mapped to tasks, 0 unmapped
+**Coverage:** 12 total, 12 mapped to tasks, 0 unmapped
 
 ---
 

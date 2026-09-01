@@ -3,6 +3,7 @@ import type { JSX } from 'react'
 import { FitAddon } from '@xterm/addon-fit'
 import { Terminal, type ITheme } from '@xterm/xterm'
 import { api } from '../lib/api'
+import { pickTerminalFont } from '../lib/terminal-font'
 import { classifyTerminalKey } from '../lib/terminal-keys'
 import '@xterm/xterm/css/xterm.css'
 import './TerminalPane.css'
@@ -73,10 +74,10 @@ export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
 
     const term = new Terminal({
       cursorBlink: true,
-      // Cascadia Mono first: it is the Windows Terminal default the user sees
-      // rendering Claude Code correctly (full box-drawing + symbol coverage).
-      // JetBrains Mono lacks the U+23BE/U+23BF corner glyphs Claude draws.
-      fontFamily: "'Cascadia Mono', Consolas, 'JetBrains Mono', monospace",
+      // Font picked per pane width (INPUT-12): narrow panes use the Cascadia
+      // Mono fallback stack (Claude Code's corner glyphs are missing from
+      // JetBrains Mono); wide panes keep the JetBrains Mono look.
+      fontFamily: pickTerminalFont(80),
       fontSize: 13,
       theme: readTheme()
     })
@@ -105,11 +106,11 @@ export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
         if (selection) navigator.clipboard.writeText(selection).catch(console.error)
         return false
       }
-      if (action === 'shift-enter') {
+      if (action === 'newline') {
         event.preventDefault()
-        // Line feed (Ctrl+J byte) — the one newline signal Claude Code honors
-        // on every terminal. CSI-u (`ESC[13;2u`) was tried first; Claude's
-        // CSI-u parsing on Windows misbehaves (newline + submit), UAT 2026-08-31.
+        // Line feed (Ctrl+J byte) — the one newline signal Claude Code and
+        // opencode honor on every terminal. CSI-u (`ESC[13;2u`) was tried
+        // first; Claude's CSI-u parsing on Windows misbehaves (UAT 2026-08-31).
         term.input('\n')
         return false
       }
@@ -145,6 +146,7 @@ export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
     // browser's resize delivery so rapid drags don't crash the PTY.
     const sendResize = (): void => {
       fit.fit()
+      term.options.fontFamily = pickTerminalFont(term.cols)
       api.send('session:resize', { id: sessionId, cols: term.cols, rows: term.rows })
     }
     sendResize()

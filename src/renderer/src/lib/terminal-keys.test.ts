@@ -21,8 +21,9 @@ describe('classifyTerminalKey', () => {
     expect(classifyTerminalKey(key({ ctrlKey: true, code: 'KeyV' }), false)).toBe('paste')
   })
 
-  it('reports Shift+Enter as shift-enter (INPUT-04)', () => {
-    expect(classifyTerminalKey(key({ shiftKey: true, key: 'Enter' }), false)).toBe('shift-enter')
+  it('reports Shift+Enter and Ctrl+Enter as newline (INPUT-04)', () => {
+    expect(classifyTerminalKey(key({ shiftKey: true, key: 'Enter' }), false)).toBe('newline')
+    expect(classifyTerminalKey(key({ ctrlKey: true, key: 'Enter' }), false)).toBe('newline')
   })
 
   it('passes every other chord through untouched', () => {

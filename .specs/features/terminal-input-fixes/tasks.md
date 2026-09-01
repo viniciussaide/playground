@@ -116,7 +116,7 @@ T1      T2
 
 **Status**: ✅ Complete
 
-**What**: In `TerminalPane.tsx`, extend the existing `attachCustomKeyEventHandler`: Ctrl+C with a selection copies (via `navigator.clipboard.writeText`) and returns false; Shift+Enter sends a line feed (`\n`, 0x0A — revised after UAT: CSI-u misbehaves on Windows) via `term.input` and returns false; Ctrl+V prevents default, reads the clipboard and calls `term.paste`, returning false; Ctrl+Shift+C keeps copying (unify with the classifier). Terminal font stack gains box-drawing/symbol fallbacks (UAT: JetBrains Mono lacks the U+23BE/U+23BF corners Claude Code draws).
+**What**: In `TerminalPane.tsx`, extend the existing `attachCustomKeyEventHandler`: Ctrl+C with a selection copies (via `navigator.clipboard.writeText`) and returns false; Shift+Enter and Ctrl+Enter send a line feed (`\n`, 0x0A — revised after UAT: CSI-u misbehaves on Windows; the intercepted keydown gets `preventDefault` so the browser's follow-up keypress does not leak `\r`) via `term.input` and return false; Ctrl+V prevents default, reads the clipboard and calls `term.paste`, returning false; Ctrl+Shift+C keeps copying (unify with the classifier). Terminal font picks per pane width (INPUT-12): narrow panes (<100 cols) use the Cascadia Mono fallback stack, wide panes keep JetBrains Mono.
 **Where**: `src/renderer/src/components/TerminalPane.tsx`
 **Depends on**: T2
 **Reuses**: The existing custom key handler (lines 90-97), `classifyTerminalKey`

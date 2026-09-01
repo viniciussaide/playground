@@ -97,11 +97,16 @@ export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
     term.attachCustomKeyEventHandler((event) => {
       const action = classifyTerminalKey(event, term.getSelection().trim().length > 0)
       if (action === 'copy-selection') {
+        // preventDefault suppresses the browser's follow-up keypress (xterm
+        // 6.0 only calls preventDefault when it processes the keydown itself;
+        // a bare return false lets a keypress of Ctrl+C/Enter through).
+        event.preventDefault()
         const selection = term.getSelection()
         if (selection) navigator.clipboard.writeText(selection).catch(console.error)
         return false
       }
       if (action === 'shift-enter') {
+        event.preventDefault()
         // Line feed (Ctrl+J byte) — the one newline signal Claude Code honors
         // on every terminal. CSI-u (`ESC[13;2u`) was tried first; Claude's
         // CSI-u parsing on Windows misbehaves (newline + submit), UAT 2026-08-31.

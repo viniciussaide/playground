@@ -66,6 +66,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/renderer/src/components/TerminalPane.tsx:95 (src/renderer/src/components)
 - last seen: 2026-09-01T00:11:37Z
 
+### L-011 - Before validating a payload AC, reconcile the spec wording with the design's contract shape: PARENT-02 claimed WorkItemDetails while the design (and the template consumer) only need {id,title} — a spec-precision gap flagged by the Verifier
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `ado-gateway` · harmful: 0
+- features: branch-template-nested
+- evidence: PARENT-02 (ado-gateway)
+- last seen: 2026-09-01T21:50:13Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

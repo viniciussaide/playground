@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 11,
+  "next_id": 12,
   "lessons": [
     {
       "id": "L-001",
@@ -170,6 +170,24 @@
       ],
       "created": "2026-09-01T00:11:37Z",
       "last_seen": "2026-09-01T00:11:37Z"
+    },
+    {
+      "id": "L-011",
+      "key": "spec_precision_gap::before validating a payload ac reconcile the spec wording with the design s contract shape parent 02 claimed workitemdetails while the design and the template consumer only need id title a spec precision gap flagged by the verifier",
+      "text": "Before validating a payload AC, reconcile the spec wording with the design's contract shape: PARENT-02 claimed WorkItemDetails while the design (and the template consumer) only need {id,title} — a spec-precision gap flagged by the Verifier",
+      "signal": "spec_precision_gap",
+      "scope": "ado-gateway",
+      "status": "candidate",
+      "features": [
+        "branch-template-nested"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "PARENT-02 (ado-gateway)"
+      ],
+      "created": "2026-09-01T21:50:13Z",
+      "last_seen": "2026-09-01T21:50:13Z"
     }
   ]
 }

@@ -66,6 +66,24 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: src/renderer/src/components/TerminalPane.tsx:95 (src/renderer/src/components)
 - last seen: 2026-09-01T00:11:37Z
 
+### L-011 - When an AC names a literal byte or string the app must emit, export that literal as a const from the tested lib seam and assert it (plus assert it is NOT the wrong value) - a literal inlined in an untested component leaves a NOT-SHALL-send AC unguarded and a byte flip passes the whole suite.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `src/renderer/src/lib,src/renderer/src/components` · harmful: 0
+- features: terminal-copy-undo-fixes
+- evidence: M11 TerminalPane.tsx:134 (src/renderer/src/lib,src/renderer/src/components)
+- last seen: 2026-09-09T21:51:27Z
+
+### L-012 - Under a no-component-tests convention, push every AC-bearing decision (timestamp restart, trim threshold, preventDefault ordering) into the pure lib function and leave only DOM/clipboard calls in the component - state left in the component is verifiable by reading only and regresses silently.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `src/renderer/src/components` · harmful: 0
+- features: terminal-copy-undo-fixes
+- evidence: M12-M16 TerminalPane.tsx:104,123,199,203,206 (src/renderer/src/components)
+- last seen: 2026-09-09T21:51:28Z
+
+### L-013 - An AC that starts a timer 'WHEN the app copies X' must state explicitly whether an attempted copy of nothing also starts it - the implementation set the timestamp before the empty-selection guard, a behavior no AC covers and no test can flag.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `.specs/features` · harmful: 0
+- features: terminal-copy-undo-fixes
+- evidence: TCU-05 vs TCU-19 (.specs/features)
+- last seen: 2026-09-09T21:51:28Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

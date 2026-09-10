@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { JSX, KeyboardEvent } from 'react'
 import type { AgentDef } from '../../../shared/agents'
+import { undoByteFor } from '../lib/terminal-keys'
 import type { SessionView } from '../../../shared/config'
 import type { PinnedTaskView } from '../../../shared/tasks'
 import type { WorkspaceNode } from '../../../shared/tree'
@@ -243,7 +244,11 @@ function SessionDetail({
       </div>
 
       {running ? (
-        <TerminalPane key={session.id} sessionId={session.id} />
+        <TerminalPane
+          key={session.id}
+          sessionId={session.id}
+          undoByte={undoByteFor(agents, session.agent)}
+        />
       ) : (
         <div className="agents-detail-stopped">
           <p>This session is stopped.</p>

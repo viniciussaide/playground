@@ -20,6 +20,14 @@ export interface AgentDef {
   icon?: string
   /** Tile tint token (handoff agent→colour, e.g. `--accent`); default token when unset. */
   color?: string
+  /**
+   * The byte Ctrl+Z must put on this agent's PTY (TCU-01). TUIs disagree:
+   * Claude Code binds undo to Ctrl+_ (US, 0x1F) and treats Ctrl+Z as suspend,
+   * while opencode's `input_undo` default is literally ctrl+z. Unset means the
+   * terminal default, SUB (0x1A) — the app only deviates where an agent is
+   * known to need it.
+   */
+  undoByte?: string
 }
 
 export interface SpawnPlan {

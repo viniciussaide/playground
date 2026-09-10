@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 11,
+  "next_id": 14,
   "lessons": [
     {
       "id": "L-001",
@@ -170,6 +170,60 @@
       ],
       "created": "2026-09-01T00:11:37Z",
       "last_seen": "2026-09-01T00:11:37Z"
+    },
+    {
+      "id": "L-011",
+      "key": "surviving_mutant::when an ac names a literal byte or string the app must emit export that literal as a const from the tested lib seam and assert it plus assert it is not the wrong value a literal inlined in an untested component leaves a not shall send ac unguarded and a byte flip passes the whole suite",
+      "text": "When an AC names a literal byte or string the app must emit, export that literal as a const from the tested lib seam and assert it (plus assert it is NOT the wrong value) - a literal inlined in an untested component leaves a NOT-SHALL-send AC unguarded and a byte flip passes the whole suite.",
+      "signal": "surviving_mutant",
+      "scope": "src/renderer/src/lib,src/renderer/src/components",
+      "status": "candidate",
+      "features": [
+        "terminal-copy-undo-fixes"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "M11 TerminalPane.tsx:134 (src/renderer/src/lib,src/renderer/src/components)"
+      ],
+      "created": "2026-09-09T21:51:27Z",
+      "last_seen": "2026-09-09T21:51:27Z"
+    },
+    {
+      "id": "L-012",
+      "key": "surviving_mutant::under a no component tests convention push every ac bearing decision timestamp restart trim threshold preventdefault ordering into the pure lib function and leave only dom clipboard calls in the component state left in the component is verifiable by reading only and regresses silently",
+      "text": "Under a no-component-tests convention, push every AC-bearing decision (timestamp restart, trim threshold, preventDefault ordering) into the pure lib function and leave only DOM/clipboard calls in the component - state left in the component is verifiable by reading only and regresses silently.",
+      "signal": "surviving_mutant",
+      "scope": "src/renderer/src/components",
+      "status": "candidate",
+      "features": [
+        "terminal-copy-undo-fixes"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "M12-M16 TerminalPane.tsx:104,123,199,203,206 (src/renderer/src/components)"
+      ],
+      "created": "2026-09-09T21:51:28Z",
+      "last_seen": "2026-09-09T21:51:28Z"
+    },
+    {
+      "id": "L-013",
+      "key": "spec_precision_gap::an ac that starts a timer when the app copies x must state explicitly whether an attempted copy of nothing also starts it the implementation set the timestamp before the empty selection guard a behavior no ac covers and no test can flag",
+      "text": "An AC that starts a timer 'WHEN the app copies X' must state explicitly whether an attempted copy of nothing also starts it - the implementation set the timestamp before the empty-selection guard, a behavior no AC covers and no test can flag.",
+      "signal": "spec_precision_gap",
+      "scope": ".specs/features",
+      "status": "candidate",
+      "features": [
+        "terminal-copy-undo-fixes"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "TCU-05 vs TCU-19 (.specs/features)"
+      ],
+      "created": "2026-09-09T21:51:28Z",
+      "last_seen": "2026-09-09T21:51:28Z"
     }
   ]
 }

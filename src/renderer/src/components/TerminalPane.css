@@ -2,6 +2,8 @@
  * paints its own background from the theme passed in TerminalPane.tsx. */
 
 .terminal-pane {
+  /* Positioning context for the copy confirmation chip below. */
+  position: relative;
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -19,4 +21,33 @@
 .terminal-pane .xterm-viewport::-webkit-scrollbar-thumb {
   background: var(--border-strong);
   border-radius: 6px;
+}
+
+/* Transient "Copied" confirmation for a right-click copy (TCU-28). A copy is
+ * otherwise completely invisible: with mouse reporting on, the selection is
+ * already gone by the time the click lands, so without this the user cannot
+ * tell a successful copy from nothing happening at all. */
+.terminal-copied {
+  position: absolute;
+  right: 14px;
+  /* Top, not bottom: both agent TUIs draw their input box along the bottom
+   * edge, which is exactly where the user is looking and typing. */
+  top: 10px;
+  /* Above every xterm layer — they go up to z-index 11, and .xterm creates no
+   * stacking context of its own, so an unlayered chip paints underneath. */
+  z-index: 20;
+  padding: 3px 9px;
+  border-radius: 5px;
+  font:
+    500 11px/1.4 system-ui,
+    sans-serif;
+  color: var(--bg);
+  background: var(--green);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 140ms ease-out;
+}
+
+.terminal-copied.is-visible {
+  opacity: 0.92;
 }

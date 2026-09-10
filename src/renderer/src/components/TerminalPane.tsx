@@ -3,12 +3,20 @@ import type { JSX } from 'react'
 import { FitAddon } from '@xterm/addon-fit'
 import { Terminal, type ITheme } from '@xterm/xterm'
 import { api } from '../lib/api'
-import { classifyTerminalKey } from '../lib/terminal-keys'
+import {
+  classifyTerminalKey,
+  classifyTerminalMouse,
+  COPIED_FEEDBACK_MS,
+  selectionForRightClick
+} from '../lib/terminal-keys'
 import '@xterm/xterm/css/xterm.css'
 import './TerminalPane.css'
 
 interface TerminalPaneProps {
   sessionId: string
+  /** Byte Ctrl+Z sends on this session's PTY, resolved from the agent registry
+   * by `undoByteFor` — TUIs disagree on it (TCU-01). */
+  undoByte: string
 }
 
 /** Reads a CSS custom property off <html>, falling back when unset. */
@@ -64,12 +72,37 @@ function readTheme(): ITheme {
  * readTheme() — the full token→ANSI palette map, re-emitted on theme toggle
  * via a MutationObserver below (handoff §Terminal theming, AGCF-07).
  */
-export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
+export function TerminalPane({ sessionId, undoByte }: TerminalPaneProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
+
+    // Timestamp of the last Ctrl+C this pane handled as a copy or discarded.
+    // Declared inside the effect so it dies with the pane and never leaks a
+    // grace window across a session switch (TCU-09).
+    const lastCopyAt = { current: null as number | null }
+
+    // The last non-empty selection xterm reported. With mouse reporting on, a
+    // Shift+drag selection is wiped the instant the button is released, so by
+    // right-click time the live value is empty and this is the only record of
+    // what the user picked (TCU-25).
+    let rememberedSelection = ''
+
+    // Transient confirmation for a right-click copy. Without it the action is
+    // invisible — the selection is already cleared by then — and a successful
+    // copy is indistinguishable from nothing happening (TCU-28).
+    const copied = document.createElement('div')
+    copied.className = 'terminal-copied'
+    copied.textContent = 'Copiado'
+    container.appendChild(copied)
+    let copiedTimer: ReturnType<typeof setTimeout> | undefined
+    const flashCopied = (): void => {
+      copied.classList.add('is-visible')
+      clearTimeout(copiedTimer)
+      copiedTimer = setTimeout(() => copied.classList.remove('is-visible'), COPIED_FEEDBACK_MS)
+    }
 
     const term = new Terminal({
       cursorBlink: true,
@@ -96,14 +129,38 @@ export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
     // paste event reaching xterm's hidden textarea. Returning false stops
     // xterm from forwarding the chord to the shell.
     term.attachCustomKeyEventHandler((event) => {
-      const action = classifyTerminalKey(event, term.getSelection().trim().length > 0)
+      const action = classifyTerminalKey(event, term.getSelection().trim().length > 0, {
+        now: Date.now(),
+        lastCopyAt: lastCopyAt.current
+      })
       if (action === 'copy-selection') {
         // preventDefault suppresses the browser's follow-up keypress (xterm
         // 6.0 only calls preventDefault when it processes the keydown itself;
         // a bare return false lets a keypress of Ctrl+C/Enter through).
         event.preventDefault()
         const selection = term.getSelection()
+        // The window opens on the attempt, not on the clipboard's success:
+        // a failed write still means the user meant to copy, not to kill the
+        // agent (TCU-16).
+        lastCopyAt.current = Date.now()
         if (selection) navigator.clipboard.writeText(selection).catch(console.error)
+        return false
+      }
+      if (action === 'swallow') {
+        // The second tap of a reflexive Ctrl+C-Ctrl+C, after the agent's TUI
+        // redrew and wiped the selection. Discard it and restart the window
+        // so an entire burst stays harmless (TCU-06, TCU-07).
+        event.preventDefault()
+        lastCopyAt.current = Date.now()
+        return false
+      }
+      if (action === 'undo') {
+        event.preventDefault()
+        // Whose byte this is depends on the agent: Claude Code wants US
+        // (0x1F, what Ctrl+_ produces) because Ctrl+Z is suspend there, while
+        // opencode binds input_undo to ctrl+z and wants the plain SUB
+        // (TCU-01, TCU-02).
+        term.input(undoByte)
         return false
       }
       if (action === 'newline') {
@@ -162,6 +219,74 @@ export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
       attributeFilter: ['data-theme']
     })
 
+    // Right-click = copy-or-paste, no menu (TCU-10..14).
+    //
+    // Both listeners are on the container in the CAPTURE phase, and both stop
+    // propagation, because xterm registers its own `contextmenu` handler on
+    // the inner element (`rightClickHandler`: it moves the hidden textarea
+    // under the cursor, refills it with the selection and re-selects it, so a
+    // native menu can act on it). Two handlers deciding one right-click fired
+    // copy and paste off the same click (UAT 2026-09-09). Capturing on the
+    // parent runs first and keeps the event from ever descending to xterm.
+    //
+    // The decision is taken on mousedown, the earliest point in the gesture.
+    //
+    // It reads the REMEMBERED selection, not only the live one: releasing the
+    // left button clears a Shift+drag selection immediately, so the live value
+    // is already empty when the right-click lands (measured 2026-09-09, both
+    // agents: mouseTracking "any", selection 0). Remembering is what makes
+    // Shift+drag copy at all (TCU-25).
+    const onRightMouseDown = (event: MouseEvent): void => {
+      const selection = selectionForRightClick(term.getSelection(), rememberedSelection)
+      const action = classifyTerminalMouse(
+        event,
+        selection.trim().length > 0,
+        term.modes.mouseTrackingMode !== 'none'
+      )
+      // 'none' covers a non-right button AND a right-click the agent owns the
+      // mouse for: in both cases the event is left alone so it reaches xterm
+      // and, through it, the agent (TCU-27).
+      if (action === 'none') {
+        // A left click is how a selection is dismissed, so it also forgets the
+        // remembered one (TCU-26).
+        if (event.button === 0) rememberedSelection = ''
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+      if (action === 'copy-selection') {
+        lastCopyAt.current = Date.now()
+        rememberedSelection = ''
+        // Clearing is what lets the next right-click reach the paste branch,
+        // and it matches Windows Terminal (TCU-11).
+        term.clearSelection()
+        flashCopied()
+        navigator.clipboard.writeText(selection).catch(console.error)
+        return
+      }
+      navigator.clipboard
+        .readText()
+        // An empty clipboard must not emit a byte to the PTY (TCU-18).
+        .then((text) => {
+          if (text) term.paste(text)
+        })
+        .catch(console.error)
+    }
+    const onContextMenu = (event: MouseEvent): void => {
+      // Suppressed for everything that reaches this listener, so a Shift+F10
+      // or Menu-key press still never pops the browser menu (TCU-14).
+      event.preventDefault()
+      event.stopPropagation()
+    }
+    // Record every non-empty selection as xterm reports it; the mouseup that
+    // follows a Shift+drag clears the live one immediately (TCU-25).
+    const selectionSub = term.onSelectionChange(() => {
+      const current = term.getSelection()
+      if (current.trim()) rememberedSelection = current
+    })
+    container.addEventListener('mousedown', onRightMouseDown, true)
+    container.addEventListener('contextmenu', onContextMenu, true)
+
     term.focus()
 
     return () => {
@@ -169,6 +294,11 @@ export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
       // later re-attach can replay. Switching sessions detaches the old here and
       // attaches the new on the next mount (sessionId is the effect key).
       api.invoke('sessions:detach', { id: sessionId }).catch(console.error)
+      container.removeEventListener('mousedown', onRightMouseDown, true)
+      container.removeEventListener('contextmenu', onContextMenu, true)
+      clearTimeout(copiedTimer)
+      copied.remove()
+      selectionSub.dispose()
       observer.disconnect()
       themeObserver.disconnect()
       offData()
@@ -176,7 +306,7 @@ export function TerminalPane({ sessionId }: TerminalPaneProps): JSX.Element {
       inputSub.dispose()
       term.dispose()
     }
-  }, [sessionId])
+  }, [sessionId, undoByte])
 
   return <div ref={containerRef} className="terminal-pane" />
 }

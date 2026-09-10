@@ -164,7 +164,7 @@ describe('parseChildRefs', () => {
 })
 
 describe('parseParentRefs', () => {
-  it('maps only Hierarchy-Reverse relations to parent refs — tail id, parent org/project', () => {
+  it('maps only Hierarchy-Reverse relations to parent refs — tail id, child org/project', () => {
     const parents = parseParentRefs(
       [
         {
@@ -173,7 +173,7 @@ describe('parseParentRefs', () => {
         },
         {
           rel: 'System.LinkTypes.Hierarchy-Reverse',
-          url: 'https://dev.azure.com/o/p/_apis/wit/workItems/1'
+          url: 'https://dev.azure.com/o/p/_apis/wit/workItems/3'
         },
         {
           rel: 'System.LinkTypes.Related',
@@ -181,14 +181,15 @@ describe('parseParentRefs', () => {
         },
         {
           rel: 'System.LinkTypes.Hierarchy-Reverse',
-          url: 'https://dev.azure.com/o/p/_apis/wit/workItems/2'
+          url: 'https://dev.azure.com/o/p/_apis/wit/workItems/4'
         }
       ],
-      { id: 3, org: 'acme', project: 'web' }
-    )
-    expect(parents).toEqual([
-      { id: 1, org: 'acme', project: 'web' },
       { id: 2, org: 'acme', project: 'web' }
+    )
+    // Only reverse links; id is the url tail; org/project come from the child.
+    expect(parents).toEqual([
+      { id: 3, org: 'acme', project: 'web' },
+      { id: 4, org: 'acme', project: 'web' }
     ])
   })
 

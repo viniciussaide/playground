@@ -12,16 +12,16 @@ review, Verifier, discrimination sensor).
 ---
 
 **Design**: `.specs/features/session-resume-on-respawn/design.md`
-**Status**: Planned (T1–T5 not yet started)
+**Status**: T1 done; T2–T5 pending
 **Branch**: `feature/session-resume-on-respawn` (born from `main`, per the fork workflow)
-**Baseline**: 706 tests / 44 files green (measured on `develop` 2026-09-10, `npx vitest run --maxWorkers=2`)
+**Baseline**: 668 tests / 44 files green (measured on `main` 2026-09-10, `npx vitest run --maxWorkers=2`)
 **Final**: (fill on completion)
 
 ## Execution Record
 
 | Task | Commit | Tests added | Notes |
 | ---- | ------ | ----------- | ----- |
-| T1 | | | |
+| T1 | | +3 | shared `commandKey` created fresh (nothing to move on `main`) |
 | T2 | | | |
 | T3 | | | |
 | T4 | | | |
@@ -94,32 +94,32 @@ T4 → T5
 
 ## Task Breakdown
 
-### T1: Move `commandKey` to shared
+### T1: Create shared `commandKey`
 
-**What**: Extract `commandKey()` from `src/renderer/lib/terminal-keys.ts` into
-`src/shared/command-key.ts` (exported), and have `terminal-keys.ts` import it. Main-side
-capture must not import renderer code, and the mechanism lookup needs the same normalization
-`undoByteFor` already relies on.
-**Where**: `src/shared/command-key.ts` (new), `src/shared/command-key.test.ts` (new),
-`src/renderer/lib/terminal-keys.ts` (modify)
+**What**: `commandKey()` — bare command name, lowercased, path and `.exe`/`.cmd`/`.bat`
+stripped — as the canonical normalized identity in `src/shared/command-key.ts`. **Deviation
+from the design:** on `main` the renderer `terminal-keys.ts` has no `commandKey` yet (that
+copy lands upstream via the pending `terminal-copy-undo-fixes` PR), so there is nothing to
+move; the seam creates the definition fresh in shared, and the future renderer copy should
+import it rather than duplicate. Same requirement (RSMR-13), same outcome.
+**Where**: `src/shared/command-key.ts` (new), `src/shared/command-key.test.ts` (new)
 **Depends on**: None
-**Reuses**: the existing `commandKey` body verbatim (`terminal-keys.ts:72-75`)
+**Reuses**: the `commandKey` body as defined on `develop` (`terminal-keys.ts:72-75`)
 **Requirement**: RSMR-13 (mechanism keyed on normalized command)
 
 **Tools**: MCP: NONE · Skill: NONE
 
 **Done when**:
 
-- [ ] `src/shared/command-key.ts` exports `commandKey`; `terminal-keys.ts` imports it and its
-      behavior is unchanged (existing `undoByteFor` tests pass untouched)
-- [ ] New direct tests: `C:\...\claude.exe` and `claude` and `CLAUDE` all key to `claude`;
+- [x] `src/shared/command-key.ts` exports `commandKey`
+- [x] New direct tests: `C:\...\claude.exe` and `claude` and `CLAUDE` all key to `claude`;
       `.cmd`/`.bat` suffixes stripped; a bare path segment survives
-- [ ] `npm run typecheck` clean; quick gate passes: `npm test`
-- [ ] Test count: 706 → **709** (+3), zero deletions
+- [x] `npm run typecheck` clean; quick gate passes: `npm test`
+- [x] Test count: 668 → **671** (+3), zero deletions
 
 **Tests**: unit
 **Gate**: quick
-**Commit**: `refactor(shared): extract commandKey to src/shared for main-side reuse`
+**Commit**: `refactor(shared): add commandKey normalized-agent identity for main-side reuse`
 
 ---
 
@@ -155,7 +155,7 @@ fixtures already recorded in `.specs/features/session-resume-on-respawn/fixtures
       cwd → `['--continue']` (RSMR-10); continue-agent + no prior → `[]` (RSMR-23); several
       matching sessions → the last in array order (RSMR-24)
 - [ ] Quick gate passes: `npm test`
-- [ ] Test count: 709 → **719** (+10), zero deletions
+- [ ] Test count: 671 → **681** (+10), zero deletions
 
 **Tests**: unit
 **Gate**: quick
@@ -184,7 +184,7 @@ fixtures already recorded in `.specs/features/session-resume-on-respawn/fixtures
 - [ ] A resume arg containing shell metacharacters is quoted, not re-split (RSMR-17's
       byte-identical guarantee is about the absent case)
 - [ ] Quick gate passes: `npm test`
-- [ ] Test count: 719 → **722** (+3), zero deletions
+- [ ] Test count: 681 → **684** (+3), zero deletions
 
 **Tests**: unit
 **Gate**: quick
@@ -227,9 +227,9 @@ harness (`session-manager.test.ts:89-109`) with `emitData` feeding capture
       (RSMR-10/13)
 - [ ] `duplicate` does not copy `agentSessionId` (RSMR-21); `remove` drops it (RSMR-22);
       `rename` keeps it (RSMR-23)
-- [ ] Existing 706 tests stay green (no regression in spawn/respawn/ad-hoc behaviour)
+- [ ] Existing 668 tests stay green (no regression in spawn/respawn/ad-hoc behaviour)
 - [ ] Full gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: 722 → **735** (+13), zero deletions
+- [ ] Test count: 684 → **697** (+13), zero deletions
 
 **Tests**: unit
 **Gate**: full

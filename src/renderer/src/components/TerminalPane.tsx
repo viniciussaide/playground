@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { JSX } from 'react'
+import { UnicodeGraphemesAddon } from '@xterm/addon-unicode-graphemes'
 import { FitAddon } from '@xterm/addon-fit'
 import { Terminal, type ITheme } from '@xterm/xterm'
 import { api } from '../lib/api'
@@ -112,10 +113,23 @@ export function TerminalPane({ sessionId, undoByte }: TerminalPaneProps): JSX.El
       // maximized, correct narrow; the only variable was the font).
       fontFamily: "'Cascadia Mono', Consolas, 'JetBrains Mono', monospace",
       fontSize: 13,
-      theme: readTheme()
+      theme: readTheme(),
+      // Unicode width/grapheme handling needs the experimental unicode API
+      // (UNIC-01..13): without this, term.unicode throws on access and the
+      // terminal never opens (verifier probe, 2026-09-10).
+      allowProposedApi: true
     })
     const fit = new FitAddon()
     term.loadAddon(fit)
+    // Unicode 15 widths + grapheme clustering (UNIC-01..13). xterm 6.0.0
+    // measures cells with Unicode 6 tables by default, and even the Unicode 11
+    // tables measure code points in isolation — an emoji-presentation sequence
+    // like U+27A1 U+FE0F reserves 1 cell while the font paints a 2-cell emoji,
+    // pulling the following text left and reflowing the line on selection.
+    // The addon registers the v15/v15-graphemes providers and activates
+    // '15-graphemes' itself, folding VS16/ZWJ/regional sequences into one
+    // grapheme with the right width.
+    term.loadAddon(new UnicodeGraphemesAddon())
     term.open(container)
     fit.fit()
 

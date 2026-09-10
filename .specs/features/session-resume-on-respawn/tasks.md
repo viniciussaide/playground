@@ -1,0 +1,264 @@
+# Session Resume on Respawn — Tasks
+
+## Execution Protocol (MANDATORY -- do not skip)
+
+Implement these tasks with the `tlc-spec-driven` skill: **activate it by name and follow its
+Execute flow and Critical Rules.** Do not search for skill files by filesystem path. The skill
+is the source of truth for the full flow (per-task cycle, sub-agent delegation, adequacy
+review, Verifier, discrimination sensor).
+
+**If the skill cannot be activated, STOP and tell the user — do not proceed without it.**
+
+---
+
+**Design**: `.specs/features/session-resume-on-respawn/design.md`
+**Status**: Planned (T1–T5 not yet started)
+**Branch**: `feature/session-resume-on-respawn` (born from `main`, per the fork workflow)
+**Baseline**: 706 tests / 44 files green (measured on `develop` 2026-09-10, `npx vitest run --maxWorkers=2`)
+**Final**: (fill on completion)
+
+## Execution Record
+
+| Task | Commit | Tests added | Notes |
+| ---- | ------ | ----------- | ----- |
+| T1 | | | |
+| T2 | | | |
+| T3 | | | |
+| T4 | | | |
+| T5 | | | |
+
+---
+
+## Test Coverage Matrix
+
+| Code Layer | Required Test Type | Coverage Expectation | Location Pattern | Run Command |
+| ---------- | ------------------ | -------------------- | ---------------- | ----------- |
+| `resume-mechanism` (pure table/extraction/resolution) | **unit** | All branches; 1:1 to RSMR-09..17; fixture-backed parse (RSMR-14/15) | `src/main/resume-mechanism.test.ts` | `npm test` |
+| `command-key` (shared move) | **unit** | strip path/`.exe`/`.cmd`/`.bat`, lowercase | `src/shared/command-key.test.ts` | `npm test` |
+| `spawn-plan` (resumeArgs injection) | **unit** | appended after `agent.args`, per-shell quoting; absent = byte-identical (RSMR-07/16/17) | `src/main/spawn-plan.test.ts` | `npm test` |
+| `session-manager` (orchestration) | **unit** | capture retain; persist at stop/onExit/**killAll**; respawn/spawn injection; duplicate/remove/rename (RSMR-01..13, RSMR-18..25) | `src/main/session-manager.test.ts` | `npm test` |
+| `shared/config.ts` (optional field) | none | typecheck gate only (additive) | — | build gate |
+| Renderer (`terminal-keys.ts` import swap), `index.ts` | none | no behavior change; existing suites green | — | build gate |
+
+**Convention note:** the repo explicitly unit-tests main-process logic and thin OS/Electron
+shells are hand-verified (`TESTING.md`). This feature adds **no renderer UI and no IPC** — the
+entire surface is main-side and unit-testable with the existing `makeManager`/fake-`PtyPort`
+harness (`session-manager.test.ts:89-109`). No mocking library (`vi.mock` is unused here).
+
+## Parallelism Assessment
+
+| Test Type | Parallel-Safe? | Isolation Model | Evidence |
+| --------- | -------------- | --------------- | -------- |
+| Unit (injected fake) | **Yes** | Per-test `makeManager()` temp-dir `ConfigStore` + hand-rolled fake `PtyPort`/`emit` | `session-manager.test.ts` |
+| Unit (fixture-backed) | **Yes** | Read-only fixture files under `.specs/features/…/fixtures/` | precedent: `terminal-keys`/spike fixtures |
+| Real-git suites | **Yes** (under `--maxWorkers=2`) | per-test temp dirs | repo-wide note (L-005) |
+
+## Gate Check Commands
+
+| Gate Level | When to Use | Command |
+| ---------- | ----------- | ------- |
+| Quick | After tasks with unit tests only | `npm test` |
+| Full | Before PR | `npm run typecheck && npm run lint && npm test` |
+| Build | After phase completion | `npm run build` |
+
+> `npm test` with default workers is unreliable for the real-git suites on this machine —
+> run `npx vitest run --maxWorkers=2` (see `worktree-post-create-hook/tasks.md` environment note).
+
+---
+
+## Execution Plan
+
+**3 phases → executed inline** (the sub-agent offer threshold is >3 phases). The always-on
+Verifier still runs as a fresh sub-agent after T5.
+
+### Phase 1: Main-process logic (Sequential)
+
+```
+T1 → T2 → T3
+```
+
+### Phase 2: Orchestration (Sequential)
+
+```
+T2 → T4
+T3 → T4
+```
+
+### Phase 3: Docs (Sequential)
+
+```
+T4 → T5
+```
+
+---
+
+## Task Breakdown
+
+### T1: Move `commandKey` to shared
+
+**What**: Extract `commandKey()` from `src/renderer/lib/terminal-keys.ts` into
+`src/shared/command-key.ts` (exported), and have `terminal-keys.ts` import it. Main-side
+capture must not import renderer code, and the mechanism lookup needs the same normalization
+`undoByteFor` already relies on.
+**Where**: `src/shared/command-key.ts` (new), `src/shared/command-key.test.ts` (new),
+`src/renderer/lib/terminal-keys.ts` (modify)
+**Depends on**: None
+**Reuses**: the existing `commandKey` body verbatim (`terminal-keys.ts:72-75`)
+**Requirement**: RSMR-13 (mechanism keyed on normalized command)
+
+**Tools**: MCP: NONE · Skill: NONE
+
+**Done when**:
+
+- [ ] `src/shared/command-key.ts` exports `commandKey`; `terminal-keys.ts` imports it and its
+      behavior is unchanged (existing `undoByteFor` tests pass untouched)
+- [ ] New direct tests: `C:\...\claude.exe` and `claude` and `CLAUDE` all key to `claude`;
+      `.cmd`/`.bat` suffixes stripped; a bare path segment survives
+- [ ] `npm run typecheck` clean; quick gate passes: `npm test`
+- [ ] Test count: 706 → **709** (+3), zero deletions
+
+**Tests**: unit
+**Gate**: quick
+**Commit**: `refactor(shared): extract commandKey to src/shared for main-side reuse`
+
+---
+
+### T2: Resume-mechanism seam (table + extraction + resolution)
+
+**What**: `RESUME_MECHANISMS` table keyed by `commandKey`, `resolveMechanism`,
+`extractResumeId` (last `ses_[A-Za-z0-9]+` on ANSI-stripped text), and `resolveResumeArgs`
+(spawn-new: id from the last matching session, or `--continue` iff a prior session exists).
+Fixtures: the recorded `opencode-help.txt`, `claude-help.txt`, `opencode-session-list.json`.
+**Where**: `src/main/resume-mechanism.ts` (new), `src/main/resume-mechanism.test.ts` (new);
+fixtures already recorded in `.specs/features/session-resume-on-respawn/fixtures/`
+**Depends on**: T1 (`commandKey`)
+**Reuses**: `commandKey`; the recorded fixtures
+**Requirement**: RSMR-09..13, RSMR-14..17, RSMR-24 (mechanism + resolution)
+**Requirement**: RSMR-14/15 fixture rule
+
+**Tools**: MCP: NONE · Skill: NONE
+
+**Done when**:
+
+- [ ] `resolveMechanism('opencode')` → `{ kind: 'id', … }`; `resolveMechanism('claude')` →
+      `{ kind: 'continue', … }`; `resolveMechanism('pwsh')` → `null` (RSMR-16); ad-hoc command
+      never resolves (RSMR-17)
+- [ ] `extractResumeId` pulls a real `ses_…` id from the recorded `opencode-session-list.json`
+      (the id in the sample: `ses_f7273a311ffeAkg12W9sbfYKpt`) (RSMR-14)
+- [ ] Last match wins: two `ses_…` tokens → the later one (edge: mid-session tool id superseded
+      by the exit hint)
+- [ ] The mechanism's flag is proven against the CLI's own recorded help: `opencode-help.txt`
+      contains `--session`, `claude-help.txt` contains `--continue` (RSMR-15)
+- [ ] `resolveResumeArgs`: id-agent + last matching session carries `agentSessionId` →
+      `['--session', id]` (RSMR-09); id-agent + matching session belongs to a different agent →
+      `[]` (RSMR-11); id-agent + no prior → `[]` (RSMR-12); continue-agent + prior session in
+      cwd → `['--continue']` (RSMR-10); continue-agent + no prior → `[]` (RSMR-23); several
+      matching sessions → the last in array order (RSMR-24)
+- [ ] Quick gate passes: `npm test`
+- [ ] Test count: 709 → **719** (+10), zero deletions
+
+**Tests**: unit
+**Gate**: quick
+**Commit**: `feat(sessions): add resume-mechanism seam keyed by normalized command`
+
+---
+
+### T3: Inject resume args into the spawn plan
+
+**What**: `buildSpawnPlan(agent, cwd, shell, resumeArgs?)` appends `resumeArgs` after
+`agent.args`, through the existing per-shell quoting. `buildRawSpawnPlan` unchanged (ad-hoc).
+**Where**: `src/main/spawn-plan.ts` (modify), `src/main/spawn-plan.test.ts` (modify)
+**Depends on**: T2 (ordering only; no code dependency)
+**Reuses**: the existing `quotePwsh`/`quoteCmd` pipeline
+**Requirement**: RSMR-05/06 (injection), RSMR-07/16/17 (absent → byte-identical)
+
+**Tools**: MCP: NONE · Skill: NONE
+
+**Done when**:
+
+- [ ] `buildSpawnPlan(agent, cwd, 'pwsh', ['--session', 'ses_x'])` →
+      `autoCommand: "claude --session 'ses_x'"` (id quoted per pwsh)
+- [ ] Same under `cmd` → `"claude --session \"ses_x\""`; continuation of a `--continue` flag
+      survives quoting
+- [ ] `resumeArgs` absent → the exact plans of today (existing tests unchanged, byte-identical)
+- [ ] A resume arg containing shell metacharacters is quoted, not re-split (RSMR-17's
+      byte-identical guarantee is about the absent case)
+- [ ] Quick gate passes: `npm test`
+- [ ] Test count: 719 → **722** (+3), zero deletions
+
+**Tests**: unit
+**Gate**: quick
+**Commit**: `feat(sessions): append resume args to the agent spawn plan`
+
+---
+
+### T4: SessionManager orchestration — capture, persist, inject
+
+**What**: Wire the seam into the session lifecycle: per running session keep a rolling
+ANSI-stripped capture tail + the latest retained id (fed in `onData`); persist `agentSessionId`
+on the session in `#finalize` (single patch with `status:'stopped'`) so **stop, onExit and
+`killAll`** all land it before the PTY dies; `respawn` injects its own id / continue flag;
+`spawn` resolves args via `resolveResumeArgs`; `duplicate` strips the id; `remove` drops it;
+`rename` keeps it. Add `agentSessionId?: string` to `PersistedSession`.
+**Where**: `src/main/session-manager.ts` (modify), `src/shared/config.ts` (modify),
+`src/main/session-manager.test.ts` (modify)
+**Depends on**: T2, T3
+**Reuses**: `resume-mechanism`, `buildSpawnPlan`'s new param, the existing `makeManager`
+harness (`session-manager.test.ts:89-109`) with `emitData` feeding capture
+**Requirement**: RSMR-01..08, RSMR-09..13, RSMR-18..25
+
+**Tools**: MCP: NONE · Skill: NONE
+
+**Done when**:
+
+- [ ] An opencode session's `emitData` containing `opencode --session ses_f7273a311ffeAkg12W9sbfYKpt`
+      retains that id (RSMR-01/02); a hint **split across two chunks** still retains it; ANSI
+      in the chunk is ignored (RSMR-18)
+- [ ] `stop()` persists the retained id on the session (RSMR-03); `onExit` (natural exit) too;
+      **`killAll()` persists it before the PTY is killed** (RSMR-04) — assert on
+      `config.get().sessions`
+- [ ] A session stopped with no id in its stream stays without `agentSessionId` (RSMR-08)
+- [ ] `respawn` of an id-session injects `['--session', id]` into the new plan (`port.handles.at(-1).plan`)
+      (RSMR-05); respawn of a Claude session injects `['--continue']` (RSMR-06); respawn with
+      neither → today's plan (RSMR-07)
+- [ ] `spawn('opencode', cwd)` with a prior opencode session carrying an id injects it
+      (RSMR-09); with a prior **Claude** session → no id (RSMR-11); with no prior → fresh
+      (RSMR-12); `spawn('Claude', cwd)` with a prior Claude session in `cwd` → `--continue`
+      (RSMR-10/13)
+- [ ] `duplicate` does not copy `agentSessionId` (RSMR-21); `remove` drops it (RSMR-22);
+      `rename` keeps it (RSMR-23)
+- [ ] Existing 706 tests stay green (no regression in spawn/respawn/ad-hoc behaviour)
+- [ ] Full gate passes: `npm run typecheck && npm run lint && npm test`
+- [ ] Test count: 722 → **735** (+13), zero deletions
+
+**Tests**: unit
+**Gate**: full
+**Commit**: `feat(sessions): resume conversations on respawn — capture, persist, inject`
+
+---
+
+### T5: Spec traceability + docs
+
+**What**: Update the spec's requirement table to mark RSMR-01..25 as implemented/verified,
+record the execution record + final test count, and write `validation.md` (or fold into the
+execution record) with the fixture provenance.
+**Where**: `.specs/features/session-resume-on-respawn/{spec,tasks,validation}.md`
+**Depends on**: T4
+**Reuses**: the feature's fixtures + this file's Execution Record
+**Requirement**: spec/design traceability
+
+**Tools**: MCP: NONE · Skill: NONE
+
+**Done when**:
+
+- [ ] Spec requirement table statuses updated (Pending → Implementing/Verified per AC)
+- [ ] Execution Record filled (commits, +tests, notes); final test count recorded
+- [ ] `validation.md` notes: baseline/final counts, fixtures provenance (`opencode-help.txt`,
+      `claude-help.txt`, `opencode-session-list.json` recorded 2026-09-10), and the honest gap
+      that the opencode **exit-hint wording** was not recorded verbatim (the design extracts the
+      `ses_…` token directly, proven against the `session list` sample)
+- [ ] Full gate passes: `npm run typecheck && npm run lint && npm test`
+
+**Tests**: none
+**Gate**: full
+**Commit**: `docs(sessions): record session-resume-on-respawn execution + traceability`

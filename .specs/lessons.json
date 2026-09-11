@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 11,
+  "next_id": 18,
   "lessons": [
     {
       "id": "L-001",
@@ -170,6 +170,132 @@
       ],
       "created": "2026-09-01T00:11:37Z",
       "last_seen": "2026-09-01T00:11:37Z"
+    },
+    {
+      "id": "L-011",
+      "key": "surviving_mutant::o fallback fresh do respawn id agent sem agentsessionid ficou indiscriminado sem teste de respawn de id agent sem id remover o guard nao quebra nada adicionar teste respawn sem id plan sem flag",
+      "text": "O fallback-fresh do respawn (id-agent sem agentSessionId -> [] ) ficou indiscriminado: sem teste de respawn de id-agent sem id, remover o guard nao quebra nada - adicionar teste respawn-sem-id -> plan sem flag.",
+      "signal": "surviving_mutant",
+      "scope": "src/main",
+      "status": "candidate",
+      "features": [
+        "session-resume-on-respawn"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "M6 (session-manager.ts:273) (src/main)"
+      ],
+      "created": "2026-09-11T00:29:19Z",
+      "last_seen": "2026-09-11T00:29:19Z"
+    },
+    {
+      "id": "L-012",
+      "key": "surviving_mutant::teste ansi que apenas envolve o token com escapes nao discrimina o strip o padrao casa no texto cru a sequencia esc precisa interromper o token ex ses esc ansi para o matcher sem strip falhar",
+      "text": "Teste ANSI que apenas ENVOLVE o token com escapes nao discrimina o strip: o padrao casa no texto cru - a sequencia ESC precisa INTERROMPER o token (ex.: ses_<ESC>ansi) para o matcher sem strip falhar.",
+      "signal": "surviving_mutant",
+      "scope": "src/main",
+      "status": "candidate",
+      "features": [
+        "session-resume-on-respawn"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "M8 (session-manager.test.ts:453-460) (src/main)"
+      ],
+      "created": "2026-09-11T00:29:19Z",
+      "last_seen": "2026-09-11T00:29:19Z"
+    },
+    {
+      "id": "L-013",
+      "key": "surviving_mutant::ultimo match vence so e testado no seam a politica de atualizacao do retainedid entre chunks no manager ficou indiscriminada adicionar teste com dois ids completos em chunks separados",
+      "text": "Ultimo-match-vence so e testado no seam; a politica de atualizacao do retainedId entre chunks no manager ficou indiscriminada - adicionar teste com dois ids completos em chunks separados.",
+      "signal": "surviving_mutant",
+      "scope": "src/main",
+      "status": "candidate",
+      "features": [
+        "session-resume-on-respawn"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "M7 (session-manager.ts:309) (src/main)"
+      ],
+      "created": "2026-09-11T00:29:19Z",
+      "last_seen": "2026-09-11T00:29:19Z"
+    },
+    {
+      "id": "L-014",
+      "key": "ac_gap::ac negativo sem correcao retry de id stale precisa de assercao de ausencia ex contagem de handles por respawn senao fica sem evidencia no evidence or zero",
+      "text": "AC negativo (sem correcao/retry de id stale) precisa de assercao de ausencia (ex.: contagem de handles por respawn), senao fica sem evidencia no evidence-or-zero.",
+      "signal": "ac_gap",
+      "scope": "src/main",
+      "status": "candidate",
+      "features": [
+        "session-resume-on-respawn"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "RSMR-20 (src/main)"
+      ],
+      "created": "2026-09-11T00:29:19Z",
+      "last_seen": "2026-09-11T00:29:19Z"
+    },
+    {
+      "id": "L-015",
+      "key": "ac_gap::matar antes de imprimir id falta teste de killall sem id campo ausente e de respawn de id agent sem id fresh o ramo existe no codigo mas nenhuma assercao o toca",
+      "text": "Matar antes de imprimir id: falta teste de killAll sem id (campo ausente) e de respawn de id-agent sem id (fresh) - o ramo existe no codigo mas nenhuma assercao o toca.",
+      "signal": "ac_gap",
+      "scope": "src/main",
+      "status": "candidate",
+      "features": [
+        "session-resume-on-respawn"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "RSMR-19 (src/main)"
+      ],
+      "created": "2026-09-11T00:29:20Z",
+      "last_seen": "2026-09-11T00:29:20Z"
+    },
+    {
+      "id": "L-016",
+      "key": "spec_precision_gap::numercao de requirements trocada entre tasks md design md e a ordem literal dos bullets da spec rename continue no prior last wins comentarios de teste devem seguir a ordem literal da spec para rastreabilidade sem ambiguidade",
+      "text": "Numercao de requirements trocada entre tasks.md/design.md e a ordem literal dos bullets da spec (rename/continue-no-prior/last-wins) - comentarios de teste devem seguir a ordem literal da spec para rastreabilidade sem ambiguidade.",
+      "signal": "spec_precision_gap",
+      "scope": "docs",
+      "status": "candidate",
+      "features": [
+        "session-resume-on-respawn"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "tasks.md T2 / design.md (RSMR-23/24/25) (docs)"
+      ],
+      "created": "2026-09-11T00:29:20Z",
+      "last_seen": "2026-09-11T00:29:20Z"
+    },
+    {
+      "id": "L-017",
+      "key": "spec_precision_gap::design afirmou que claude help txt carrega codes ansi 0 bytes esc medidos antes de afirmar que um fixture exercita um caminho medir os bytes reais do fixture",
+      "text": "Design afirmou que claude-help.txt carrega codes ANSI (0 bytes ESC medidos): antes de afirmar que um fixture exercita um caminho, medir os bytes reais do fixture.",
+      "signal": "spec_precision_gap",
+      "scope": "docs",
+      "status": "candidate",
+      "features": [
+        "session-resume-on-respawn"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "design.md:110 (docs)"
+      ],
+      "created": "2026-09-11T00:29:20Z",
+      "last_seen": "2026-09-11T00:29:20Z"
     }
   ]
 }

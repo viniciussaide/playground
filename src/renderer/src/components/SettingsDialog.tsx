@@ -56,6 +56,7 @@ export function SettingsDialog({
   const [project, setProject] = useState('')
   const [template, setTemplate] = useState('')
   const [worktreeTemplate, setWorktreeTemplate] = useState('')
+  const [devAlias, setDevAlias] = useState('')
   const [agents, setAgents] = useState<AgentDef[]>([])
   const [defaultShell, setDefaultShell] = useState<Shell>('pwsh')
   const [form, setForm] = useState<AgentForm | null>(null)
@@ -69,6 +70,7 @@ export function SettingsDialog({
         setProject(config.ado.defaultProject ?? '')
         setTemplate(config.ado.branchTemplate)
         setWorktreeTemplate(config.ado.worktreeTemplate)
+        setDevAlias(config.ado.devAlias ?? '')
         setAgents(config.agents)
         setDefaultShell(config.ui.defaultShell)
       })
@@ -115,7 +117,8 @@ export function SettingsDialog({
           defaultOrg: org?.trim() || null,
           defaultProject: project.trim() || null,
           branchTemplate: template.trim(),
-          worktreeTemplate: worktreeTemplate.trim()
+          worktreeTemplate: worktreeTemplate.trim(),
+          devAlias: devAlias.trim()
         }
       })
       .then(onSaved)
@@ -128,6 +131,11 @@ export function SettingsDialog({
   // org doubles as the loading flag: fields render once config:get resolves.
   const loaded = org !== null
   const formValid = form !== null && form.name.trim() !== '' && form.command.trim() !== ''
+  // The alias only matters when an effective template uses {dev}; a blank
+  // template falls back to a default that does not (DEVA-09/10).
+  const devAliasRelevant =
+    (template.trim() || DEFAULT_BRANCH_TEMPLATE).includes('{dev}') ||
+    (worktreeTemplate.trim() || DEFAULT_WORKTREE_TEMPLATE).includes('{dev}')
 
   return (
     <div className="dialog-backdrop" onClick={onClose}>
@@ -198,6 +206,22 @@ export function SettingsDialog({
                 onChange={(event) => setWorktreeTemplate(event.target.value)}
               />
             </div>
+            {devAliasRelevant && (
+              <div>
+                <div className="dialog-field-label">
+                  Dev alias{' '}
+                  <span className="dialog-label-note">
+                    · fills the {'{dev}'} placeholder of the branch template
+                  </span>
+                </div>
+                <input
+                  className="dialog-input"
+                  value={devAlias}
+                  spellCheck={false}
+                  onChange={(event) => setDevAlias(event.target.value)}
+                />
+              </div>
+            )}
 
             <div>
               <div className="dialog-field-label">Coding agents</div>

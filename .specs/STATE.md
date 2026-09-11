@@ -29,39 +29,36 @@ Handoff snapshot.
 
 ## Handoff
 
-**Status (current, 2026-09-10): `dev-alias-setting` EXECUTED + verified (PASS), PR #85
-OPEN upstream (https://github.com/obogoni/playground/pull/85), merged locally into
-`develop` (`fbeab7a`). `main` = `origin/main` (`ed8d510`, no upstream advance).**
+**Status (current, 2026-09-11): `sidebar-node-collapse` EXECUTED + verified (PASS),
+merged locally into `develop` (`18ae987`). No PR upstream yet (owner decision
+pending). `main` = `origin/main` (`ed8d510`, no upstream advance).**
 
-0. **`dev-alias-setting` (DEVA-01..10) — EXECUTED, independent Verifier PASS 10/10.** 5
-   commits (`84e3601` docs spec, `3c432b6` docs defer undoByte, `3e82229` feat,
-   `915e78e` docs validation, `c675198` feat visibility). **Dev
-   alias** field in the ADO block of `SettingsDialog`: state populated from
-   `ado.devAlias ?? ''` (`SettingsDialog.tsx:73`), saved in the **same** `config:patch`
-   as org/project/templates with `devAlias.trim()` (`:121`), label "fills the {dev}
-   placeholder" (`:210-224`); `App.tsx:373` already re-threads it in `onSaved` (zero new
-   plumbing, DEVA-03). Gate: **667 tests / 44 files** (main baseline — the 706 from the
-   previous handoff were the develop tree with PR #83/84 unmerged), typecheck clean, lint
-   0 errors / 19 warnings (main baseline, measured on a throwaway worktree). Verifier:
-   8/8 ACs (3 executed-tested in `tasks.test.ts` — `{dev}` and segment-drop; 5
-   hand-verified per `TESTING.md:42`), sensor 2/4 killed — 2 survivors (M3: save-patch
-   without `devAlias`; M4: without `?? ''`) are renderer logic with no test seam by
-   convention, a documented gap, not a defect; optional future seam = extract the
-   save-patch builder into `src/shared`. Report:
-   `.specs/features/dev-alias-setting/validation.md`.
-   **Post-review increment (owner, `c675198`):** the Dev alias field is now **hidden
-   unless** an effective template (branch or worktree, blank = default) contains
-   `{dev}` (DEVA-09/10); re-verified PASS by an independent Verifier (5/5 checks,
-   sensor 3/4 killed, 1 equivalent mutant).
-   **Owner decision (AD-017):** the pre-existing `commitForm` `undoByte`-drop defect was
-   first included, then **REVERTED** from this branch — `AgentDef.undoByte` exists only in
-   PR #83 (open upstream); on the `main` base it does not compile (TS2353). **Follow-up
-   after #83 merges:** a one-line fix preserving `undoByte` in `commitForm` (recorded in
-   the spec's Out of Scope).
-1. **NEXT STEP:** await upstream review of PR #85; when merged, absorb in `main`
-   (`git merge origin/main`) and `develop` (clean no-op — already contains the feature).
-   Untracked specs awaiting their own session: `session-activity-status`,
-   `session-idle-notifications`, `sidebar-node-collapse` (stay in the working tree).
+0. **`sidebar-node-collapse` (WSCL-01..11) — EXECUTED, independent Verifier PASS 11/11.** 6
+   commits (`81cf020` docs spec, `4ea67a4` feat schema, `e899ee7` feat helpers+tests,
+   `dd61076` feat chevron, `682214a` feat wiring, `64c59b1` docs verify). **Workspace fold
+   in the sidebar tree:** optional `ui.collapsedWorkspaces?: string[]` (`config.ts:48`),
+   pure helpers `isCollapsed`/`toggleCollapsedId`/`dropCollapsedId`
+   (`workspace-collapse.ts` + 11 unit tests), chevron turned into a `<button
+   aria-expanded>` whose repos/note children are gated on the fold while the "folder not
+   found" note stays visible (`Sidebar.tsx`), wiring in `App.tsx` (toggle persisted via
+   `config:patch`, id dropped on workspace removal). Gate: **678 tests / 45 files** (667
+   baseline + 11), typecheck clean, lint 0 errors / 19 warnings (main baseline), build OK
+   via isolated `dist-verify` (the packaged build in `dist\win-unpacked` is locked by 4
+   running `playground.exe` instances — environmental EBUSY, not a regression). Verifier:
+   11/11 ACs (7 P1 + 4 edge cases, 0 spec-precision gaps), sensor 3/3 killed; renderer
+   wiring hand-verified per `TESTING.md:42` (no component-test seam by convention, a
+   documented gap, not a defect). Report:
+   `.specs/features/sidebar-node-collapse/validation.md`. Owner manual UAT: PASS
+   (chevron toggles, state survives restart, missing-folder note stays visible when
+   folded). **Non-blocking observation (Verifier):** `App.tsx:183-185` drops the
+   collapsed id optimistically if `workspaces:remove` fails — correct under the AC's
+   stated precondition.
+1. **NEXT STEP:** decide the upstream delivery — push `feature/sidebar-node-collapse` to
+   the fork and open PR → `obogoni:main` (pending owner go-ahead for remote). Meanwhile
+   PR #85 (`dev-alias-setting`) is still open upstream awaiting review; when #85 merges,
+   absorb in `main` (`git merge origin/main`) and `develop` (clean no-op — develop
+   already contains it). Untracked specs awaiting their own session:
+   `session-activity-status`, `session-idle-notifications` (stay in the working tree).
 
 **PENDING — bump the committed `package.json` version on the next delivery:** `v1.0.0`
 shipped 2026-09-02 from `cafb43f` (the PR #77 merge), but the bump is **never committed**

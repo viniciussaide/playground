@@ -29,9 +29,9 @@ Handoff snapshot.
 
 ## Handoff
 
-**Status (current, 2026-09-10): `dev-alias-setting` EXECUTED + verified (PASS) on branch
-`feature/dev-alias-setting` (based on `origin/main` `ed8d510`). PR not opened yet — push
-needs an explicit go-ahead (fork workflow).**
+**Status (current, 2026-09-10): `dev-alias-setting` EXECUTED + verified (PASS), PR #85
+OPEN upstream (https://github.com/obogoni/playground/pull/85), merged locally into
+`develop` (`fbeab7a`). `main` = `origin/main` (`ed8d510`, no upstream advance).**
 
 0. **`dev-alias-setting` (DEVA-01..10) — EXECUTED, independent Verifier PASS 10/10.** 5
    commits (`84e3601` docs spec, `3c432b6` docs defer undoByte, `3e82229` feat,
@@ -58,10 +58,10 @@ needs an explicit go-ahead (fork workflow).**
    PR #83 (open upstream); on the `main` base it does not compile (TS2353). **Follow-up
    after #83 merges:** a one-line fix preserving `undoByte` in `commitForm` (recorded in
    the spec's Out of Scope).
-1. **NEXT STEP:** open the PR `feature/dev-alias-setting` → upstream `main` (owner
-   go-ahead for push), then integrate locally into `develop` after merge. Untracked specs
-   awaiting their own session: `session-activity-status`, `session-idle-notifications`,
-   `sidebar-node-collapse` (stay in the working tree).
+1. **NEXT STEP:** await upstream review of PR #85; when merged, absorb in `main`
+   (`git merge origin/main`) and `develop` (clean no-op — already contains the feature).
+   Untracked specs awaiting their own session: `session-activity-status`,
+   `session-idle-notifications`, `sidebar-node-collapse` (stay in the working tree).
 
 **PENDING — bump the committed `package.json` version on the next delivery:** `v1.0.0`
 shipped 2026-09-02 from `cafb43f` (the PR #77 merge), but the bump is **never committed**

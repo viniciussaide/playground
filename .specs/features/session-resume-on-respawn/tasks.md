@@ -12,7 +12,7 @@ review, Verifier, discrimination sensor).
 ---
 
 **Design**: `.specs/features/session-resume-on-respawn/design.md`
-**Status**: T1 done; T2–T5 pending
+**Status**: T1, T2 done; T3–T5 pending
 **Branch**: `feature/session-resume-on-respawn` (born from `main`, per the fork workflow)
 **Baseline**: 668 tests / 44 files green (measured on `main` 2026-09-10, `npx vitest run --maxWorkers=2`)
 **Final**: (fill on completion)
@@ -21,8 +21,8 @@ review, Verifier, discrimination sensor).
 
 | Task | Commit | Tests added | Notes |
 | ---- | ------ | ----------- | ----- |
-| T1 | | +3 | shared `commandKey` created fresh (nothing to move on `main`) |
-| T2 | | | |
+| T1 | `6d8e0da` | +3 | shared `commandKey` created fresh (nothing to move on `main`) |
+| T2 | | +17 | fixture-backed seam; last `ses_…` id pinned to `ses_fa640905fffe5E4OeSEH33fBLM` |
 | T3 | | | |
 | T4 | | | |
 | T5 | | | |
@@ -140,22 +140,22 @@ fixtures already recorded in `.specs/features/session-resume-on-respawn/fixtures
 
 **Done when**:
 
-- [ ] `resolveMechanism('opencode')` → `{ kind: 'id', … }`; `resolveMechanism('claude')` →
+- [x] `resolveMechanism('opencode')` → `{ kind: 'id', … }`; `resolveMechanism('claude')` →
       `{ kind: 'continue', … }`; `resolveMechanism('pwsh')` → `null` (RSMR-16); ad-hoc command
       never resolves (RSMR-17)
-- [ ] `extractResumeId` pulls a real `ses_…` id from the recorded `opencode-session-list.json`
-      (the id in the sample: `ses_f7273a311ffeAkg12W9sbfYKpt`) (RSMR-14)
-- [ ] Last match wins: two `ses_…` tokens → the later one (edge: mid-session tool id superseded
+- [x] `extractResumeId` pulls a real `ses_…` id from the recorded `opencode-session-list.json`
+      (the last id in the sample: `ses_fa640905fffe5E4OeSEH33fBLM`) (RSMR-14)
+- [x] Last match wins: two `ses_…` tokens → the later one (edge: mid-session tool id superseded
       by the exit hint)
-- [ ] The mechanism's flag is proven against the CLI's own recorded help: `opencode-help.txt`
+- [x] The mechanism's flag is proven against the CLI's own recorded help: `opencode-help.txt`
       contains `--session`, `claude-help.txt` contains `--continue` (RSMR-15)
-- [ ] `resolveResumeArgs`: id-agent + last matching session carries `agentSessionId` →
+- [x] `resolveResumeArgs`: id-agent + last matching session carries `agentSessionId` →
       `['--session', id]` (RSMR-09); id-agent + matching session belongs to a different agent →
       `[]` (RSMR-11); id-agent + no prior → `[]` (RSMR-12); continue-agent + prior session in
       cwd → `['--continue']` (RSMR-10); continue-agent + no prior → `[]` (RSMR-23); several
       matching sessions → the last in array order (RSMR-24)
-- [ ] Quick gate passes: `npm test`
-- [ ] Test count: 671 → **681** (+10), zero deletions
+- [x] Quick gate passes: `npm test`
+- [x] Test count: 671 → **688** (+17), zero deletions
 
 **Tests**: unit
 **Gate**: quick

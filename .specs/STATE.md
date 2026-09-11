@@ -30,8 +30,8 @@ Handoff snapshot.
 ## Handoff
 
 **Status (current, 2026-09-11): `sidebar-node-collapse` EXECUTED + verified (PASS),
-merged locally into `develop` (`18ae987`). No PR upstream yet (owner decision
-pending). `main` = `origin/main` (`ed8d510`, no upstream advance).**
+PR #86 OPEN upstream (https://github.com/obogoni/playground/pull/86), merged locally
+into `develop` (`18ae987`). `main` = `origin/main` (`ed8d510`, no upstream advance).**
 
 0. **`sidebar-node-collapse` (WSCL-01..11) — EXECUTED, independent Verifier PASS 11/11.** 6
    commits (`81cf020` docs spec, `4ea67a4` feat schema, `e899ee7` feat helpers+tests,
@@ -53,11 +53,10 @@ pending). `main` = `origin/main` (`ed8d510`, no upstream advance).**
    folded). **Non-blocking observation (Verifier):** `App.tsx:183-185` drops the
    collapsed id optimistically if `workspaces:remove` fails — correct under the AC's
    stated precondition.
-1. **NEXT STEP:** decide the upstream delivery — push `feature/sidebar-node-collapse` to
-   the fork and open PR → `obogoni:main` (pending owner go-ahead for remote). Meanwhile
-   PR #85 (`dev-alias-setting`) is still open upstream awaiting review; when #85 merges,
-   absorb in `main` (`git merge origin/main`) and `develop` (clean no-op — develop
-   already contains it). Untracked specs awaiting their own session:
+1. **NEXT STEP:** await upstream review of PR #86; when merged, absorb in `main`
+   (`git merge origin/main`) and `develop` (clean no-op — develop already contains the
+   feature). PR #85 (`dev-alias-setting`) is also still open upstream; when it merges,
+   same absorption applies. Untracked specs awaiting their own session:
    `session-activity-status`, `session-idle-notifications` (stay in the working tree).
 
 **PENDING — bump the committed `package.json` version on the next delivery:** `v1.0.0`

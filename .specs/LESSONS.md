@@ -84,6 +84,48 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: TCU-05 vs TCU-19 (.specs/features)
 - last seen: 2026-09-09T21:51:28Z
 
+### L-014 - O fallback-fresh do respawn (id-agent sem agentSessionId -> [] ) ficou indiscriminado: sem teste de respawn de id-agent sem id, remover o guard nao quebra nada - adicionar teste respawn-sem-id -> plan sem flag.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `src/main` · harmful: 0
+- features: session-resume-on-respawn
+- evidence: M6 (session-manager.ts:273) (src/main)
+- last seen: 2026-09-11T00:29:19Z
+
+### L-015 - Teste ANSI que apenas ENVOLVE o token com escapes nao discrimina o strip: o padrao casa no texto cru - a sequencia ESC precisa INTERROMPER o token (ex.: ses_<ESC>ansi) para o matcher sem strip falhar.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `src/main` · harmful: 0
+- features: session-resume-on-respawn
+- evidence: M8 (session-manager.test.ts:453-460) (src/main)
+- last seen: 2026-09-11T00:29:19Z
+
+### L-016 - Ultimo-match-vence so e testado no seam; a politica de atualizacao do retainedId entre chunks no manager ficou indiscriminada - adicionar teste com dois ids completos em chunks separados.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `src/main` · harmful: 0
+- features: session-resume-on-respawn
+- evidence: M7 (session-manager.ts:309) (src/main)
+- last seen: 2026-09-11T00:29:19Z
+
+### L-017 - AC negativo (sem correcao/retry de id stale) precisa de assercao de ausencia (ex.: contagem de handles por respawn), senao fica sem evidencia no evidence-or-zero.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `src/main` · harmful: 0
+- features: session-resume-on-respawn
+- evidence: RSMR-20 (src/main)
+- last seen: 2026-09-11T00:29:19Z
+
+### L-018 - Matar antes de imprimir id: falta teste de killAll sem id (campo ausente) e de respawn de id-agent sem id (fresh) - o ramo existe no codigo mas nenhuma assercao o toca.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `src/main` · harmful: 0
+- features: session-resume-on-respawn
+- evidence: RSMR-19 (src/main)
+- last seen: 2026-09-11T00:29:20Z
+
+### L-019 - Numercao de requirements trocada entre tasks.md/design.md e a ordem literal dos bullets da spec (rename/continue-no-prior/last-wins) - comentarios de teste devem seguir a ordem literal da spec para rastreabilidade sem ambiguidade.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `docs` · harmful: 0
+- features: session-resume-on-respawn
+- evidence: tasks.md T2 / design.md (RSMR-23/24/25) (docs)
+- last seen: 2026-09-11T00:29:20Z
+
+### L-020 - Design afirmou que claude-help.txt carrega codes ANSI (0 bytes ESC medidos): antes de afirmar que um fixture exercita um caminho, medir os bytes reais do fixture.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `docs` · harmful: 0
+- features: session-resume-on-respawn
+- evidence: design.md:110 (docs)
+- last seen: 2026-09-11T00:29:20Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

@@ -70,6 +70,36 @@ describe('buildSpawnPlan', () => {
     ])
     expect(buildSpawnPlan(agent, 'D:\\x', 'cmd').args).toEqual(['/K', 'codex chat'])
   })
+
+  it('appends resume args after the agent args under pwsh (RSMR-05)', () => {
+    const agent: AgentDef = { name: 'opencode', command: 'opencode', args: [] }
+    const plan = buildSpawnPlan(agent, 'C:\\x', 'pwsh', ['--session', 'ses_abc'])
+    // Plain alphanumeric ids need no quoting (repo's needs-quote-only rule);
+    // a metacharacter-bearing token is quoted — see the test below.
+    expect(plan.autoCommand).toBe('opencode --session ses_abc')
+    expect(plan.args).toEqual(['-NoExit', '-Command', 'opencode --session ses_abc'])
+  })
+
+  it('appends resume args after the agent args under cmd (RSMR-05)', () => {
+    const agent: AgentDef = { name: 'opencode', command: 'opencode', args: [] }
+    expect(buildSpawnPlan(agent, 'C:\\x', 'cmd', ['--session', 'ses_abc']).autoCommand).toBe(
+      'opencode --session ses_abc'
+    )
+  })
+
+  it('keeps the agent args before the resume flag (RSMR-06)', () => {
+    const agent: AgentDef = { name: 'Claude', command: 'claude', args: ['--dangerously', '-p'] }
+    expect(buildSpawnPlan(agent, 'C:\\x', 'pwsh', ['--continue']).autoCommand).toBe(
+      'claude --dangerously -p --continue'
+    )
+  })
+
+  it('quotes a resume arg with shell metacharacters so it survives as one token', () => {
+    const agent: AgentDef = { name: 'opencode', command: 'opencode', args: [] }
+    expect(buildSpawnPlan(agent, 'C:\\x', 'pwsh', ['--session', 'ses a&b']).autoCommand).toBe(
+      "opencode --session 'ses a&b'"
+    )
+  })
 })
 
 describe('buildRawSpawnPlan', () => {

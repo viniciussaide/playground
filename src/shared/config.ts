@@ -21,6 +21,12 @@ export interface PersistedSession {
   status: SessionStatus
   /** Raw ad-hoc command (absent for registry agents); drives respawn (AGCF-03). */
   command?: string
+  /**
+   * The agent conversation id captured from the session's own output stream
+   * (e.g. opencode `ses_…`), persisted at stop so respawn — including after an
+   * app restart — resumes that conversation (RSMR). Absent = none captured.
+   */
+  agentSessionId?: string
 }
 
 /** Returned to the renderer: persisted fields plus the one fact only main can

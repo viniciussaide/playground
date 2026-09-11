@@ -3,8 +3,7 @@ import { commandKey } from './command-key'
 
 describe('commandKey', () => {
   it('maps an absolute path and a bare name to the same agent', () => {
-    const path =
-      'C:\\Users\\x\\AppData\\Roaming\\npm\\node_modules\\opencode-ai\\bin\\opencode.exe'
+    const path = 'C:\\Users\\x\\AppData\\Roaming\\npm\\node_modules\\opencode-ai\\bin\\opencode.exe'
     expect(commandKey(path)).toBe('opencode')
     expect(commandKey('opencode')).toBe('opencode')
   })

@@ -5,13 +5,7 @@ import type { PersistedSession } from '../shared/config'
 import type { AgentDef } from './spawn-plan'
 import { extractResumeId, resolveMechanism, resolveResumeArgs } from './resume-mechanism'
 
-const FIXTURES = join(
-  process.cwd(),
-  '.specs',
-  'features',
-  'session-resume-on-respawn',
-  'fixtures'
-)
+const FIXTURES = join(process.cwd(), '.specs', 'features', 'session-resume-on-respawn', 'fixtures')
 const fixture = (name: string): string => readFileSync(join(FIXTURES, name), 'utf8')
 
 const AGENTS: AgentDef[] = [
@@ -76,7 +70,10 @@ describe('recorded mechanisms are proven by the CLI help (RSMR-15)', () => {
 
 describe('resolveResumeArgs (RSMR-09..13, RSMR-23/24)', () => {
   it('id agent: injects the captured id of the matching session', () => {
-    const sessions = [ses('s1', 'Claude', CWD), ses('s2', 'opencode', CWD, { agentSessionId: 'ses_aaa' })]
+    const sessions = [
+      ses('s1', 'Claude', CWD),
+      ses('s2', 'opencode', CWD, { agentSessionId: 'ses_aaa' })
+    ]
     expect(resolveResumeArgs(sessions, AGENTS, CWD, 'opencode')).toEqual(['--session', 'ses_aaa'])
   })
 

@@ -26,6 +26,7 @@ import {
   resolvePaneWidth
 } from './lib/pane-layout'
 import { findWorktree } from './lib/tree-selection'
+import { dropCollapsedId, isCollapsed, toggleCollapsedId } from './lib/workspace-collapse'
 import { useSessions } from './lib/use-sessions'
 import { useTree } from './lib/use-tree'
 import { useWorkflowRuns } from './lib/use-workflow-runs'
@@ -179,6 +180,14 @@ function App(): JSX.Element {
 
   const removeWorkspace = (id: string): void => {
     api.invoke('workspaces:remove', { id }).then(refreshTree).catch(console.error)
+    if (isCollapsed(collapsedIds, id)) {
+      update({ collapsedWorkspaces: dropCollapsedId(collapsedIds, id) })
+    }
+  }
+
+  // Fold/unfold a workspace row in the tree sidebar (WSCL-01, WSCL-05).
+  const toggleWorkspaceCollapsed = (id: string): void => {
+    update({ collapsedWorkspaces: toggleCollapsedId(collapsedIds, id) })
   }
 
   // PRD start-work flow: refresh and select the new worktree, no auto-open.
@@ -236,6 +245,8 @@ function App(): JSX.Element {
   const sidebarCollapsed = ui.sidebarCollapsed ?? false
   const tasksWidth = resolvePaneWidth(ui.tasksWidth, TASKS_BOUNDS, TASKS_DEFAULT_WIDTH)
   const tasksCollapsed = ui.tasksCollapsed ?? false
+  // Workspace ids folded in the sidebar tree; absent = every workspace expanded (WSCL-06).
+  const collapsedIds = ui.collapsedWorkspaces ?? []
 
   return (
     <>
@@ -271,6 +282,8 @@ function App(): JSX.Element {
               collapsed={sidebarCollapsed}
               onWidthChange={(w) => update({ sidebarWidth: w })}
               onToggleCollapsed={() => update({ sidebarCollapsed: !sidebarCollapsed })}
+              collapsedIds={collapsedIds}
+              onToggleCollapse={toggleWorkspaceCollapsed}
             />
             {selected ? (
               <WorktreeDetail

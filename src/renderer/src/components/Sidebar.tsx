@@ -5,6 +5,7 @@ import { taskIdFromBranch } from '../../../shared/tasks'
 import type { RepoNode, WorkspaceNode, WorktreeNode } from '../../../shared/tree'
 import { SIDEBAR_BOUNDS, SIDEBAR_DEFAULT_WIDTH, resolvePaneWidth } from '../lib/pane-layout'
 import { badgeTypeOf, stateClass, typeClass } from '../lib/task-pills'
+import { isCollapsed } from '../lib/workspace-collapse'
 import { Icon } from './Icon'
 import { ResizablePane } from './ResizablePane'
 import './Sidebar.css'
@@ -25,6 +26,9 @@ interface SidebarProps {
   collapsed?: boolean
   onWidthChange?: (width: number) => void
   onToggleCollapsed?: () => void
+  /** Workspace ids folded in the tree; absent = every workspace expanded (WSCL-06). */
+  collapsedIds?: string[]
+  onToggleCollapse?: (id: string) => void
 }
 
 interface RowMenu {
@@ -45,7 +49,9 @@ export function Sidebar({
   width,
   collapsed = false,
   onWidthChange,
-  onToggleCollapsed
+  onToggleCollapsed,
+  collapsedIds = [],
+  onToggleCollapse = (): void => {}
 }: SidebarProps): JSX.Element {
   const [menu, setMenu] = useState<RowMenu | null>(null)
   const paneWidth = resolvePaneWidth(width, SIDEBAR_BOUNDS, SIDEBAR_DEFAULT_WIDTH)
@@ -124,6 +130,8 @@ export function Sidebar({
                 onRemove={() => onRemoveWorkspace(workspace.id)}
                 onNewWorktree={onNewWorktree}
                 onRowContextMenu={openMenu}
+                collapsed={isCollapsed(collapsedIds, workspace.id)}
+                onToggleCollapse={() => onToggleCollapse(workspace.id)}
               />
             ))
           )}
@@ -155,6 +163,9 @@ interface WorkspaceProps {
   onRemove: () => void
   onNewWorktree: (repoPath: string) => void
   onRowContextMenu: (event: MouseEvent, cwd: string) => void
+  /** Whether this workspace is folded in the tree (WSCL-06). */
+  collapsed: boolean
+  onToggleCollapse: () => void
 }
 
 function Workspace({
@@ -164,12 +175,25 @@ function Workspace({
   onSelect,
   onRemove,
   onNewWorktree,
-  onRowContextMenu
+  onRowContextMenu,
+  collapsed,
+  onToggleCollapse
 }: WorkspaceProps): JSX.Element {
   return (
     <section className="sidebar-workspace">
       <div className="sidebar-workspace-row">
-        <Icon name="chevron-down" size={13} />
+        <button
+          type="button"
+          className="sidebar-workspace-chevron"
+          aria-expanded={!collapsed}
+          aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${workspace.displayName}`}
+          title={`${collapsed ? 'Expand' : 'Collapse'} ${workspace.displayName}`}
+          onClick={onToggleCollapse}
+        >
+          <span className={collapsed ? 'icon pane-chevron-right' : 'icon'}>
+            <Icon name="chevron-down" size={13} />
+          </span>
+        </button>
         <span className="sidebar-workspace-folder">
           <Icon name="folder" size={14} />
         </span>
@@ -187,7 +211,7 @@ function Workspace({
         <div className="sidebar-note error">
           <Icon name="alert" size={12} /> folder not found on disk
         </div>
-      ) : workspace.repos.length === 0 ? (
+      ) : collapsed ? null : workspace.repos.length === 0 ? (
         <div className="sidebar-note">no git repos in this folder</div>
       ) : (
         workspace.repos.map((repo) => (

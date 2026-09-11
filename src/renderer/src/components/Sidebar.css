@@ -98,6 +98,23 @@
   flex: 1;
 }
 
+.sidebar-workspace-chevron {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+.sidebar-workspace-chevron:hover {
+  background: color-mix(in oklab, var(--text) 10%, transparent);
+  color: var(--text);
+}
+
 .sidebar-remove-btn {
   width: 22px;
   height: 22px;

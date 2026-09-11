@@ -45,6 +45,8 @@ export interface AppConfig {
     tasksWidth?: number
     /** Persisted tasks pane collapsed state; absent = expanded (PANE-09). */
     tasksCollapsed?: boolean
+    /** Workspace ids folded in the sidebar tree; absent = every workspace expanded (WSCL-06). */
+    collapsedWorkspaces?: string[]
   }
   workspaces: WorkspaceEntry[]
   /** Editable coding-agent registry; seeded from `SEEDED_AGENTS` (AGCF-01). */

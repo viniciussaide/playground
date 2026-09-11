@@ -12,7 +12,7 @@ review, Verifier, discrimination sensor).
 ---
 
 **Design**: `.specs/features/session-resume-on-respawn/design.md`
-**Status**: T1, T2 done; T3–T5 pending
+**Status**: T1, T2, T3 done; T4–T5 pending
 **Branch**: `feature/session-resume-on-respawn` (born from `main`, per the fork workflow)
 **Baseline**: 668 tests / 44 files green (measured on `main` 2026-09-10, `npx vitest run --maxWorkers=2`)
 **Final**: (fill on completion)
@@ -22,8 +22,8 @@ review, Verifier, discrimination sensor).
 | Task | Commit | Tests added | Notes |
 | ---- | ------ | ----------- | ----- |
 | T1 | `6d8e0da` | +3 | shared `commandKey` created fresh (nothing to move on `main`) |
-| T2 | | +17 | fixture-backed seam; last `ses_…` id pinned to `ses_fa640905fffe5E4OeSEH33fBLM` |
-| T3 | | | |
+| T2 | `66ecfd7` | +17 | fixture-backed seam; last `ses_…` id pinned to `ses_fa640905fffe5E4OeSEH33fBLM` |
+| T3 | | +4 | done-when's "id quoted" corrected: needs-quote-only rule (see T3 deviation) |
 | T4 | | | |
 | T5 | | | |
 
@@ -176,15 +176,18 @@ fixtures already recorded in `.specs/features/session-resume-on-respawn/fixtures
 
 **Done when**:
 
-- [ ] `buildSpawnPlan(agent, cwd, 'pwsh', ['--session', 'ses_x'])` →
-      `autoCommand: "claude --session 'ses_x'"` (id quoted per pwsh)
-- [ ] Same under `cmd` → `"claude --session \"ses_x\""`; continuation of a `--continue` flag
-      survives quoting
-- [ ] `resumeArgs` absent → the exact plans of today (existing tests unchanged, byte-identical)
-- [ ] A resume arg containing shell metacharacters is quoted, not re-split (RSMR-17's
-      byte-identical guarantee is about the absent case)
-- [ ] Quick gate passes: `npm test`
-- [ ] Test count: 681 → **684** (+3), zero deletions
+- [x] `buildSpawnPlan(agent, cwd, 'pwsh', ['--session', 'ses_abc'])` →
+      `autoCommand: "opencode --session ses_abc"` (**deviation:** the plan text said the id is
+      quoted per pwsh — a plain alphanumeric id needs no quoting under the repo's
+      needs-quote-only rule; quoting on demand is proven by the metacharacter case below)
+- [x] Same under `cmd` → `"opencode --session ses_abc"`; a `--continue` flag appended after the
+      agent args survives under both shells
+- [x] `resumeArgs` absent → the exact plans of today (existing tests unchanged, byte-identical)
+- [x] A resume arg containing shell metacharacters is quoted, not re-split (`'ses a&b'` →
+      `'ses a&b'` under pwsh)
+- [x] Quick gate passes: `npm test`
+- [x] Test count: 681 → **688** (+4 net; the two quoting expectations above were corrected in
+      the same commit), zero deletions
 
 **Tests**: unit
 **Gate**: quick

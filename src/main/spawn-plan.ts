@@ -59,9 +59,15 @@ function quoteCmd(token: string): string {
  * keep the shell live, so when the agent quits the developer drops back to a
  * usable prompt instead of the PTY closing (spec: agent-exit → live prompt).
  */
-export function buildSpawnPlan(agent: AgentDef, cwd: string, shell: Shell): SpawnPlan {
+export function buildSpawnPlan(
+  agent: AgentDef,
+  cwd: string,
+  shell: Shell,
+  resumeArgs: string[] = []
+): SpawnPlan {
+  const tokens = [...agent.args, ...resumeArgs]
   if (shell === 'cmd') {
-    const autoCommand = [agent.command, ...agent.args].map(quoteCmd).join(' ').trim()
+    const autoCommand = [agent.command, ...tokens].map(quoteCmd).join(' ').trim()
     return { file: 'cmd.exe', args: ['/K', autoCommand], cwd, autoCommand }
   }
   // In PowerShell a quoted command is a string *expression* (it echoes, it
@@ -69,7 +75,7 @@ export function buildSpawnPlan(agent: AgentDef, cwd: string, shell: Shell): Spaw
   // the call operator (`&`) to preserve execution semantics.
   const command = quotePwsh(agent.command)
   const head = command === agent.command ? command : `& ${command}`
-  const autoCommand = [head, ...agent.args.map(quotePwsh)].join(' ').trim()
+  const autoCommand = [head, ...tokens.map(quotePwsh)].join(' ').trim()
   return { file: 'pwsh.exe', args: ['-NoExit', '-Command', autoCommand], cwd, autoCommand }
 }
 

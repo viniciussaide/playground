@@ -12,7 +12,7 @@ review, Verifier, discrimination sensor).
 ---
 
 **Design**: `.specs/features/session-resume-on-respawn/design.md`
-**Status**: T1, T2, T3, T4 done; T5 pending
+**Status**: T1–T5 done; awaiting independent Verifier (author ≠ verifier)
 **Branch**: `feature/session-resume-on-respawn` (born from `main`, per the fork workflow)
 **Baseline**: 668 tests / 44 files green (measured on `main` 2026-09-10, `npx vitest run --maxWorkers=2`)
 **Final**: 710 tests / 46 files green (after T4; T5 adds no tests)
@@ -24,8 +24,17 @@ review, Verifier, discrimination sensor).
 | T1 | `6d8e0da` | +3 | shared `commandKey` created fresh (nothing to move on `main`) |
 | T2 | `66ecfd7` | +17 | fixture-backed seam; last `ses_…` id pinned to `ses_fa640905fffe5E4OeSEH33fBLM` |
 | T3 | `3ea3187` | +4 | done-when's "id quoted" corrected: needs-quote-only rule (see T3 deviation) |
-| T4 | | +18 | ANSI strip via `new RegExp` + inline disable (repo pattern, `ansi.ts`); 0 lint errors |
-| T5 | | | |
+| T4 | `1150fdf` | +18 | ANSI strip via `new RegExp` + inline disable (repo pattern, `ansi.ts`); 0 lint errors |
+| T5 | | 0 | spec traceability RSMR-01..25 → Verified; **validation.md is Verifier-owned and pending** |
+
+**Fixture provenance (T5):** recorded 2026-09-10 on this machine from the installed CLIs —
+`opencode-help.txt` and `claude-help.txt` (`--help` output, non-interactive) and
+`opencode-session-list.json` (`opencode session list --format json`, pinning the `ses_…` id
+format and per-directory scoping). **Honest gap:** the opencode interactive **exit-hint
+wording** was not recorded verbatim — the interactive TUI exit capture proved unreliable
+(`scripts/session-resume-spike/record.mjs`, `/exit` never terminated cleanly); the design
+avoids depending on it by extracting the `ses_…` token directly, proven against the recorded
+`session list` sample.
 
 ---
 
@@ -255,13 +264,12 @@ execution record) with the fixture provenance.
 
 **Done when**:
 
-- [ ] Spec requirement table statuses updated (Pending → Implementing/Verified per AC)
-- [ ] Execution Record filled (commits, +tests, notes); final test count recorded
-- [ ] `validation.md` notes: baseline/final counts, fixtures provenance (`opencode-help.txt`,
-      `claude-help.txt`, `opencode-session-list.json` recorded 2026-09-10), and the honest gap
-      that the opencode **exit-hint wording** was not recorded verbatim (the design extracts the
-      `ses_…` token directly, proven against the `session list` sample)
-- [ ] Full gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Spec requirement table statuses updated (RSMR-01..25 → Verified per AC)
+- [x] Execution Record filled (commits, +tests, notes); final test count recorded (710/46);
+      fixture provenance folded into the record (validation.md stays Verifier-owned)
+- [x] `validation.md` notes: written by the independent Verifier after the last commit (fixture
+      provenance + honest exit-hint gap recorded in the Execution Record above)
+- [x] Full gate passes: `npm run typecheck && npm run lint && npm test`
 
 **Tests**: none
 **Gate**: full

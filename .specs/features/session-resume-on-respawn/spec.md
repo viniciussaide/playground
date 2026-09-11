@@ -160,37 +160,37 @@ with no resume flag.
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| RSMR-01 | P1: Respawn resumes the conversation | - | Pending |
-| RSMR-02 | P1: Respawn resumes the conversation | - | Pending |
-| RSMR-03 | P1: Respawn resumes the conversation | - | Pending |
-| RSMR-04 | P1: Respawn resumes the conversation | - | Pending |
-| RSMR-05 | P1: Respawn resumes the conversation | - | Pending |
-| RSMR-06 | P1: Respawn resumes the conversation | - | Pending |
-| RSMR-07 | P1: Respawn resumes the conversation | - | Pending |
-| RSMR-08 | P1: Respawn resumes the conversation | - | Pending |
-| RSMR-09 | P2: A new spawn in the same folder resumes too | - | Pending |
-| RSMR-10 | P2: A new spawn in the same folder resumes too | - | Pending |
-| RSMR-11 | P2: A new spawn in the same folder resumes too | - | Pending |
-| RSMR-12 | P2: A new spawn in the same folder resumes too | - | Pending |
-| RSMR-13 | P2: A new spawn in the same folder resumes too | - | Pending |
-| RSMR-14 | P3: Every shipped mechanism is proven against recorded output | - | Pending |
-| RSMR-15 | P3: Every shipped mechanism is proven against recorded output | - | Pending |
-| RSMR-16 | P3: Every shipped mechanism is proven against recorded output | - | Pending |
-| RSMR-17 | P3: Every shipped mechanism is proven against recorded output | - | Pending |
-| RSMR-18 | Edge cases | - | Pending |
-| RSMR-19 | Edge cases | - | Pending |
-| RSMR-20 | Edge cases | - | Pending |
-| RSMR-21 | Edge cases | - | Pending |
-| RSMR-22 | Edge cases | - | Pending |
-| RSMR-23 | Edge cases | - | Pending |
-| RSMR-24 | Edge cases | - | Pending |
-| RSMR-25 | Edge cases | - | Pending |
+| RSMR-01 | P1: Respawn resumes the conversation | - | Verified |
+| RSMR-02 | P1: Respawn resumes the conversation | - | Verified |
+| RSMR-03 | P1: Respawn resumes the conversation | - | Verified |
+| RSMR-04 | P1: Respawn resumes the conversation | - | Verified |
+| RSMR-05 | P1: Respawn resumes the conversation | - | Verified |
+| RSMR-06 | P1: Respawn resumes the conversation | - | Verified |
+| RSMR-07 | P1: Respawn resumes the conversation | - | Verified |
+| RSMR-08 | P1: Respawn resumes the conversation | - | Verified |
+| RSMR-09 | P2: A new spawn in the same folder resumes too | - | Verified |
+| RSMR-10 | P2: A new spawn in the same folder resumes too | - | Verified |
+| RSMR-11 | P2: A new spawn in the same folder resumes too | - | Verified |
+| RSMR-12 | P2: A new spawn in the same folder resumes too | - | Verified |
+| RSMR-13 | P2: A new spawn in the same folder resumes too | - | Verified |
+| RSMR-14 | P3: Every shipped mechanism is proven against recorded output | - | Verified |
+| RSMR-15 | P3: Every shipped mechanism is proven against recorded output | - | Verified |
+| RSMR-16 | P3: Every shipped mechanism is proven against recorded output | - | Verified |
+| RSMR-17 | P3: Every shipped mechanism is proven against recorded output | - | Verified |
+| RSMR-18 | Edge cases | - | Verified |
+| RSMR-19 | Edge cases | - | Verified |
+| RSMR-20 | Edge cases | - | Verified |
+| RSMR-21 | Edge cases | - | Verified |
+| RSMR-22 | Edge cases | - | Verified |
+| RSMR-23 | Edge cases | - | Verified |
+| RSMR-24 | Edge cases | - | Verified |
+| RSMR-25 | Edge cases | - | Verified |
 
 **ID format:** `RSMR-[NUMBER]`
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 25 total, 0 mapped to tasks (Design and Tasks not yet run), 0 unmapped
+**Coverage:** 25 total, 25 verified (T1–T4, 2026-09-10), 0 unmapped
 
 ---
 

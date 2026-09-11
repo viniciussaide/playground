@@ -1,15 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import { basename } from 'node:path'
-import type { PersistedSession, SessionView } from '../shared/config'
+import type { PersistedSession, SessionStatus, SessionView } from '../shared/config'
 import type { IpcEvent, IpcEvents } from '../shared/ipc-contract'
 import type { ConfigStore } from './config-store'
 import type { PtyHandle, PtyPort } from './pty-port'
-import {
-  extractResumeId,
-  resolveMechanism,
-  resolveResumeArgs,
-  type ResumeMechanism
-} from './resume-mechanism'
 import { SessionRingBuffer } from './session-ring-buffer'
 import { buildRawSpawnPlan, buildSpawnPlan, type AgentDef } from './spawn-plan'
 
@@ -35,18 +29,6 @@ const ADHOC_AGENT = 'Ad-hoc'
  */
 export const SESSION_EXIT_WAIT_MS = 3000
 
-/** Bound on the ANSI-stripped capture window re-scanned for a resume id. */
-const CAPTURE_TAIL_MAX = 4096
-
-/** Minimal CSI/OSC escape stripper for the capture window — raw PTY bytes carry
- * colour codes, and a resume hint can be painted inside an escape sequence.
- * Built from a string so no raw control characters live in the source (same
- * shape as the renderer's `ansi.ts`). */
-const ANSI_STRIP = new RegExp(
-  '\\u001b\\[[0-9;?]*[ -/]*[@-~]|\\u001b\\][^\\u0007\\u001b]*(?:\\u0007|\\u001b\\\\)', // eslint-disable-line no-control-regex
-  'g'
-)
-
 /** A session with a live PTY. Stopped/restored sessions live only in config. */
 interface RunningSession {
   meta: PersistedSession
@@ -54,12 +36,6 @@ interface RunningSession {
   buffer: SessionRingBuffer
   /** Resolves when the PTY's own onExit fires — what `stop` actually waits on. */
   exited: Promise<void>
-  /** Resume mechanism resolved at spawn; null for ad-hoc and unknown agents. */
-  mechanism: ResumeMechanism | null
-  /** ANSI-stripped rolling tail of the stream, re-scanned for a resume id. */
-  captureTail: string
-  /** Latest resume id seen in the stream; persisted at finalize (RSMR-02/03). */
-  retainedId: string | null
 }
 
 /**
@@ -113,17 +89,7 @@ export class SessionManager {
           title: `${this.#resolve(agentName).name} · ${leaf}`,
           status: 'running'
         }
-    // A brand-new spawn in a cwd reuses the last captured conversation of the
-    // same agent there (RSMR-09/10); ad-hoc commands never resume (RSMR-17).
-    const resumeArgs = adhocCommand
-      ? []
-      : resolveResumeArgs(
-          this.deps.config.get().sessions,
-          this.deps.config.get().agents,
-          cwd,
-          this.#resolve(agentName).command
-        )
-    this.#start(meta, resumeArgs) // throws on a bad cwd/shell/agent before anything is persisted
+    this.#start(meta) // throws on a bad cwd/shell/agent before anything is persisted
     this.#persistUpsert(meta)
     return this.#toView(meta)
   }
@@ -141,9 +107,7 @@ export class SessionManager {
     return this.#toView(renamed)
   }
 
-  /** Clone a session's agent + cwd (+ ad-hoc command) into a new running one.
-   * A duplicate is a second agent run: it never inherits the captured
-   * conversation id, so it starts fresh (RSMR-21). */
+  /** Clone a session's agent + cwd (+ ad-hoc command) into a new running one. */
   duplicate(id: string): SessionView {
     const src = this.deps.config.get().sessions.find((s) => s.id === id)
     if (!src) throw new Error(`Unknown session: ${id}`)
@@ -156,7 +120,7 @@ export class SessionManager {
       status: 'running',
       ...(src.command ? { command: src.command } : {})
     }
-    this.#start(meta, [])
+    this.#start(meta)
     this.#persistUpsert(meta)
     return this.#toView(meta)
   }
@@ -202,12 +166,8 @@ export class SessionManager {
     if (!meta) throw new Error(`Unknown session: ${id}`)
     if (this.#running.has(id)) return this.#toView(meta)
     this.#retained.delete(id) // fresh PTY → drop the stale preview buffer
-    // Respawn resumes the conversation: the session's own captured id for
-    // id-mechanism agents, the continue flag for continue agents (RSMR-05/06).
-    const mechanism = meta.command ? null : resolveMechanism(this.#resolve(meta.agent).command)
-    const resumeArgs = this.#resumeArgsFor(meta, mechanism)
     const live: PersistedSession = { ...meta, status: 'running' }
-    this.#start(live, resumeArgs)
+    this.#start(live)
     this.#persistUpsert(live)
     this.deps.emit('session:status', {
       id,
@@ -265,56 +225,27 @@ export class SessionManager {
     return agent
   }
 
-  /** The resume args for a respawn: the session's captured id, the continue
-   * flag, or nothing when the agent has no mechanism (RSMR-05/06/07). */
-  #resumeArgsFor(meta: PersistedSession, mechanism: ResumeMechanism | null): string[] {
-    if (!mechanism) return []
-    if (mechanism.kind === 'continue') return mechanism.args
-    return meta.agentSessionId ? mechanism.args(meta.agentSessionId) : []
-  }
-
   /** Spawn the PTY for a meta and wire its streams; registers the Map entry. */
-  #start(meta: PersistedSession, resumeArgs: string[] = []): void {
+  #start(meta: PersistedSession): void {
     const shell = this.deps.config.get().ui.defaultShell
-    const mechanism = meta.command ? null : resolveMechanism(this.#resolve(meta.agent).command)
     const plan = meta.command
       ? buildRawSpawnPlan(meta.command, meta.cwd, shell)
-      : buildSpawnPlan(this.#resolve(meta.agent), meta.cwd, shell, resumeArgs)
+      : buildSpawnPlan(this.#resolve(meta.agent), meta.cwd, shell)
     const handle = this.deps.port.spawn(plan)
     const buffer = new SessionRingBuffer()
+    handle.onData((data) => {
+      buffer.append(data)
+      if (this.#activeId === meta.id) this.deps.emit('session:data', { id: meta.id, data })
+    })
     let markExited = (): void => {}
     const exited = new Promise<void>((resolve) => {
       markExited = resolve
-    })
-    const session: RunningSession = {
-      meta: { ...meta, status: 'running' },
-      handle,
-      buffer,
-      exited,
-      mechanism,
-      captureTail: '',
-      retainedId: null
-    }
-    handle.onData((data) => {
-      buffer.append(data)
-      // Continuous resume-id capture (RSMR-01/02): id-mechanism agents get their
-      // conversation id retained the moment it appears — including a hint split
-      // across chunks or painted inside ANSI escapes (RSMR-18) — so app close
-      // can persist it before the PTY is killed (RSMR-04).
-      if (session.mechanism?.kind === 'id') {
-        session.captureTail = (session.captureTail + data.replace(ANSI_STRIP, '')).slice(
-          -CAPTURE_TAIL_MAX
-        )
-        const id = extractResumeId(session.captureTail, session.mechanism)
-        if (id !== null) session.retainedId = id
-      }
-      if (this.#activeId === meta.id) this.deps.emit('session:data', { id: meta.id, data })
     })
     handle.onExit(({ exitCode }) => {
       markExited()
       this.#finalize(meta.id, exitCode)
     })
-    this.#running.set(meta.id, session)
+    this.#running.set(meta.id, { meta: { ...meta, status: 'running' }, handle, buffer, exited })
   }
 
   /** Idempotent transition to stopped: drop the Map entry, persist, push status. */
@@ -326,23 +257,23 @@ export class SessionManager {
     const session = this.#running.get(id)
     if (session) this.#retained.set(id, session.buffer) // keep scrollback for the preview
     const wasRunning = this.#running.delete(id)
-    if (wasRunning && session) {
-      // One patch carries both the status flip and any freshly captured resume
-      // id (RSMR-03/04/08). Runs synchronously inside stop(), so killAll's
-      // fire-and-forget quit lands the id in config before the PTY dies.
-      const stopped: PersistedSession = {
-        ...session.meta,
-        status: 'stopped',
-        ...(session.retainedId ? { agentSessionId: session.retainedId } : {})
-      }
-      this.#persistUpsert(stopped)
+    if (wasRunning) this.#setStatus(id, 'stopped')
+    if (exitCode !== undefined) this.deps.emit('session:exit', { id, exitCode })
+  }
+
+  #setStatus(id: string, status: SessionStatus): void {
+    const sessions = this.deps.config
+      .get()
+      .sessions.map((s) => (s.id === id ? { ...s, status } : s))
+    this.deps.config.patch({ sessions })
+    const session = sessions.find((s) => s.id === id)
+    if (session) {
       this.deps.emit('session:status', {
         id,
-        status: 'stopped',
-        pathMissing: !this.deps.fsExists(stopped.cwd)
+        status,
+        pathMissing: !this.deps.fsExists(session.cwd)
       })
     }
-    if (exitCode !== undefined) this.deps.emit('session:exit', { id, exitCode })
   }
 
   #persistUpsert(meta: PersistedSession): void {

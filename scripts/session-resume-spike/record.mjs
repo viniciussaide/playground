@@ -41,7 +41,15 @@ const scratch = join(tmpdir(), 'playground-resume-spike', agent)
 mkdirSync(scratch, { recursive: true })
 
 const outDir = dirname(fileURLToPath(import.meta.url))
-const fixtureDir = join(outDir, '..', '..', '.specs', 'features', 'session-resume-on-respawn', 'fixtures')
+const fixtureDir = join(
+  outDir,
+  '..',
+  '..',
+  '.specs',
+  'features',
+  'session-resume-on-respawn',
+  'fixtures'
+)
 mkdirSync(fixtureDir, { recursive: true })
 
 const proc = pty.spawn(exe, [], {
@@ -59,7 +67,12 @@ proc.onData((data) => {
 })
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-const stripAnsi = (s) => s.replace(/\x1b\[[0-9;?]*[ -\/]*[@-~]/g, '')
+const stripAnsi = (s) =>
+  s.replace(
+    // eslint-disable-next-line no-control-regex
+    new RegExp('\\u001b\\[[0-9;?]*[ -/]*[@-~]', 'g'),
+    ''
+  )
 
 async function main() {
   console.log(`\n[spike] spawned ${agent} in ${scratch}; waiting ${STARTUP_MS}ms for the TUI…`)

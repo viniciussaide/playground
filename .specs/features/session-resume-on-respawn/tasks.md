@@ -12,10 +12,10 @@ review, Verifier, discrimination sensor).
 ---
 
 **Design**: `.specs/features/session-resume-on-respawn/design.md`
-**Status**: T1, T2, T3 done; T4–T5 pending
+**Status**: T1, T2, T3, T4 done; T5 pending
 **Branch**: `feature/session-resume-on-respawn` (born from `main`, per the fork workflow)
 **Baseline**: 668 tests / 44 files green (measured on `main` 2026-09-10, `npx vitest run --maxWorkers=2`)
-**Final**: (fill on completion)
+**Final**: 710 tests / 46 files green (after T4; T5 adds no tests)
 
 ## Execution Record
 
@@ -23,8 +23,8 @@ review, Verifier, discrimination sensor).
 | ---- | ------ | ----------- | ----- |
 | T1 | `6d8e0da` | +3 | shared `commandKey` created fresh (nothing to move on `main`) |
 | T2 | `66ecfd7` | +17 | fixture-backed seam; last `ses_…` id pinned to `ses_fa640905fffe5E4OeSEH33fBLM` |
-| T3 | | +4 | done-when's "id quoted" corrected: needs-quote-only rule (see T3 deviation) |
-| T4 | | | |
+| T3 | `3ea3187` | +4 | done-when's "id quoted" corrected: needs-quote-only rule (see T3 deviation) |
+| T4 | | +18 | ANSI strip via `new RegExp` + inline disable (repo pattern, `ansi.ts`); 0 lint errors |
 | T5 | | | |
 
 ---
@@ -214,25 +214,26 @@ harness (`session-manager.test.ts:89-109`) with `emitData` feeding capture
 
 **Done when**:
 
-- [ ] An opencode session's `emitData` containing `opencode --session ses_f7273a311ffeAkg12W9sbfYKpt`
+- [x] An opencode session's `emitData` containing `opencode --session ses_f7273a311ffeAkg12W9sbfYKpt`
       retains that id (RSMR-01/02); a hint **split across two chunks** still retains it; ANSI
       in the chunk is ignored (RSMR-18)
-- [ ] `stop()` persists the retained id on the session (RSMR-03); `onExit` (natural exit) too;
+- [x] `stop()` persists the retained id on the session (RSMR-03); `onExit` (natural exit) too;
       **`killAll()` persists it before the PTY is killed** (RSMR-04) — assert on
       `config.get().sessions`
-- [ ] A session stopped with no id in its stream stays without `agentSessionId` (RSMR-08)
-- [ ] `respawn` of an id-session injects `['--session', id]` into the new plan (`port.handles.at(-1).plan`)
+- [x] A session stopped with no id in its stream stays without `agentSessionId` (RSMR-08)
+- [x] `respawn` of an id-session injects `['--session', id]` into the new plan (`port.handles.at(-1).plan`)
       (RSMR-05); respawn of a Claude session injects `['--continue']` (RSMR-06); respawn with
       neither → today's plan (RSMR-07)
-- [ ] `spawn('opencode', cwd)` with a prior opencode session carrying an id injects it
+- [x] `spawn('opencode', cwd)` with a prior opencode session carrying an id injects it
       (RSMR-09); with a prior **Claude** session → no id (RSMR-11); with no prior → fresh
       (RSMR-12); `spawn('Claude', cwd)` with a prior Claude session in `cwd` → `--continue`
       (RSMR-10/13)
-- [ ] `duplicate` does not copy `agentSessionId` (RSMR-21); `remove` drops it (RSMR-22);
+- [x] `duplicate` does not copy `agentSessionId` (RSMR-21); `remove` drops it (RSMR-22);
       `rename` keeps it (RSMR-23)
-- [ ] Existing 668 tests stay green (no regression in spawn/respawn/ad-hoc behaviour)
-- [ ] Full gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: 684 → **697** (+13), zero deletions
+- [x] Existing 668 tests stay green (no regression in spawn/respawn/ad-hoc behaviour)
+- [x] Full gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: 684 → **710** (+18, planned +13 — every added test maps to an RSMR/edge
+      case), zero deletions
 
 **Tests**: unit
 **Gate**: full

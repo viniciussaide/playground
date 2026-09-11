@@ -459,6 +459,25 @@ describe('SessionManager — resume capture (RSMR-01..04, RSMR-18)', () => {
     expect(config.get().sessions[0].agentSessionId).toBe('ses_ansi')
   })
 
+  it('catches a hint whose token an ANSI escape interrupts (strip is load-bearing)', () => {
+    const { manager, config, port } = makeManager()
+    withOpencode(config)
+    const view = manager.spawn('opencode', CWD)
+    port.handles[0].emitData('opencode --session ses_\x1b[0mansi\r')
+    manager.stop(view.id)
+    expect(config.get().sessions[0].agentSessionId).toBe('ses_ansi')
+  })
+
+  it('a later id supersedes an earlier one across chunks (latest wins)', () => {
+    const { manager, config, port } = makeManager()
+    withOpencode(config)
+    const view = manager.spawn('opencode', CWD)
+    port.handles[0].emitData('opencode --session ses_old\r')
+    port.handles[0].emitData('opencode --session ses_new\r')
+    manager.stop(view.id)
+    expect(config.get().sessions[0].agentSessionId).toBe('ses_new')
+  })
+
   it('persists the id on a natural agent exit (onExit), not only explicit stop', () => {
     const { manager, config, port } = makeManager()
     withOpencode(config)
@@ -476,6 +495,15 @@ describe('SessionManager — resume capture (RSMR-01..04, RSMR-18)', () => {
     manager.killAll()
     expect(port.handles[0].killed).toBe(true)
     expect(config.get().sessions[0].agentSessionId).toBe('ses_quit')
+  })
+
+  it('killAll without any id keeps the field absent (RSMR-04/08)', () => {
+    const { manager, config, port } = makeManager()
+    withOpencode(config)
+    manager.spawn('opencode', CWD)
+    port.handles[0].emitData('just output')
+    manager.killAll()
+    expect(config.get().sessions[0].agentSessionId).toBeUndefined()
   })
 
   it('keeps the field absent when no id ever appears (RSMR-08)', () => {
@@ -514,6 +542,28 @@ describe('SessionManager — resume injection on respawn (RSMR-05..07)', () => {
     manager.stop(view.id)
     manager.respawn(view.id)
     expect(port.handles[1].plan.autoCommand).toBe('codex --full-auto')
+  })
+
+  it('respawn of an id-agent without a captured id starts fresh (RSMR-19)', () => {
+    const { manager, config, port } = makeManager()
+    withOpencode(config)
+    const view = manager.spawn('opencode', CWD)
+    port.handles[0].emitData('just output, no id')
+    manager.stop(view.id)
+    expect(config.get().sessions[0].agentSessionId).toBeUndefined()
+    manager.respawn(view.id)
+    expect(port.handles[1].plan.autoCommand).toBe('opencode')
+  })
+
+  it('respawn raises exactly one fresh PTY — no retry loop on a stale id (RSMR-20)', () => {
+    const { manager, config, port } = makeManager()
+    withOpencode(config)
+    const view = manager.spawn('opencode', CWD)
+    port.handles[0].emitData('opencode --session ses_stale\r')
+    manager.stop(view.id)
+    manager.respawn(view.id)
+    expect(port.handles).toHaveLength(2) // the original PTY + exactly one respawn
+    expect(config.get().sessions).toHaveLength(1) // no re-created session
   })
 })
 

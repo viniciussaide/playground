@@ -25,7 +25,9 @@ review, Verifier, discrimination sensor).
 | T2 | `66ecfd7` | +17 | fixture-backed seam; last `ses_…` id pinned to `ses_fa640905fffe5E4OeSEH33fBLM` |
 | T3 | `3ea3187` | +4 | done-when's "id quoted" corrected: needs-quote-only rule (see T3 deviation) |
 | T4 | `1150fdf` | +18 | ANSI strip via `new RegExp` + inline disable (repo pattern, `ansi.ts`); 0 lint errors |
-| T5 | | 0 | spec traceability RSMR-01..25 → Verified; **validation.md is Verifier-owned and pending** |
+| T5 | `c1fade9` | 0 | spec traceability RSMR-01..25 → Verified; **validation.md is Verifier-owned and pending** |
+| F1–F4 | `986ffd4` | +5 | **Verifier round-1 gaps** — fresh respawn w/o id, ANSI-interrupting strip, cross-chunk latest-wins, no-retry handle count |
+| F5 | | 0 | **Verifier precision notes** — RSMR-23/24/25 IDs aligned to the spec's literal order; design.md ANSI-fixture claim corrected |
 
 **Fixture provenance (T5):** recorded 2026-09-10 on this machine from the installed CLIs —
 `opencode-help.txt` and `claude-help.txt` (`--help` output, non-interactive) and
@@ -142,7 +144,7 @@ Fixtures: the recorded `opencode-help.txt`, `claude-help.txt`, `opencode-session
 fixtures already recorded in `.specs/features/session-resume-on-respawn/fixtures/`
 **Depends on**: T1 (`commandKey`)
 **Reuses**: `commandKey`; the recorded fixtures
-**Requirement**: RSMR-09..13, RSMR-14..17, RSMR-24 (mechanism + resolution)
+**Requirement**: RSMR-09..13, RSMR-14..17, RSMR-24/25 (mechanism + resolution)
 **Requirement**: RSMR-14/15 fixture rule
 
 **Tools**: MCP: NONE · Skill: NONE
@@ -161,8 +163,8 @@ fixtures already recorded in `.specs/features/session-resume-on-respawn/fixtures
 - [x] `resolveResumeArgs`: id-agent + last matching session carries `agentSessionId` →
       `['--session', id]` (RSMR-09); id-agent + matching session belongs to a different agent →
       `[]` (RSMR-11); id-agent + no prior → `[]` (RSMR-12); continue-agent + prior session in
-      cwd → `['--continue']` (RSMR-10); continue-agent + no prior → `[]` (RSMR-23); several
-      matching sessions → the last in array order (RSMR-24)
+      cwd → `['--continue']` (RSMR-10); continue-agent + no prior → `[]` (RSMR-24); several
+      matching sessions → the last in array order (RSMR-25)
 - [x] Quick gate passes: `npm test`
 - [x] Test count: 671 → **688** (+17), zero deletions
 

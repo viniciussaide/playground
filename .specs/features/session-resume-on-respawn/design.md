@@ -94,9 +94,9 @@ exists).
   regex `ses_[A-Za-z0-9]+` is asserted against the recorded `session list` sample (RSMR-14).
 - **Continue injection condition** — `resolveResumeArgs` returns `['--continue']` for a
   continue-mechanism agent **only if** `config.sessions` has a prior session with that `cwd`
-  and command (RSMR-10/RSMR-23); otherwise `[]` → today's plan (RSMR-12).
+  and command (RSMR-10/RSMR-24); otherwise `[]` → today's plan (RSMR-12).
 - **Id injection condition** — id-mechanism agent returns `['--session', id]` only when the
-  **last** session matching `cwd` + command carries `agentSessionId` (RSMR-09/RSMR-24);
+  **last** session matching `cwd` + command carries `agentSessionId` (RSMR-09/RSMR-25);
   different agent or no prior → `[]` (RSMR-11/RSMR-12).
 - **Respawn** — id-mechanism session uses its **own** persisted `agentSessionId` (RSMR-05);
   continue-mechanism session injects `--continue` (RSMR-06); neither → today (RSMR-07).
@@ -107,10 +107,11 @@ exists).
 - **Duplicate** — `duplicate()` spreads the source meta but **strips** `agentSessionId`
   (RSMR-21); **remove** drops it with the session (RSMR-22); **rename** is title-only so it
   survives untouched (RSMR-23).
-- **ANSI** — capture strip is a local minimal-CSI regex in the seam; the recorded `claude
-  --help` fixture carries `\x1b[7m…\x1b[0m` bold codes, so the strip path is exercised by a
-  fixture-backed test (RSMR-18). A hint split across chunks is caught by the rolling tail
-  (RSMR-18).
+- **ANSI** — capture strip is a local minimal-CSI regex in the seam; the strip path is
+  exercised by the synthetic ANSI tests in `session-manager.test.ts` (an escape that
+  **interrupts** the `ses_…` token only matches after stripping). The recorded help fixtures
+  carry no ANSI — the CLIs disable colour when piped (measured: 0 ESC bytes). A hint split
+  across chunks is caught by the rolling tail (RSMR-18).
 
 ---
 
@@ -131,6 +132,7 @@ surface beyond the live smoke in `tasks.md`.
 ## Open items (owner)
 
 - (none pending) — the ANSI item flagged `n` in the spec is resolved here (local strip helper
-  exercised by the `claude --help` fixture). The opencode **exit-hint wording** is not recorded
-  verbatim; the design avoids depending on it by extracting the `ses_…` token directly, which
-  the recorded `session list` sample proves extractable.
+  exercised by the synthetic ANSI tests in `session-manager.test.ts`). The opencode
+  **exit-hint wording** is not recorded verbatim; the design avoids depending on it by
+  extracting the `ses_…` token directly, which the recorded `session list` sample proves
+  extractable.

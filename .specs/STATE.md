@@ -28,9 +28,38 @@ Handoff snapshot.
 
 ## Handoff
 
-**Status (current, 2026-09-02): v1.0.0 released; first external contributions merged.**
-Nothing in flight from our side. PRs #78 (sidebar resize) and #79 (work item type
-badges) are **merged**; PR #80 (terminal input fixes) is **open**, rebased and clean.
+**Status (current, 2026-09-11): develop limpa e verde (706 testes / 44 files, typecheck
+clean, lint 0 errors / 18 warnings baseline). Sessão encerrada após REVERTER a feature
+`session-resume-on-respawn` — próximo passo: `dev-alias-setting` (spec pronta).**
+
+0. **`session-resume-on-respawn` — PLANEJADA, EXECUTADA, VERIFICADA e REVERTIDA (2026-09-11).**
+   A feature foi especificada (RSMR-01..25), executada (10 commits, 668→715 testes) e
+   independentemente verificada (Verifier PASS 25/25 ACs, sensor 8/8; relatório em
+   `validation.md`, que o revert removeu) e mergeada na develop (`1276143`). O owner decidiu
+   **descartá-la**: a retomada "última sessão da pasta" é resolvida pelos próprios CLIs via
+   `--continue` (opencode `-c`; Claude `-c`) configurável no **registry de agentes**
+   (Settings → Agents → `args`), sem código nenhum. Revertida com `2cbeab2` (merge) +
+   `9160ff2` (handoff); branch `feature/session-resume-on-respawn` deletada. Config sugerida
+   em `%APPDATA%\playground\config.json`: `args: ["--continue"]` em opencode e Claude.
+   **Lição aplicada:** quando o agente tem "continue-last" documentado, captura de session-id
+   é over-engineering para o caso "última da pasta" (backup do trabalho: `git reflog 2cbeab2^`).
+
+1. **PRÓXIMO PASSO — `dev-alias-setting` (spec pronta, não executada).** Spec untracked em
+   `.specs/features/dev-alias-setting/spec.md` (DEVA-01..08 — campo "Dev alias" no
+   SettingsDialog alimentando `ado.devAlias`, o placeholder `{dev}` do branch template;
+   "Tasks phase skipped"). **Começar em nova sessão limpa:** ler a spec, reconciliar com o
+   código (nota: defeito pré-existente registrado no Out of Scope — `SettingsDialog.tsx:90-97`
+   `commitForm` dropa `undoByte` ao editar agente), decidir design/tasks, branch
+   `feature/dev-alias-setting` a partir de `main` (fork workflow), executar com
+   `tlc-spec-driven` (Verifier inclusa). Estimativa de tamanho: pequena (renderer, 1 campo).
+
+**Contexto para a nova sessão:** repo = fork de `obogoni/playground` (origin = upstream,
+fork = pessoal; feature nasce de `main`, PR só para upstream, `develop` = integração local —
+ver `playground-workflow.md`). Testes: `npx vitest run --maxWorkers=2` (default workers
+flakeia nos real-git tests), baseline **706 testes / 44 files**. Quatro specs de features
+seguem untracked na develop (`dev-alias-setting`, `session-activity-status`,
+`session-idle-notifications`, `sidebar-node-collapse`). O restante deste handoff abaixo é
+histórico de features já entregues.
 
 **PENDING — bump the committed `package.json` version on the next delivery.**
 `v1.0.0` shipped 2026-09-02 from `cafb43f` (the PR #77 merge), but stable releases are
@@ -42,6 +71,8 @@ which semver-sorts **below** the shipped `1.0.0` and leaves the alpha channel lo
 permanently stale. Bump the committed `version` to the next minor (`1.1.0`) as part of the
 next delivery so nightlies become `1.1.0-alpha.N` and sort ahead of the shipped stable.
 One-line change in `package.json`; the release workflow needs no edit.
+
+---
 
 0. **`vs2026-admin-shortcut` (AD-016) — EXECUTED, validated (PASS), pushed. Issue #76, PR #77.**
    Branch `feature/vs2026-admin-shortcut`, based on **`origin/main` (`9d825d6`, the PR #75 merge)** —

@@ -28,30 +28,9 @@ Handoff snapshot.
 
 ## Handoff
 
-**Status (current, 2026-09-11): `session-resume-on-respawn` executed and verified on the feature branch; merged locally into `develop`. PR to upstream pending (needs explicit go-ahead).**
-
-0. **`session-resume-on-respawn` (RSMR-01..25) — EXECUTED, VERIFIER PASS (round 2), MERGED into `develop` (1276143).**
-   Feature: respawn (and a new spawn in the same cwd) resumes the agent's last
-   conversation — id-driven for opencode (`--session <id>`, captured continuously from the PTY
-   stream and persisted at stop/onExit/quit so it survives an app restart), continue-most-recent
-   for Claude (`--continue`). Branch `feature/session-resume-on-respawn` born from `main`
-   (`ed8d510`); 10 commits (`8510bcf` plan → `0b64852`), 668→**715 tests** on main; develop
-   after merge = **754 tests** green (typecheck clean, lint 0 errors / 18 warnings baseline).
-   **Verifier (author ≠ verifier, 2 rounds): PASS** — 25/25 ACs, discrimination sensor **8/8**
-   (round-1 survivors M6/M7/M8 killed by the fix tests in `986ffd4`). Report:
-   `.specs/features/session-resume-on-respawn/validation.md`.
-   **Deviations recorded:** T1 created `shared/command-key.ts` fresh (nothing to move on `main`);
-   T3 done-when's "id quoted" corrected to the repo's needs-quote-only rule; the opencode
-   interactive exit-hint wording was never recorded verbatim (the design extracts the `ses_…`
-   token directly, proven against the recorded `opencode-session-list.json` fixture). Codex and
-   Copilot mechanisms documented but deferred (CLIs not installed here → no recorded sample).
-   **Remaining:** push the branch + open the PR to upstream `obogoni/playground` (needs
-   explicit user go-ahead). Also note: the merge conflict in `lessons.json` was resolved by
-   renumbering the feature's lessons L-011..L-17 → **L-014..L-020** (develop already owned
-   L-011..L-013 from the terminal features); `next_id` now 21.
-
-**Outstanding (pre-existing):** bump the committed `package.json` version to `1.1.0` on the
-next delivery (see note below); PR #80 (terminal input fixes) still open.
+**Status (current, 2026-09-02): v1.0.0 released; first external contributions merged.**
+Nothing in flight from our side. PRs #78 (sidebar resize) and #79 (work item type
+badges) are **merged**; PR #80 (terminal input fixes) is **open**, rebased and clean.
 
 **PENDING — bump the committed `package.json` version on the next delivery.**
 `v1.0.0` shipped 2026-09-02 from `cafb43f` (the PR #77 merge), but stable releases are

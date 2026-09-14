@@ -79,10 +79,12 @@
 .session-rail-list {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  /* Handoff §3 re-specs the scroll body; only the header and the concurrency
+     warning above it are carried over from v1 unchanged. */
+  padding: 11px 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 9px;
 }
 
 .session-rail-empty {
@@ -92,184 +94,268 @@
   padding: 8px 4px;
 }
 
-.session-card {
+/* Rail v2 — group card + compact row (handoff §4). */
+
+/* Component-scoped copy of the running-dot pulse, matching the existing
+   RunDetail.css / WorkflowsView.css definitions rather than widening this
+   feature into a global-CSS refactor (design §Risks). */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* §4.1 TaskGroupCard — never clickable, no hover state. */
+.rail-group {
+  box-sizing: border-box;
+  width: 100%;
   border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--panel-2);
-  padding: 12px;
-  cursor: pointer;
-  transition:
-    border-color 0.12s,
-    background 0.12s;
+  background: var(--panel);
+  border-radius: 13px;
+  padding: 11px 12px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
 }
 
-.session-card:hover {
-  border-color: var(--border-strong);
+.rail-group.selected {
+  border: 1px solid color-mix(in oklab, var(--accent) 45%, var(--border));
 }
 
-.session-card.selected {
-  border-color: var(--accent);
-  background: color-mix(in oklab, var(--accent) 10%, transparent);
+/* §3 header — column, gap 6px. */
+.rail-group-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 
-.session-card-head {
+.rail-group-head-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 7px;
+  min-width: 0;
 }
 
-.session-card-tile {
-  width: 30px;
-  height: 30px;
-  flex-shrink: 0;
-  border-radius: 8px;
-  background: color-mix(in oklab, var(--accent) 18%, transparent);
-  color: var(--accent-text);
+/* §4.2 pills: the app-wide .task-pill colour map (typeClass / stateClass)
+   carries the colour; only the header's smaller size is overridden here.
+   currentColor is the pill's own token, so the 14% tint applies to every
+   colour class without redeclaring the map. */
+.rail-group-head-row .task-pill {
+  font-size: 10px;
   font-weight: 700;
-  font-size: 14px;
+  padding: 1px 7px;
+  border-radius: 20px;
+  gap: 5px;
+  background: color-mix(in oklab, currentColor 14%, transparent);
+  flex: 0 0 auto;
+}
+
+.rail-group-head-row .task-pill:last-child {
+  padding: 1px 8px;
+}
+
+.rail-group-head-row .task-pill-dot {
+  width: 5px;
+  height: 5px;
+}
+
+.rail-group-id {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-faint);
+  flex: 0 0 auto;
+}
+
+.rail-group-spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+/* §4.2 row 2 — clamped at 2 lines so a long title never pushes the rows out
+   of view at 344px (RAIL-26). */
+.rail-group-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.32;
+  text-wrap: pretty;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* §4.3 orphan header — and the branch standing in for an unresolved title. */
+.rail-group-header svg {
+  flex: 0 0 auto;
+  color: var(--text-faint);
+}
+
+.rail-group-name,
+.rail-group-branch {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rail-group-note {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-faint);
+  overflow-wrap: anywhere;
+}
+
+.rail-group-note.missing {
+  font-style: normal;
+  color: var(--red);
+}
+
+/* §3 rows block. */
+.rail-group-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 1px solid var(--border);
+  padding-top: 7px;
+  min-width: 0;
+}
+
+/* §4.4 SessionRow. */
+.rail-row {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 7px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  background: transparent;
+  transition: background 0.12s;
+  cursor: pointer;
+}
+
+.rail-row:hover {
+  background: var(--panel-2);
+}
+
+.rail-row.selected {
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+}
+
+/* The base tint is the default accent tile, so an agent the registry no longer
+   holds renders correctly when agentTileStyle returns undefined (RAIL-27). */
+.rail-row-tile {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border-radius: 7px;
+  background: color-mix(in oklab, var(--accent) 15%, transparent);
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.session-card-titles {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.session-card-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.session-card-meta {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-faint);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.session-card-dot {
-  width: 8px;
-  height: 8px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--text-faint);
-}
-
-.session-card-dot.green {
-  background: var(--green);
-}
-
-.session-card-dot.faint {
-  background: var(--text-faint);
-}
-
-.session-card-task {
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.session-card-task-pills {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.session-card-task-title {
-  font-size: 11.5px;
-  color: var(--text-muted);
-  line-height: 1.35;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.session-card-tags {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-
-.session-card-status {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.session-card-tag {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 2px 6px;
-}
-
-.session-card-tag.red {
-  color: var(--red);
-  border-color: color-mix(in oklab, var(--red) 45%, transparent);
-}
-
-.session-card-preview {
-  margin: 10px 0 0;
-  padding: 7px 9px;
-  border-radius: 7px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  line-height: 1.4;
-  color: var(--text-muted);
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 2.8em;
-  overflow: hidden;
-}
-
-.session-card-footer {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.session-card-btn {
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-muted);
-  border-radius: 8px;
-  padding: 6px 12px;
+.rail-row-label {
   font-size: 12px;
   font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rail-row-status {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.rail-row-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.rail-row-status.running {
+  color: var(--green);
+}
+
+.rail-row-dot.running {
+  background: var(--green);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--green) 22%, transparent);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+.rail-row-status.stopped {
+  color: var(--text-faint);
+}
+
+.rail-row-dot.stopped {
+  background: var(--text-faint);
+}
+
+.rail-row-status.missing {
+  color: var(--red);
+}
+
+.rail-row-dot.missing {
+  background: var(--red);
+}
+
+/* The wrapper only groups the buttons for React; the buttons themselves sit in
+   the row's 8px flex gap. */
+.rail-row-actions {
+  display: contents;
+}
+
+.rail-row-btn {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-faint);
+  border-radius: 7px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
   transition:
     color 0.12s,
     border-color 0.12s;
 }
 
-.session-card-btn:hover {
-  color: var(--text);
-  border-color: var(--border-strong);
+.rail-row-btn:hover {
+  color: var(--accent-text);
+  border-color: color-mix(in oklab, var(--accent) 42%, var(--border));
 }
 
-.session-card-btn.red:hover {
+/* Stop and Remove hover red (§4.4); Respawn keeps the accent hover above. Stop
+   is matched on its aria-label because RAIL-24 fixes that label's wording, and
+   the markup file is outside this task's file set. */
+.rail-row-btn.red:hover,
+.rail-row-btn[aria-label^='Stop']:hover {
   color: var(--red);
-  border-color: color-mix(in oklab, var(--red) 45%, transparent);
+  border-color: color-mix(in oklab, var(--red) 42%, var(--border));
 }

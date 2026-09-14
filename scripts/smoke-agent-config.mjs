@@ -8,8 +8,11 @@
  *   4. (AGCF-04) rename trims + persists; empty keeps prior; duplicate clones
  *      into a 2nd independent running session
  *   5. (AGCF-06) >=4 running sessions show the rail concurrency banner
- *   6. (AGCF-07) the agent card tile is tinted (inline color-mix style)
- *   7. (AGCF-08) a stopped session exposes a lastOutput preview
+ *   6. (AGCF-07) the agent tile is tinted (inline color-mix style) — the tile now
+ *      lives on the rail v2 session row
+ *   7. (AGCF-08 + RAIL-12/AD-018) a stopped session still carries `lastOutput` on
+ *      its SessionView, and the rail renders **no** preview element — step 7 now
+ *      proves a removal as much as it proves the data
  *
  * NOT automatable here (hand-verify): AGCF-05 remove-worktree confirm (needs a
  * registered workspace + worktree), per-agent live add/edit/delete reflection
@@ -233,14 +236,14 @@ const runningCount = await evaluate(
 const banner = await evaluate(ws, `!!document.querySelector('.session-rail-warning')`)
 check('concurrency banner shows at >=4 running', runningCount >= 4 && banner, `${runningCount} running, banner ${banner}`)
 
-// --- 6. AGCF-07: agent tile is tinted ---
+// --- 6. AGCF-07: agent tile is tinted (rail v2 row tile) ---
 const tinted = await evaluate(
   ws,
-  `(() => { const t = document.querySelector('.session-card-tile'); return t ? /color-mix/.test(t.getAttribute('style') || '') : false })()`
+  `(() => { const t = document.querySelector('.rail-row-tile'); return t ? /color-mix/.test(t.getAttribute('style') || '') : false })()`
 )
-check('agent card tile is colour-tinted (inline style)', tinted)
+check('agent row tile is colour-tinted (inline style)', tinted)
 
-// --- 7. AGCF-08: stopped session exposes a lastOutput preview ---
+// --- 7. AGCF-08 (data) + RAIL-12 (no rail preview) ---
 // Let the first ad-hoc echo flush into its buffer, then stop it.
 await sleep(1500)
 await evaluate(ws, `(async () => { await window.api.invoke('sessions:stop', { id: '${adhocView.id}' }); return true })()`)
@@ -248,8 +251,22 @@ await sleep(800)
 const stopped = JSON.parse(
   await evaluate(ws, `(async () => JSON.stringify((await window.api.invoke('sessions:list')).find((s) => s.id === '${adhocView.id}')))()`)
 )
-const previewDom = await evaluate(ws, `document.querySelectorAll('.session-card-preview').length`)
-check('stopped session exposes a lastOutput preview', !!stopped && typeof stopped.lastOutput === 'string' && stopped.lastOutput.length > 0, `dom previews: ${previewDom}`)
+check(
+  'stopped session still exposes lastOutput on its SessionView',
+  !!stopped && typeof stopped.lastOutput === 'string' && stopped.lastOutput.length > 0
+)
+// Inverted, not deleted: RAIL-12 drops the last-output preview from the rail and
+// AD-018 supersedes AGCF-08 AC-2 accordingly — the data stays on SessionView, the
+// markup is gone. Asserting zero keeps a reintroduced preview visible as a failure.
+const previewDom = await evaluate(
+  ws,
+  `document.querySelectorAll('.session-rail [class*="preview"], .session-card-preview').length`
+)
+check(
+  'rail renders no last-output preview (RAIL-12, AD-018)',
+  previewDom === 0,
+  `${previewDom} preview elements in the rail`
+)
 
 // --- Cleanup: stop + remove every smoke session, restore shell ---
 await evaluate(

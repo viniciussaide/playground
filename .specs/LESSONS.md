@@ -84,6 +84,24 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: TCU-05 vs TCU-19 (.specs/features)
 - last seen: 2026-09-09T21:51:28Z
 
+### L-014 - Freeze a design region by naming the components that are unchanged, never by a CSS or source line range, because a line range silently over-freezes neighbouring rules the handoff re-specified.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `design` · harmful: 0
+- features: agents-rail-v2
+- evidence: .specs/features/agents-rail-v2/design.md:220 (corrected by commit 7568fa6) (design)
+- last seen: 2026-09-13T16:04:58Z
+
+### L-015 - When one acceptance criterion refers to a label another criterion already pins, cite that criterion instead of paraphrasing it, because a paraphrase drifts and the two criteria then disagree.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `spec` · harmful: 0
+- features: agents-rail-v2
+- evidence: spec.md RAIL-19 vs RAIL-09 (validation.md SP-1) (spec)
+- last seen: 2026-09-13T16:04:59Z
+
+### L-016 - Do not type a clickable row that contains its own action buttons as a <button>; use a div with role="option" plus tabIndex and key handling, because a button nested in a button is invalid HTML.
+- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `renderer` · harmful: 0
+- features: agents-rail-v2
+- evidence: src/renderer/src/components/SessionRail.tsx:264 SPEC_DEVIATION (renderer)
+- last seen: 2026-09-13T16:05:00Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

@@ -120,15 +120,31 @@ await evaluate(
    })()`
 )
 await sleep(300)
+const registryAgents = await evaluate(
+  ws,
+  `(async () => (await window.api.invoke('config:get')).agents.length)()`
+)
 const dialog = await evaluate(
   ws,
   `(() => {
      const chips = document.querySelectorAll('.ns-agent-chip').length
      const spawn = document.querySelector('.dialog-btn-primary')
-     return { chips, spawnDisabled: spawn ? spawn.disabled : null, hasBrowse: !!document.querySelector('.ns-browse') }
+     return {
+       chips,
+       hasAdhoc: !!document.querySelector('.ns-agent-chip.adhoc'),
+       spawnDisabled: spawn ? spawn.disabled : null,
+       hasBrowse: !!document.querySelector('.ns-browse')
+     }
    })()`
 )
-check('New Session dialog shows 3 seeded agents', dialog.chips === 3, `${dialog.chips} chips`)
+// Derived from the live registry, never a hard-coded count: the seeded list has
+// already grown once (opencode, PR #85) and a user may add or delete agents. The
+// Ad-hoc chip carries `.ns-agent-chip adhoc`, so it is one of the chips counted.
+check(
+  'New Session dialog shows every registry agent plus the Ad-hoc chip',
+  dialog.chips === registryAgents + 1 && dialog.hasAdhoc,
+  `${dialog.chips} chips, ${registryAgents} registry agents, ad-hoc ${dialog.hasAdhoc}`
+)
 check('Spawn is disabled until a cwd is chosen', dialog.spawnDisabled === true)
 check('Browse-for-a-folder affordance present', dialog.hasBrowse === true)
 // Close the dialog.
@@ -194,9 +210,11 @@ check(
   'stopped one session, the other keeps running (independence)',
   s1?.status === 'stopped' && s2?.status === 'running'
 )
-// The App subscribes to session:status → the rail repaints live.
-const cards = await evaluate(ws, `document.querySelectorAll('.session-card').length`)
-check('rail reflects the sessions live', cards >= 2, `${cards} cards`)
+// The App subscribes to session:status → the rail repaints live. Rail v2 renders
+// one `.rail-row` per session (grouped under task cards), which is what the v1
+// `.session-card` count meant before the regroup.
+const rows = await evaluate(ws, `document.querySelectorAll('.rail-row').length`)
+check('rail reflects the sessions live', rows >= 2, `${rows} rows`)
 
 // Cleanup: stop + remove both so the dev config returns to clean.
 await evaluate(

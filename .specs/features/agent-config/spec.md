@@ -157,6 +157,13 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ### P3: In-memory last-output preview on stopped cards
 
+> **AC-2 is superseded — see AD-018 (2026-09-13).** `agents-rail-v2` (RAIL-12)
+> removed the last-output preview from the session rail, so no shipped surface
+> renders the 2-line tail any more. **ACs 1, 3 and 4 still hold** — they are
+> `SessionManager` facts (the buffer is retained on stop, cleared on respawn,
+> absent after restart), still covered by `src/main/session-manager.test.ts:332-353`,
+> and `lastOutput` remains on `SessionView`.
+
 **User Story**: As a developer, I want a stopped session's card to show its last line or two of output, so I can recall what it was doing before I respawn or remove it.
 
 **Why P3**: Nice recall aid; AM2 cards already function with just "Shell exited — respawn". Handoff §C-a stopped card preview.
@@ -196,7 +203,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | AGCF-05 | P2: Remove-worktree-vs-running confirmation | Tasks | In Tasks |
 | AGCF-06 | P3: Soft concurrency warning | Tasks | In Tasks |
 | AGCF-07 | P3: Full ANSI role-palette terminal theming | Tasks | In Tasks |
-| AGCF-08 | P3: In-memory last-output preview on stopped cards | Tasks | In Tasks |
+| AGCF-08 | P3: In-memory last-output preview on stopped cards | Tasks | In Tasks — **AC-2 superseded by AD-018** |
 
 **ID format:** `AGCF-[NUMBER]`
 

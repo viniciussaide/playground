@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 14,
+  "next_id": 17,
   "lessons": [
     {
       "id": "L-001",
@@ -224,6 +224,60 @@
       ],
       "created": "2026-09-09T21:51:28Z",
       "last_seen": "2026-09-09T21:51:28Z"
+    },
+    {
+      "id": "L-014",
+      "key": "spec_precision_gap::freeze a design region by naming the components that are unchanged never by a css or source line range because a line range silently over freezes neighbouring rules the handoff re specified",
+      "text": "Freeze a design region by naming the components that are unchanged, never by a CSS or source line range, because a line range silently over-freezes neighbouring rules the handoff re-specified.",
+      "signal": "spec_precision_gap",
+      "scope": "design",
+      "status": "candidate",
+      "features": [
+        "agents-rail-v2"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        ".specs/features/agents-rail-v2/design.md:220 (corrected by commit 7568fa6) (design)"
+      ],
+      "created": "2026-09-13T16:04:58Z",
+      "last_seen": "2026-09-13T16:04:58Z"
+    },
+    {
+      "id": "L-015",
+      "key": "spec_precision_gap::when one acceptance criterion refers to a label another criterion already pins cite that criterion instead of paraphrasing it because a paraphrase drifts and the two criteria then disagree",
+      "text": "When one acceptance criterion refers to a label another criterion already pins, cite that criterion instead of paraphrasing it, because a paraphrase drifts and the two criteria then disagree.",
+      "signal": "spec_precision_gap",
+      "scope": "spec",
+      "status": "candidate",
+      "features": [
+        "agents-rail-v2"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md RAIL-19 vs RAIL-09 (validation.md SP-1) (spec)"
+      ],
+      "created": "2026-09-13T16:04:59Z",
+      "last_seen": "2026-09-13T16:04:59Z"
+    },
+    {
+      "id": "L-016",
+      "key": "spec_deviation::do not type a clickable row that contains its own action buttons as a button use a div with role option plus tabindex and key handling because a button nested in a button is invalid html",
+      "text": "Do not type a clickable row that contains its own action buttons as a <button>; use a div with role=\"option\" plus tabIndex and key handling, because a button nested in a button is invalid HTML.",
+      "signal": "spec_deviation",
+      "scope": "renderer",
+      "status": "candidate",
+      "features": [
+        "agents-rail-v2"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/renderer/src/components/SessionRail.tsx:264 SPEC_DEVIATION (renderer)"
+      ],
+      "created": "2026-09-13T16:05:00Z",
+      "last_seen": "2026-09-13T16:05:00Z"
     }
   ]
 }

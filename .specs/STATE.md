@@ -33,106 +33,41 @@ Handoff snapshot.
 
 ## Handoff
 
-**Status (current, 2026-09-15): `session-activity-status` EXECUTED + independent Verifier
-**PASS** (round 2) on branch `feature/session-activity-status`, cut from `origin/main`
-`fa78f78`. 14 commits. Nothing uncommitted except the next feature's spec. PR not opened —
-push needs an explicit go-ahead.**
+**Status (current, 2026-09-16): `time-tracking` EXECUTED + independent Verifier PASS
+(iteration 3 of 3), PR #93 open upstream (`viniciussaide:feature/time-tracking` →
+`obogoni:main`, CI `gate` pass, mergeable, awaiting review), merged locally into `develop`
+(`ad4ea03`).**
 
-Each Claude session now launches with `--settings` pointing at a generated hook file, reports
-its lifecycle to a loopback endpoint in main, and the rail shows `working` / `waiting` /
-`approval` / `input` / `error` / `compacting` / `shell` with the running tool, the subagent
-count and the API error type in the tooltip and the detail pane. Suite 748 → **916** tests,
-typecheck + lint clean, `electron-vite build` green. Verifier: 31/35 ACs unit-evidenced, 4
-convention-exempt visual ACs with a named hand-verify path, 26 mutations injected across two
-rounds and 24 killed. Report: `.specs/features/session-activity-status/validation.md`.
-
-**OWNER SMOKE RUN 2026-09-15 — 19/19 PASS** (`node scripts/smoke-activity.mjs`), plus the
-documented ACTV-07 SKIP. The first run failed one check and that failure was a real defect,
-now AD-020 + `e157495`: Claude Code never delivers `SessionStart` to an http hook. T8's
-deferred dev hand-verification rides this run.
-
-**LOCAL BUILD + INSTALL 2026-09-15 (develop `4f1fd4d`):** packaged with
-`npx electron-builder --win --config.extraMetadata.version=1.1.0` (version to the packager
-only, `package.json` untouched at `0.1.0`) and installed silently over the 2026-09-10 build.
-The asar carries the feature (`PLAYGROUND_ACTIVITY_TOKEN`, `rail-row-loader`). The desktop
-shortcut had been pointing at `dist\win-unpacked` instead of the install and was repointed;
-see `.specs/codebase/BUILD.md`, itself rescued this day from two unreachable commits.
-
-**OWNER ACTION OUTSTANDING (user-run):**
-1. The two-theme visual pass: the spinning green loader, the blue waiting dot, the pink
-   approval dot, the red error dot, the amber `shell` dot at 344px in light and dark, plus
-   `prefers-reduced-motion` freezing the loader (ACTV-14/15/17/20).
-
-**KNOWN FOLLOW-UP, owner deferred it 2026-09-15:** the three `quota_auto_resume_*`
-notification types are not consumed. A session paused by a claude.ai usage limit reports
-`error` (`StopFailure` `rate_limit`) and stays there after Claude resumes on its own, because
-Claude Code sends no `idle_prompt` while it waits for the reset. Fix is three rows in the
-transition table: `_fired` → `working`, `_stale` → `needs-input` (it waits for Enter),
-`_disabled` → `waiting`. Requires Claude Code v2.1.234+.
-
-**NEXT FEATURE SPEC REWRITTEN, uncommitted:** `.specs/features/session-idle-notifications/`
-(now titled *Session Activity Notifications*, NOTF-01..21) was rebuilt on the seven states:
-P1 is now "told when an agent is blocked on you", P2 is the old finish/fail case, and six
-assumption rows are the agent's defaults awaiting an owner yes/no before Design.
-
-**PRIOR, still true — the two-theme visual pass for `agents-rail-v2`** (`RAIL-26`, `RAIL-27`)
-remains code-verified only, and `opencode` and `Ad-hoc` still both resolve to `--amber` at
-22×22.
-
-**UNRELATED WORK PARKED IN A STASH — GONE:** the earlier handoff pointed at `stash@{0}`
-("wip(reconciler-core)") holding the AD-017 Reconciler line plus an untracked
-`.specs/features/reconciler-core/`. As of 2026-09-15 `git stash list` is **empty** and no
-dangling commit in this clone carries that tree. If it is not in another clone it is lost.
-
-0. **`agents-rail-v2` (RAIL-01..28) — EXECUTED, independent Verifier PASS.** Branch
-   `feature/agents-rail-v2`, 12 commits (`9bc144d..789468b`). Grouping is derived at render time
-   in a new pure module `src/renderer/src/lib/rail-groups.ts` (`buildRailGroups`, `statusClass`,
-   `flatRows`, `adjacentRowId`); `SessionRail.tsx` was rewritten to render that model and derives
-   nothing — a grep for `deriveAttribution|linkedPinFor|taskIdFromBranch|sort(|stripAnsi` in the
-   component returns nothing. **748 tests (712 baseline + 36), 747 passing**, the single failure
-   being the known local `worktree-manager` mixed-dirt `rmSync` case. Lint 0 errors / 18
-   pre-existing warnings. `npm run build:win` green. **Mutation sensor 6/6 killed** (both
-   precedence orders reversed, ordinal suffixing dropped, `adjacentRowId` wrapping instead of
-   clamping, header taken from the last session instead of the first, and a `.sort()` injected so
-   status changes reorder) — each killed by the test carrying the matching `RAIL-NN`, so the kills
-   are attributable rather than incidental. Unlike AD-015/AD-016, **author ≠ verifier was actually
-   met**: batch workers and the Verifier were separate agents. See `validation.md`.
-   Three owner decisions are recorded as confirmed spec assumptions: the `shell`/`agentLive`
-   sub-status stays out of scope (it was never built — `SessionStatus` is still `running|stopped`),
-   duplicate agent names inside a group get a per-group ordinal suffix, and the ACs are gated by
-   the extracted pure module rather than a new jsdom harness. One `SPEC_DEVIATION` at
-   `SessionRail.tsx:264`: rows are `div role="option"`, not `<button>`, because a row contains its
-   own action buttons. **AD-018** records that RAIL-12 retires AGCF-08 AC-2 only.
-
-1. **`dev-alias-setting` (DEVA-01..10) — EXECUTED, independent Verifier PASS 10/10.** 5
-   commits (`84e3601` docs spec, `3c432b6` docs defer undoByte, `3e82229` feat,
-   `915e78e` docs validation, `c675198` feat visibility). **Dev
-   alias** field in the ADO block of `SettingsDialog`: state populated from
-   `ado.devAlias ?? ''` (`SettingsDialog.tsx:73`), saved in the **same** `config:patch`
-   as org/project/templates with `devAlias.trim()` (`:121`), label "fills the {dev}
-   placeholder" (`:210-224`); `App.tsx:373` already re-threads it in `onSaved` (zero new
-   plumbing, DEVA-03). Gate: **667 tests / 44 files** (main baseline — the 706 from the
-   previous handoff were the develop tree with PR #83/84 unmerged), typecheck clean, lint
-   0 errors / 19 warnings (main baseline, measured on a throwaway worktree). Verifier:
-   8/8 ACs (3 executed-tested in `tasks.test.ts` — `{dev}` and segment-drop; 5
-   hand-verified per `TESTING.md:42`), sensor 2/4 killed — 2 survivors (M3: save-patch
-   without `devAlias`; M4: without `?? ''`) are renderer logic with no test seam by
-   convention, a documented gap, not a defect; optional future seam = extract the
-   save-patch builder into `src/shared`. Report:
-   `.specs/features/dev-alias-setting/validation.md`.
-   **Post-review increment (owner, `c675198`):** the Dev alias field is now **hidden
-   unless** an effective template (branch or worktree, blank = default) contains
-   `{dev}` (DEVA-09/10); re-verified PASS by an independent Verifier (5/5 checks,
-   sensor 3/4 killed, 1 equivalent mutant).
-   **Owner decision (AD-017):** the pre-existing `commitForm` `undoByte`-drop defect was
-   first included, then **REVERTED** from this branch — `AgentDef.undoByte` exists only in
-   PR #83 (open upstream); on the `main` base it does not compile (TS2353). **Follow-up
-   after #83 merges:** a one-line fix preserving `undoByte` in `commitForm` (recorded in
-   the spec's Out of Scope).
-1. **NEXT STEP:** open the PR `feature/dev-alias-setting` → upstream `main` (owner
-   go-ahead for push), then integrate locally into `develop` after merge. Untracked specs
-   awaiting their own session: `session-activity-status`, `session-idle-notifications`,
-   `sidebar-node-collapse` (stay in the working tree).
+- **Branch:** `feature/time-tracking`, cut from `origin/main` `fa78f78`, 36 commits
+  (`b1c6fdf` spec … `94e3493` validation). Pushed to `fork`.
+- **What shipped:** a main-process `TimeTracker` (AD-021) records dated periods per session
+  PTY run, with manual pause, suspend/resume handling, a 60 s heartbeated sidecar for crash
+  recovery, and delete/adjust. Counters on the rail row, group heads, detail bar, worktree
+  detail and pinned task cards; a weekly **Hours** direction with per-day Copy for Clockify.
+- **Verification:** suite 748 → **865** on the branch (1039 on `develop` after the merge).
+  Verifier round 1 FAIL (red lint gate misreported as green, TIME-14 rewrite not retried, 3
+  surviving mutants), round 2 FAIL (1 survivor in the retry fix), round 3 PASS: 25/26
+  mutants killed, 1 equivalent; 39 ACs test-backed, 10 hand-verified. Smoke
+  `scripts/smoke-time.mjs` 26/26 on the branch and on `develop`; crash recovery checked by
+  hand. Report: `.specs/features/time-tracking/validation.md`.
+- **Gate lesson (process, this session):** always judge `npm run lint` / `typecheck` /
+  `test` by **exit code** — the `… potentially fixable` line of ESLint's summary is not the
+  error count.
+- **Merge into `develop`:** conflicts with `session-activity-status` were all additive
+  (both `hooks` and `lifecycle` deps, counter before `StatusIndicator`, AD-019/020/021 rows).
+  Lessons collided: on `develop` the time-tracking candidates are **L-019..L-024**
+  (`next_id` 25); on the PR branch they are still L-017..L-022. **Whichever of #88 / #93
+  merges second must rebase and renumber the lessons the same way.**
+- **Owner-pending:** run `node scripts/smoke-time.mjs` yourself and record it in
+  `validation.md`; exercise OS suspend/resume (TIME-06/07) and the Hours minute refresh
+  (TIME-42) in the running app. Spec wording gaps, not defects: the owner's Copy preview was
+  never recorded (TIME-39) and the open-block `HH:MM–now` rendering is unspecified (TIME-36).
+- **CDP hand checks on this machine:** use an ad-hoc `pwsh` session in `C:/Windows` — the
+  `Claude` registry agent launches the real CLI — and the dev app shares the real
+  `%APPDATA%\playground` (real sessions and time log).
+- **Next:** after #93 merges upstream, `git fetch origin` → `main` fast-forward → merge
+  `main` into `develop`. Untracked spec awaiting its own session:
+  `terminal-scroll-paste` (Q2, the scroll cause, still open).
 
 **PENDING — bump the committed `package.json` version on the next delivery:** `v1.0.0`
 shipped 2026-09-02 from `cafb43f` (the PR #77 merge), but the bump is **never committed**

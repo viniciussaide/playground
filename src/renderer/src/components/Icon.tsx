@@ -28,6 +28,8 @@ export type IconName =
   | 'x-circle'
   | 'stop-square'
   | 'loader'
+  | 'clock'
+  | 'pause'
 
 const PATHS: Record<IconName, JSX.Element> = {
   'git-branch': (
@@ -185,7 +187,20 @@ const PATHS: Record<IconName, JSX.Element> = {
   ),
   // Open arc: it reads as motion when the row spins it, and as a ring when the
   // OS asks for reduced motion.
-  loader: <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+  loader: <path d="M21 12a9 9 0 1 1-6.219-8.56" />,
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
+  // Filled like `play`, so Pause time / Resume time swap glyphs of equal weight.
+  pause: (
+    <>
+      <rect x="6.5" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none" />
+      <rect x="13.5" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none" />
+    </>
+  )
 }
 
 interface IconProps {

@@ -34,6 +34,14 @@ export interface SessionManagerDeps {
   fsExists: (path: string) => boolean
   /** Absent means no session reports activity — the pre-feature behaviour. */
   hooks?: ActivityHooks
+  /** Told when a session's PTY starts and ends (the time tracker, AD-021); absent = no observer. */
+  lifecycle?: SessionLifecycle
+}
+
+/** Observer of PTY runs: `started` once per spawn/duplicate/respawn, `ended` once per run. */
+export interface SessionLifecycle {
+  started(meta: PersistedSession): void
+  ended(id: string): void
 }
 
 /** Stored on ad-hoc sessions in place of a registry agent name. */
@@ -297,6 +305,7 @@ export class SessionManager {
       token,
       activity: null
     })
+    this.deps.lifecycle?.started(meta)
   }
 
   /**
@@ -333,6 +342,7 @@ export class SessionManager {
     }
     const wasRunning = this.#running.delete(id)
     if (wasRunning) this.#setStatus(id, 'stopped')
+    if (wasRunning) this.deps.lifecycle?.ended(id)
     if (exitCode !== undefined) this.deps.emit('session:exit', { id, exitCode })
   }
 

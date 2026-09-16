@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import type { AgentDef } from '../../shared/agents'
 import type { AppConfig } from '../../shared/config'
@@ -7,6 +7,7 @@ import { taskIdFromBranch } from '../../shared/tasks'
 import type { WorkspaceNode } from '../../shared/tree'
 import { AgentsView } from './components/AgentsView'
 import { BoardView } from './components/BoardView'
+import { HoursView } from './components/HoursView'
 import { NewSessionDialog, type NewSessionSource } from './components/NewSessionDialog'
 import { NewWorktreeDialog } from './components/NewWorktreeDialog'
 import { SettingsDialog } from './components/SettingsDialog'
@@ -28,6 +29,7 @@ import {
 import { findWorktree } from './lib/tree-selection'
 import { dropCollapsedId, isCollapsed, toggleCollapsedId } from './lib/workspace-collapse'
 import { useSessions } from './lib/use-sessions'
+import { useTime } from './lib/use-time'
 import { useTree } from './lib/use-tree'
 import { useWorkflowRuns } from './lib/use-workflow-runs'
 import './App.css'
@@ -114,6 +116,17 @@ function App(): JSX.Element {
   // Always mounted (above the direction switch) so runs accumulate from the
   // workflow:* stream even while another direction is active (WF5-04, AD-011).
   const workflows = useWorkflowRuns()
+  // Time snapshot (AD-021): refetched on time:changed; counters tick in their own
+  // components, so App does not re-render every second.
+  const time = useTime()
+  // Live pinned titles for the Hours labels; the first pin of an id wins, like the rail (TIME-40).
+  const liveTitles = useMemo(() => {
+    const titles = new Map<number, string>()
+    for (const task of tasks.tasks) {
+      if (task.details && !titles.has(task.id)) titles.set(task.id, task.details.title)
+    }
+    return titles
+  }, [tasks.tasks])
 
   const refreshTasks = useCallback((): void => {
     api.invoke('tasks:refresh').then(setTasks).catch(console.error)
@@ -295,6 +308,7 @@ function App(): JSX.Element {
                 linkedTaskId={linkedTaskId}
                 linkedPin={linkedPin}
                 sessions={sessions.filter((s) => s.cwd === selected.worktree.path)}
+                time={time.snapshot}
                 onSpawnAgent={() => openNewSession({ cwd: selected.worktree.path })}
                 onOpenSession={openSession}
                 onToast={setToast}
@@ -306,6 +320,7 @@ function App(): JSX.Element {
             <TasksPane
               snapshot={tasks}
               worktreeCounts={worktreeCounts}
+              time={time.snapshot}
               onSnapshot={setTasks}
               onStartWork={setStartWorkTask}
               onSpawnAgent={spawnAgentForTask}
@@ -321,6 +336,7 @@ function App(): JSX.Element {
             tree={tree}
             agents={agents}
             tasks={tasks.tasks}
+            time={time.snapshot}
             selectedId={selectedSessionId}
             onSelect={setSelectedSessionId}
             onStop={stopSession}
@@ -330,6 +346,8 @@ function App(): JSX.Element {
             onDuplicate={duplicateSession}
             onOpenWorktree={openWorktreeForSession}
             onNew={() => openNewSession()}
+            onPauseTime={time.pause}
+            onResumeTime={time.resume}
           />
         ) : ui.direction === 'workflows' ? (
           <WorkflowsView
@@ -344,6 +362,13 @@ function App(): JSX.Element {
             onReload={workflows.refresh}
             onScaffold={workflows.scaffold}
             onSelectRun={workflows.selectRun}
+          />
+        ) : ui.direction === 'hours' ? (
+          <HoursView
+            snapshot={time.snapshot}
+            liveTitles={liveTitles}
+            onDelete={time.deletePeriod}
+            onAdjust={time.adjustPeriod}
           />
         ) : (
           <BoardView

@@ -1,6 +1,14 @@
 # Local Build & Install (develop → desktop shortcut)
 
-**Last executed:** 2026-09-10 — develop `7ef40cc`, installed `1.1.0` over a shipped `1.0.0`.
+**Last executed:** 2026-09-15 — develop `4f1fd4d` (session-activity-status merged),
+installed `1.1.0` over the 2026-09-10 `1.1.0`. Two findings that run counter to the note
+below: (1) `createDesktopShortcut: always` did **not** refresh a desktop shortcut on this
+machine, whose Desktop is redirected to OneDrive; the Start Menu one was created normally.
+(2) The existing desktop shortcut pointed at `dist\win-unpacked\playground.exe` — a build
+output directory, not the install — so it silently tracked whatever was last packed. It was
+repointed at `%LOCALAPPDATA%\Programs\playground\playground.exe` (old one kept as
+`Playground.lnk.bak-20260915`). **Check the shortcut target after installing, not just the
+version.**
 
 How to build the current `develop` into the Windows installer that the desktop
 shortcut launches, and the version pitfall that once caused confusion.

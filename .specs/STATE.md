@@ -50,6 +50,13 @@ documented ACTV-07 SKIP. The first run failed one check and that failure was a r
 now AD-020 + `e157495`: Claude Code never delivers `SessionStart` to an http hook. T8's
 deferred dev hand-verification rides this run.
 
+**LOCAL BUILD + INSTALL 2026-09-15 (develop `4f1fd4d`):** packaged with
+`npx electron-builder --win --config.extraMetadata.version=1.1.0` (version to the packager
+only, `package.json` untouched at `0.1.0`) and installed silently over the 2026-09-10 build.
+The asar carries the feature (`PLAYGROUND_ACTIVITY_TOKEN`, `rail-row-loader`). The desktop
+shortcut had been pointing at `dist\win-unpacked` instead of the install and was repointed;
+see `.specs/codebase/BUILD.md`, itself rescued this day from two unreachable commits.
+
 **OWNER ACTION OUTSTANDING (user-run):**
 1. The two-theme visual pass: the spinning green loader, the blue waiting dot, the pink
    approval dot, the red error dot, the amber `shell` dot at 344px in light and dark, plus

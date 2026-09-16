@@ -9,6 +9,31 @@ import { DEFAULT_WORKTREE_TEMPLATE } from './worktrees'
  * sub-status (shell alive but the agent quit) is deferred to AM3. */
 export type SessionStatus = 'running' | 'stopped'
 
+/**
+ * What a running agent is doing, folded in main from the agent CLI's own
+ * lifecycle hooks (AD-019). Orthogonal to `SessionStatus`, which is about the
+ * hosting shell: a session can be `running` with no activity at all, which is
+ * every session whose agent publishes no hooks.
+ */
+export type ActivityState =
+  | 'working'
+  | 'waiting'
+  | 'needs-approval'
+  | 'needs-input'
+  | 'error'
+  | 'compacting'
+  | 'exited'
+
+export interface SessionActivity {
+  state: ActivityState
+  /** Tool currently running, or the one awaiting approval. */
+  tool?: string
+  /** Active subagents, counted by the ids the hooks report. */
+  subagents: number
+  /** The `StopFailure` error type (`rate_limit`, `overloaded`, …); `error` only. */
+  error?: string
+}
+
 /** Persisted across restarts; the PTY itself never survives, so on load every
  * status is normalized to `stopped` (one-click Respawn re-runs in the same cwd). */
 export interface PersistedSession {
@@ -29,6 +54,10 @@ export interface SessionView extends PersistedSession {
   pathMissing: boolean
   /** Up to 2 tail lines from a retained buffer; absent after restart (AGCF-08). */
   lastOutput?: string
+  /** What the agent is doing, derived in main from its lifecycle hooks. Absent
+   *  for ad-hoc and non-Claude sessions, for stopped sessions, and until the
+   *  first hook event arrives. Never persisted (ACTV-09). */
+  activity?: SessionActivity
 }
 
 export interface AppConfig {

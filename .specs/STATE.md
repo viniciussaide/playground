@@ -26,35 +26,55 @@ Handoff snapshot.
 | AD-016 | 2026-08-28 | **A Visual Studio 2026 launcher ships alongside the 2022 one, and Visual Studio discovery becomes per-edition rather than per-install.** Four owner decisions: (1) 2026 launches **elevated**, mirroring VSAD's path exactly rather than introducing a non-elevated variant; (2) a **new `--pink` token** distinguishes it, because the board footer renders launchers as icon-only 15px buttons where two amber shields are indistinguishable; (3) both VS cards **always render**, install-agnostic, with a missing VS surfacing the existing toast; (4) the 2026 vswhere query is **GA-only** — no `-prerelease`. **Architecture:** a `VS_EDITIONS` map keyed by `ShortcutTool` gives each version its own vswhere range (`[17.0,18.0)` / `[18.0,19.0)`), passed as an **argument** through `resolveDevenv`/`openVisualStudio` rather than held as module state, and the three failure messages are templated off the edition label — which reproduces the 2022 wording character-for-character, so all six pre-existing VSAD tests pass with the test file byte-unmodified. | The ranges were **measured, not assumed**: VS 2026 reports catalog version `18.4.2` and installs under a *version-numbered* root (`\Microsoft Visual Studio\18\`), not a year-named one like 2022's `\2022\` — so nothing may key off the folder name and `productPath` is the only supported source. Disjoint ranges are what make coexistence deterministic instead of order-dependent; there is deliberately no shared "latest VS" resolution. `-prerelease` was rejected because on a machine with both stable and Insiders, `-latest -prerelease` can resolve Insiders and silently launch the wrong VS; an Insiders-only machine reporting "not installed" is the accepted trade-off. **Finding worth keeping:** the verification sensor caught that parameterizing a hard-coded value into a lookup table leaves the *wiring* untested — mutating `launch()` to send both VS tools to the 2022 edition left the whole suite green, meaning the 2026 card could have silently opened 2022. Fixed by asserting routing through the vanished-path guard, which returns before any spawn and so names the resolved edition without popping UAC. Spec/context/tasks/validation: `.specs/features/vs2026-admin-shortcut/` (VS26-01..05). |
 | AD-017 | 2026-09-10 | **The `dev-alias-setting` feature ships only the settings field; the pre-existing `commitForm` `undoByte`-drop defect is deferred to a follow-up after PR #83 merges.** | `AgentDef.undoByte` exists only in PR #83 (`terminal-copy-undo-fixes`, open upstream) — the one-line preservation fix cannot compile against the `main` base (TS2353, measured). The branch stays clean and based on `main` per the fork workflow; the defect is recorded in the spec Out of Scope with the follow-up. |
 | AD-018 | 2026-09-13 | **The rail's last-output preview is removed, retiring AGCF-08 AC-2 only.** `agents-rail-v2` RAIL-12 states that a session row renders the agent tile, name, short status, status dot and actions and **nothing else** — no worktree name, no branch line, no `lastOutput` tail. That directly supersedes AGCF-08 AC-2 ("a stopped card SHALL show up to 2 trailing lines of lastOutput"), which no longer describes any shipped surface. AGCF-08 **ACs 1, 3 and 4 stand unchanged** — they are `SessionManager` facts (a stopped session exposes the tail; respawn clears it; a restored session has none), still true and still covered by `src/main/session-manager.test.ts:332-353`. **`lastOutput` stays on `SessionView`** and on the IPC contract; nothing is removed from the data model. The smoke evidence is inverted rather than deleted: `scripts/smoke-agent-config.mjs` step 7 now asserts the data still exists AND that the rail renders zero preview elements. | Handoff §5 drops the preview from the rail, so a prior feature's spec would otherwise keep describing behaviour that no longer exists. Superseding one AC instead of the whole requirement keeps the three still-tested `SessionManager` guarantees intact. **Numbered 018 because `origin/main` already carries `AD-017` (`dev-alias-setting`, 2026-09-10)** — the reconciler `AD-017` sitting in the stash collides with it and must be renumbered independently, out of this feature's scope. |
+| AD-019 | 2026-09-15 | **An agent session's activity comes from the agent's documented lifecycle hooks, never from reading its terminal.** For Claude Code (the only agent covered so far), the app appends `--settings <file>` to the launch. The file is regenerated per app launch with `type: "http"` hooks that POST each lifecycle event to a loopback endpoint in main. A per-session random token, passed as the env var `PLAYGROUND_ACTIVITY_TOKEN` and sent as `Authorization: Bearer`, is both authentication and routing (the AD-008 pattern). A pure state machine folds the events into `working` / `waiting` / `needs-approval` / `needs-input` / `error` / `compacting` / `exited` plus detail (running tool, subagent count, error type). The endpoint **always answers 2xx with an empty body**, so it never decides anything for the agent. Leaving `needs-approval`/`needs-input` is driven by the user's next real keystroke (mouse and focus reports excluded), because no hook fires between an approval and the approved tool's end. No activity state until the first event. Hooks disabled means today's `running`. `exited` finally delivers the `shell` sub-status that AM3 deferred for lack of a signal. Other agents get state only once each has a documented mechanism of its own. | Screen scraping was designed first and measured against three real recordings: it worked, but every marker it relied on (`esc to interrupt`, spinner glyphs, `❯`, the OSC 0 title glyphs) is undocumented UI, and the owner rejected it because Claude Code ships constantly. ConPTY forwarding a cell diff had already ruled out matching the raw PTY tail. The hook API is documented and versioned. `--settings` is per-session and merges with the user's hooks. HTTP hooks fail non-blocking when the app is unreachable. Env inheritance and `--settings` injection were verified with zero-token launches. Documented gaps accepted: `Stop` does not fire on Esc interrupts (a stale `working` until the next event or `idle_prompt`), and a `permission_prompt` notification lags ~6 s, which is why `PermissionRequest` (immediate, never fired for auto-approved calls) is used. Tests use documentation-shaped payloads, so no test spends tokens. `session-idle-notifications` builds on these states. Spec/design: `.specs/features/session-activity-status/`. |
+| AD-020 | 2026-09-15 | **Claude Code does not deliver `SessionStart` to an `http` hook, so no app feature may depend on it.** Measured on 2.1.273 with zero-token probes: the same event, same session and same `--settings` file reached a `command` hook and not an `http` one, at launch **and** mid-session after `/clear`; a fresh session idle for 100 s produced no `idle_prompt` either, because the docs gate that on Claude having responded. Consequence for `session-activity-status`: a freshly spawned session holds **no activity** and renders the pre-feature `running` until its first turn, and `SessionEnd` with `reason` `clear`/`resume` maps to **`waiting`** (the CLI stays up at a fresh prompt and nothing else would correct it). The `SessionStart` mapping stays in the machine, documented as unreachable, for the day it is delivered. | The owner rejected the alternative: a `command` hook just for `SessionStart`. On Windows a shell-form command hook runs under Git Bash when installed and PowerShell otherwise, and the two disagree on how an environment variable is spelled, so the session token would reach the header on one machine and not the other — a per-machine behaviour difference in exchange for a state that is only wrong between opening an agent and speaking to it, which is exactly when the user is looking at the window. Second measured limitation from the same run, recorded here so it is not rediscovered: `contextBridge` freezes `window.api`, so a CDP smoke cannot instrument IPC call counts from the page. |
 
 
 ## Handoff
 
-**Status (current, 2026-09-13): `agents-rail-v2` EXECUTED + independent Verifier PASS on
-branch `feature/agents-rail-v2` (based on `origin/main` `83e67ce`, the PR #86 merge). Nothing
-uncommitted. PR not opened — push needs an explicit go-ahead.**
+**Status (current, 2026-09-15): `session-activity-status` EXECUTED + independent Verifier
+**PASS** (round 2) on branch `feature/session-activity-status`, cut from `origin/main`
+`fa78f78`. 14 commits. Nothing uncommitted except the next feature's spec. PR not opened —
+push needs an explicit go-ahead.**
 
-**OWNER SMOKE GATES RUN 2026-09-14 — ALL PASS.** `smoke-rail-v2.mjs` **16/16**,
-`smoke-agents.mjs` **16/16**, `smoke-agent-config.mjs` pass. 6 of the 8 class-2 ACs (RAIL-17, 18,
-20, 23, 24 + the rendering halves of 07/08/11/12) now carry executed evidence. Two first-run
-failures were both harness defects, not rail defects, and are fixed: the smoke read `aria-selected`
-before React re-rendered (`f3f330d`), and a pre-existing stale assertion counted `.ns-agent-chip`
-as 3 when that selector also matches the Ad-hoc chip and `SEEDED_AGENTS` has grown to four
-(`3453f42`, unrelated to this feature). Seed was `user/otavio/20754-monitor-acesso/23688-patch-14.0.3`
-→ `#23688`, which incidentally confirmed PR #81's last-segment `taskIdFromBranch` end-to-end.
+Each Claude session now launches with `--settings` pointing at a generated hook file, reports
+its lifecycle to a loopback endpoint in main, and the rail shows `working` / `waiting` /
+`approval` / `input` / `error` / `compacting` / `shell` with the running tool, the subagent
+count and the API error type in the tooltip and the detail pane. Suite 748 → **916** tests,
+typecheck + lint clean, `electron-vite build` green. Verifier: 31/35 ACs unit-evidenced, 4
+convention-exempt visual ACs with a named hand-verify path, 26 mutations injected across two
+rounds and 24 killed. Report: `.specs/features/session-activity-status/validation.md`.
 
-**STILL OUTSTANDING — the two-theme visual pass.** `RAIL-26` (long task title clamps at 2 lines,
-no horizontal overflow at 344px) and `RAIL-27` (a session whose stored agent matches no registry
-entry still renders a tinted tile) are **not decidable by any script** and remain code-verified
-only. The same pass should report how `opencode` and `Ad-hoc` read at 22×22 now both resolve to
-`--amber` — a pre-existing collision this feature surfaces but does not fix.
+**OWNER SMOKE RUN 2026-09-15 — 19/19 PASS** (`node scripts/smoke-activity.mjs`), plus the
+documented ACTV-07 SKIP. The first run failed one check and that failure was a real defect,
+now AD-020 + `e157495`: Claude Code never delivers `SessionStart` to an http hook. T8's
+deferred dev hand-verification rides this run.
 
-**UNRELATED WORK PARKED IN A STASH:** `stash@{0}` ("wip(reconciler-core)") holds the AD-017
-Reconciler line for `.specs/STATE.md` plus the untracked `.specs/features/reconciler-core/`
-spec/design/context. It was set aside when this feature branched so it would not be swept into a
-rail commit. **Its AD-017 collides with the `dev-alias-setting` AD-017 already merged on `main`
-— renumber it (AD-019 or later) when it lands.** `git stash pop` on `docs/state-v1-release-note`
-restores it.
+**OWNER ACTION OUTSTANDING (user-run):**
+1. The two-theme visual pass: the spinning green loader, the blue waiting dot, the pink
+   approval dot, the red error dot, the amber `shell` dot at 344px in light and dark, plus
+   `prefers-reduced-motion` freezing the loader (ACTV-14/15/17/20).
+
+**KNOWN FOLLOW-UP, owner deferred it 2026-09-15:** the three `quota_auto_resume_*`
+notification types are not consumed. A session paused by a claude.ai usage limit reports
+`error` (`StopFailure` `rate_limit`) and stays there after Claude resumes on its own, because
+Claude Code sends no `idle_prompt` while it waits for the reset. Fix is three rows in the
+transition table: `_fired` → `working`, `_stale` → `needs-input` (it waits for Enter),
+`_disabled` → `waiting`. Requires Claude Code v2.1.234+.
+
+**NEXT FEATURE SPEC REWRITTEN, uncommitted:** `.specs/features/session-idle-notifications/`
+(now titled *Session Activity Notifications*, NOTF-01..21) was rebuilt on the seven states:
+P1 is now "told when an agent is blocked on you", P2 is the old finish/fail case, and six
+assumption rows are the agent's defaults awaiting an owner yes/no before Design.
+
+**PRIOR, still true — the two-theme visual pass for `agents-rail-v2`** (`RAIL-26`, `RAIL-27`)
+remains code-verified only, and `opencode` and `Ad-hoc` still both resolve to `--amber` at
+22×22.
+
+**UNRELATED WORK PARKED IN A STASH — GONE:** the earlier handoff pointed at `stash@{0}`
+("wip(reconciler-core)") holding the AD-017 Reconciler line plus an untracked
+`.specs/features/reconciler-core/`. As of 2026-09-15 `git stash list` is **empty** and no
+dangling commit in this clone carries that tree. If it is not in another clone it is lost.
 
 0. **`agents-rail-v2` (RAIL-01..28) — EXECUTED, independent Verifier PASS.** Branch
    `feature/agents-rail-v2`, 12 commits (`9bc144d..789468b`). Grouping is derived at render time

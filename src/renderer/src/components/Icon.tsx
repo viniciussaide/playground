@@ -27,6 +27,7 @@ export type IconName =
   | 'help-circle'
   | 'x-circle'
   | 'stop-square'
+  | 'loader'
 
 const PATHS: Record<IconName, JSX.Element> = {
   'git-branch': (
@@ -181,7 +182,10 @@ const PATHS: Record<IconName, JSX.Element> = {
   ),
   'stop-square': (
     <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none" />
-  )
+  ),
+  // Open arc: it reads as motion when the row spins it, and as a ring when the
+  // OS asks for reduced motion.
+  loader: <path d="M21 12a9 9 0 1 1-6.219-8.56" />
 }
 
 interface IconProps {

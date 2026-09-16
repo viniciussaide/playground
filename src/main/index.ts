@@ -1,7 +1,7 @@
 import { app, shell, dialog, BrowserWindow, Notification } from 'electron'
 import { execFile, execFileSync, spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { existsSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { promisify } from 'node:util'
 import { join } from 'path'
@@ -10,6 +10,8 @@ import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 import { AdoGateway } from './ado-gateway'
 import { AgentStepRunner, type AgentChild, type AgentSpawn } from './agent-step-runner'
+import { createActivityHookServer } from './activity-hook-server'
+import { buildClaudeHookSettings } from './claude-hook-settings'
 import { ConfigStore } from './config-store'
 import { runHookShell } from './hook-shell'
 import { emit, handle, onSend } from './ipc'
@@ -17,7 +19,7 @@ import { createMcpResultServer } from './mcp-result-server'
 import { withPostCreateHook } from './post-create-hook'
 import { PtyPort } from './pty-port'
 import { resolvePostCreateCommand } from './repo-config'
-import { SessionManager, type EmitFn } from './session-manager'
+import { SessionManager, type ActivityHooks, type EmitFn } from './session-manager'
 import { ShortcutLauncher } from './shortcut-launcher'
 import { TaskBoard } from './task-board'
 import { buildTree } from './tree'
@@ -108,6 +110,8 @@ const spawnAgent: AgentSpawn = (bin, argv, { cwd, env }): AgentChild => {
 // emit() (the app is single-window) and window-all-closed can killAll().
 let mainWindow: BrowserWindow | null = null
 let sessionManager: SessionManager | null = null
+/** Closes the activity hook listener on quit; set once the server is created. */
+let stopHookServer: (() => Promise<void>) | null = null
 
 function createWindow(): void {
   // Create the browser window.
@@ -246,13 +250,43 @@ app.whenReady().then(() => {
     notification.show()
   }
 
+  // Claude Code activity hooks (AD-019). The loopback server takes a moment to
+  // bind, so `settingsPath` starts null and is filled once it is listening;
+  // SessionManager reads it per spawn, and a null means the session launches
+  // exactly as it did before the feature (ACTV-29).
+  // SPEC_DEVIATION: design.md says the server starts *before* SessionManager is
+  // constructed.
+  // Reason: `app.whenReady().then()` is synchronous here, and making the whole
+  // block async to await one bind would reorder every other handler's
+  // registration. A session spawned in the first milliseconds simply reports no
+  // activity, which is the documented degrade path.
+  const hookServer = createActivityHookServer()
+  stopHookServer = () => hookServer.stop()
+  const activityHooks: ActivityHooks = {
+    settingsPath: null,
+    register: (token, sessionId) => hookServer.register(token, sessionId),
+    revoke: (token) => hookServer.revoke(token)
+  }
+  hookServer
+    .start()
+    .then(({ url }) => {
+      // Rewritten every launch: the port is ephemeral.
+      const settingsPath = join(app.getPath('userData'), 'agent-hooks', 'claude-settings.json')
+      mkdirSync(join(app.getPath('userData'), 'agent-hooks'), { recursive: true })
+      writeFileSync(settingsPath, JSON.stringify(buildClaudeHookSettings(url), null, 2), 'utf8')
+      activityHooks.settingsPath = settingsPath
+    })
+    .catch((err) => console.error('[activity-hooks] server did not start', err))
+
   sessionManager = new SessionManager({
     port: new PtyPort(),
     config: configStore,
     emit: emitToWindow,
-    fsExists: existsSync
+    fsExists: existsSync,
+    hooks: activityHooks
   })
   const sessions = sessionManager
+  hookServer.onEvent((sessionId, payload) => sessions.handleHookEvent(sessionId, payload))
   handle('sessions:list', () => sessions.list())
   handle('sessions:spawn', ({ agentName, cwd, adhocCommand }) =>
     sessions.spawn(agentName, cwd, adhocCommand)
@@ -384,6 +418,7 @@ app.on('window-all-closed', () => {
   // PTYs die on quit — no daemon (PRD Out of Scope). Kill every live session
   // so no orphaned shell/agent survives the window closing.
   sessionManager?.killAll()
+  void stopHookServer?.()
   if (process.platform !== 'darwin') {
     app.quit()
   }

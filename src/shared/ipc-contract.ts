@@ -1,6 +1,7 @@
 import type {
   AppConfig,
   ConfigPatch,
+  SessionActivity,
   SessionStatus,
   SessionView,
   WorkspaceTemplates
@@ -132,6 +133,9 @@ export interface IpcEvents {
   'session:data': { id: string; data: string }
   'session:exit': { id: string; exitCode: number }
   'session:status': { id: string; status: SessionStatus; pathMissing: boolean }
+  /** What the session's agent is doing, folded from its lifecycle hooks; `null`
+   *  clears it back to the plain `running` rendering (ACTV-05). */
+  'session:activity': { id: string; activity: SessionActivity | null }
   /** A run's folded lifecycle status changed (WF2-12). */
   'workflow:status': { runId: string; status: RunStatus }
   /** A `step-started` event — an executed `ctx.*` primitive / `ctx.step` group (WF2-10). */

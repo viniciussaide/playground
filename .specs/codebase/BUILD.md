@@ -1,6 +1,10 @@
 # Local Build & Install (develop → desktop shortcut)
 
-**Last executed:** 2026-09-15 — develop `4f1fd4d` (session-activity-status merged),
+**Last executed:** 2026-09-16 — develop `8340311` (time-tracking and session activity
+notifications merged), installed `1.1.1` over `1.1.0`; both shortcuts already pointed at the
+install, and the installed `app.asar` carries the notifications and time-tracking code.
+
+**Previously:** 2026-09-15 — develop `4f1fd4d` (session-activity-status merged),
 installed `1.1.0` over the 2026-09-10 `1.1.0`. Two findings that run counter to the note
 below: (1) `createDesktopShortcut: always` did **not** refresh a desktop shortcut on this
 machine, whose Desktop is redirected to OneDrive; the Start Menu one was created normally.

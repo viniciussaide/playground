@@ -33,7 +33,61 @@ Handoff snapshot.
 
 ## Handoff
 
-**Status (current, 2026-09-16): `time-tracking` EXECUTED + independent Verifier PASS
+**Status (current, 2026-09-16): `session-idle-notifications` EXECUTED + independent Verifier PASS
+(round 6, after rev4 and rev5). Owner smoke 36/36. PR #94 open upstream
+(`viniciussaide:feature/session-idle-notifications` → `obogoni:main`, "depends on #88"), merged
+locally into `develop`.**
+
+- **Branch:** `feature/session-idle-notifications`, stacked on `feature/session-activity-status`
+  (`65de9fd`, PR #88 still open upstream). Spec/design/tasks `c5e2304`..`4e7e69a`, code
+  `2e6bf64`..`40ab12f` (13 tasks), fix round `b3a00b3`.
+- **What shipped:** main decides (`activity-notification.ts` pure rules + `SessionNotifier`);
+  `SessionManager` reports each activity transition; OS notification when the window is
+  unfocused, in-app notice stack when focused on another session, nothing for the attached one;
+  a first event never notifies (NOTF-27). Settings dialog split into General / Notifications
+  tabs with a master switch plus one per state, flat `ui.notify*` keys, absent = on. Shared
+  `showOs` now holds each `Notification` until click/close, which also covers workflow toasts.
+- **Verification:** suite 917 → **990**. Round 1 FAIL on evidence only (NOTF-05 direction half,
+  06, 21, 23, 29 agent form) with 20/21 mutants killed (1 equivalent); round 2 PASS after smoke
+  and spec fixes. Report: `.specs/features/session-idle-notifications/validation.md`.
+- **Owner smoke 2026-09-16: 34/34 PASS**, including a real Windows notification and its click.
+  Two earlier runs stopped on smoke defects (rail v2 row labels; xterm not rendering while the
+  window is hidden), fixed in `d641837` and `57d88fc`. Still hand-verify: a notification clicked
+  after a minute, a minimized window, and the two-theme pass of tabs and notices.
+- **rev4 increment (2026-09-16), P4 NOTF-30..36:** the notification names the session's task —
+  title `#<id> · <pinned task title>` (or `#<id>`), clipped to 60 characters until rev5 removed the cut; agent and session
+  as a second body line; branch read with `git symbolic-ref --short HEAD` (2 s), no ADO call.
+  T14–T20 `ec0d66b`..`d1d5f94`, fix round `b522d5f` (also catches async notifier failures).
+  Suite 990 → **1006**; Verifier round 3 FAIL on evidence, round 4 PASS (18/18 mutants).
+  **Owner smoke 2026-09-16: 36/36 PASS**, and the Windows toast shows the three lines separately
+  (no ` — ` fallback needed).
+- **rev5 (2026-09-16), whole titles:** owner decided the app never cuts a title — no 60-character
+  limit, no `…`; the in-app title wraps freely. T21–T23 `133794e`..`39a589c`, fix round `ffc773c`
+  (test for a long session title on the body's second line). Suite **1006**; Verifier round 5
+  FAIL (1 surviving mutant), round 6 PASS (8/8). Owner hand check: a long pinned task title shown
+  whole in the in-app notice; Windows may shorten its own toast title.
+- **Merge into `develop`:** conflicts with `time-tracking` were all additive (`lifecycle` and
+  `onActivityChange` deps, `time:changed` next to `session:notice`/`session:focus`, both
+  `SessionManager` describe blocks). Lessons collided again: on `develop` this feature's
+  candidates are **L-025..L-029** (`next_id` 30); on the PR branch they are still L-019..L-023.
+  **Whichever of #93 / #94 merges second must renumber the lessons the same way.**
+- **Next:** when #88 merges,
+  `git rebase --onto origin/main feature/session-activity-status feature/session-idle-notifications`;
+  after #94 merges, `git fetch origin` → `main` fast-forward → merge `main` into `develop`.
+
+**STILL TRUE from earlier handoffs (carried over):**
+
+- `session-activity-status` (PR #88): owner smoke 19/19 PASS; the two-theme visual pass of the
+  activity dots/loader and `prefers-reduced-motion` (ACTV-14/15/17/20) is still owner-pending.
+- Deferred follow-up: the three `quota_auto_resume_*` notification types are not consumed, so a
+  session paused by a usage limit stays `error` after Claude resumes (`_fired` → `working`,
+  `_stale` → `needs-input`, `_disabled` → `waiting`; Claude Code v2.1.234+).
+- `agents-rail-v2` two-theme visual pass (RAIL-26/27) is code-verified only; `opencode` and
+  `Ad-hoc` both resolve to `--amber` at 22×22.
+- The `wip(reconciler-core)` stash is gone from this clone; if it is not in another clone it is lost.
+- AD-017 follow-up: preserve `undoByte` in `SettingsDialog` `commitForm` (PR #83 has merged).
+
+**Prior (2026-09-16): `time-tracking` EXECUTED + independent Verifier PASS
 (iteration 3 of 3), PR #93 open upstream (`viniciussaide:feature/time-tracking` →
 `obogoni:main`, CI `gate` pass, mergeable, awaiting review), merged locally into `develop`
 (`ad4ea03`).**

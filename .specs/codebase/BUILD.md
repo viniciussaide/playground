@@ -1,6 +1,14 @@
 # Local Build & Install (develop → desktop shortcut)
 
-**Last executed:** 2026-09-16 — develop `8340311` (time-tracking and session activity
+**Last executed:** 2026-09-17 — develop `7cef47a` (terminal scroll & paste merged, PR #95 open),
+installed `1.1.2` over `1.1.1`. Gate `npx vitest run --maxWorkers=2` green at **1200 tests / 69
+files**. Packed `app.asar` verified by grepping for the feature's own markers
+(`clipboard:read-paste`, `FILE_DROP_LIST_COMMAND`, `playground.debug.terminalModes`,
+`playground-paste`) alongside the two already on develop (`time:snapshot`, `session:notice`) —
+a stronger check than the Dev alias signal below, and worth preferring. Both shortcuts still
+point at the install. Installer 103 MB.
+
+**Previously:** 2026-09-16 — develop `8340311` (time-tracking and session activity
 notifications merged), installed `1.1.1` over `1.1.0`; both shortcuts already pointed at the
 install, and the installed `app.asar` carries the notifications and time-tracking code.
 
@@ -26,8 +34,20 @@ The desktop / Start Menu shortcut **Playground** points at the NSIS install:
 ```
 
 It is created by the installer (`electron-builder.yml` →
-`createDesktopShortcut: always`), so a fresh install refreshes it — the shortcut
-itself never needs manual editing.
+`createDesktopShortcut: always`). **On this machine that has not been reliable:** the Desktop is
+redirected to OneDrive, and the 2026-09-15 run found `createDesktopShortcut: always` did not
+refresh the desktop shortcut while the Start Menu one was created normally. Audit both targets
+after every install rather than assuming the installer fixed them:
+
+```powershell
+$sh = New-Object -ComObject WScript.Shell
+@([Environment]::GetFolderPath('Desktop'),
+  "$env:APPDATA\Microsoft\Windows\Start Menu\Programs") |
+  ForEach-Object { Get-ChildItem $_ -Filter '*laygroun*.lnk' -Recurse -ErrorAction SilentlyContinue } |
+  ForEach-Object { "$($_.FullName) -> $($sh.CreateShortcut($_.FullName).TargetPath)" }
+```
+
+Both read the install as of 2026-09-17, so the 2026-09-15 repointing has held.
 
 ## ⚠️ The version pitfall (read first)
 
@@ -43,7 +63,14 @@ STATE.md PENDING note). A plain `npm run build:win` therefore produces a
   easy to miss.
 
 **Rule:** a local build must carry a version **above** the currently installed
-one. The release version itself is controlled by the repo owner via git tags
+one — and **read that version off the installed exe, not off this file's history**, which goes
+stale the moment someone builds without updating it:
+
+```powershell
+(Get-Item "$env:LOCALAPPDATA\Programs\playground\playground.exe").VersionInfo.FileVersion
+```
+
+The release version itself is controlled by the repo owner via git tags
 (stable CI stamps from `GITHUB_REF`, ignoring `package.json`), so the local
 build passes its version **only to the packager** — the repo is never touched.
 
@@ -58,13 +85,13 @@ npm run build
 # 2. package the NSIS installer, overriding the version for this build only
 #    (pick the next version above the currently installed one — no repo file
 #    is modified; package.json stays at its committed value)
-npx electron-builder --win --config.extraMetadata.version=1.1.0
-#    → dist\playground-1.1.0-setup.exe  (~107 MB, x64, one-click NSIS)
+npx electron-builder --win --config.extraMetadata.version=1.1.2
+#    → dist\playground-1.1.2-setup.exe  (~103 MB, x64, one-click NSIS)
 
 # 3. install (silent) and verify the installed version
-Start-Process -FilePath "dist\playground-1.1.0-setup.exe" -ArgumentList "/S" -Wait
+Start-Process -FilePath "dist\playground-1.1.2-setup.exe" -ArgumentList "/S" -Wait
 (Get-Item "$env:LOCALAPPDATA\Programs\playground\playground.exe").VersionInfo
-#    FileVersion should read 1.1.0
+#    FileVersion should read 1.1.2
 ```
 
 There is **no `npm version` bump and no `git checkout -- package.json`**
@@ -88,4 +115,9 @@ gone — owner decision 2026-09-10, the release number stays with the owner).
   signal is the Settings dialog showing the **Dev alias** field (only when a
   template uses `{dev}`) — absent from any build older than PR #85.
 - The suite used as the pre-build gate: `npx vitest run --maxWorkers=2`
-  (currently 706 tests / 44 files on develop).
+  (**1200 tests / 69 files** on develop as of 2026-09-17 `7cef47a`; the figure here has gone stale
+  before, so treat it as a floor and judge the run by its exit code).
+- **Prefer grepping `dist\win-unpacked\resources\app.asar` for a marker string unique to the code
+  you just merged** (an IPC channel name, a flag key, a command constant). It proves the packed
+  bundle carries *this* branch, whereas the Dev alias field only proves the build is newer than
+  PR #85.

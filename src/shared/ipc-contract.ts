@@ -7,6 +7,7 @@ import type {
   WorkspaceTemplates
 } from './config'
 import type { ClipboardPaste } from './paste'
+import type { CommitLists, GitOp, GitOpResult, SyncState } from './git'
 import type { LaunchResult, ShortcutTool } from './shortcuts'
 import type { ParentOfResult, PinTaskResult, TasksSnapshot } from './tasks'
 import type { TimeEditResult, TimeSnapshot } from './time'
@@ -74,6 +75,12 @@ export interface IpcContract {
   }
   /** Live `git status --porcelain` of a worktree, parsed for the remove confirm (FRWT-01); [] when clean/unreadable. */
   'worktrees:changes': { req: { worktreePath: string }; res: ChangedFile[] }
+  /** Branch, upstream, ahead/behind, remotes and fetch age from local refs — never the network; failures land in `error` (STBR-09/12/13/14/22). */
+  'git:sync-state': { req: { worktreePath: string }; res: SyncState }
+  /** Incoming and outgoing commits against the upstream, 20 each plus the "+N more" counts (STBR-15/16). */
+  'git:commits': { req: { worktreePath: string }; res: CommitLists }
+  /** Run one sync/pull/push/fetch/publish, 120 s ceiling, one per worktree; failures are returned, never thrown (STBR-17–21/24/28). */
+  'git:run': { req: { worktreePath: string; op: GitOp; remote?: string }; res: GitOpResult }
   /** Pinned tasks merged with this session's cached details; no network. */
   'tasks:list': { req: void; res: TasksSnapshot }
   /** Parses ID/URL, validates against ADO, persists; failures are returned, never thrown. */

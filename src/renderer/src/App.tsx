@@ -14,6 +14,7 @@ import { SessionNotices } from './components/SessionNotices'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Sidebar } from './components/Sidebar'
 import { StartWorkDialog } from './components/StartWorkDialog'
+import { StatusBar } from './components/StatusBar'
 import { TasksPane } from './components/TasksPane'
 import { Toast } from './components/Toast'
 import { TopBar } from './components/TopBar'
@@ -414,6 +415,15 @@ function App(): JSX.Element {
           />
         )}
       </main>
+      <StatusBar
+        tree={tree}
+        selectedId={selectedId}
+        sessions={sessions}
+        selectedSessionId={selectedSessionId}
+        direction={ui.direction}
+        onToast={setToast}
+        onRefreshTree={refreshTree}
+      />
       {dialogRepoPath && (
         <NewWorktreeDialog
           tree={tree}

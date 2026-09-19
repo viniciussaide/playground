@@ -156,6 +156,54 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: V7 src/main/activity-notification.ts:86 (validation.md round 5) (notifications)
 - last seen: 2026-09-17T01:50:57Z
 
+### L-030 - Pin a spec-mandated numeric limit with a literal assertion on the default production uses; a test that overrides the value to run fast leaves the default free to drift.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `src/main/**` · harmful: 0
+- features: status-bar
+- evidence: M17 src/main/git-sync.ts:7 OP_TIMEOUT_MS (STBR-24) (src/main/**)
+- last seen: 2026-09-19T16:44:45Z
+
+### L-031 - When an AC mandates an environment variable or spawn option for a child process, assert it from inside the spawned process or on the spawn call; testing the wrapper's outcomes never observes it.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `src/main/**` · harmful: 0
+- features: status-bar
+- evidence: M18 src/main/git.ts:22 GIT_TERMINAL_PROMPT (STBR-27) (src/main/**)
+- last seen: 2026-09-19T16:44:45Z
+
+### L-032 - When a task names a smoke script as the sole evidence for an AC, confirm the script has a numbered check asserting that AC before marking it done; listing the requirement ID is not a check.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `scripts/smoke` · harmful: 0
+- features: status-bar
+- evidence: STBR-23 / M19 src/renderer/src/components/SyncPopover.tsx:94; tasks.md T18 claims sole evidence (scripts/smoke)
+- last seen: 2026-09-19T16:44:45Z
+
+### L-033 - Before an edge case cites a state the app already derives, confirm the model carries it at that level; otherwise name the state the feature must add.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `spec` · harmful: 0
+- features: status-bar
+- evidence: spec.md Edge Cases: path-missing state the tree already derives (only WorkspaceNode.missing exists) (spec)
+- last seen: 2026-09-19T16:44:45Z
+
+### L-034 - Git pull and push write progress and hint lines to stderr before the error, so report the first fatal or error line rather than the first stderr line.
+- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `src/main/**` · harmful: 0
+- features: status-bar
+- evidence: src/main/git-sync.ts:69-80 errorLine vs gitFailureLine (src/main/**)
+- last seen: 2026-09-19T16:44:46Z
+
+### L-035 - When an error extractor accepts several prefixes, drive a real failure for each prefix; testing only one leaves the others, and flags that turn the refusal into success, free to change unseen.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `main/git` · harmful: 0
+- features: status-bar
+- evidence: validation.md M29, M30 (src/main/git-sync.ts:81, :35) (main/git)
+- last seen: 2026-09-19T17:53:18Z
+
+### L-036 - Map every spec edge case to its own test or numbered smoke check in tasks.md, as ACs are; edge cases left to structure or to the tool's own behaviour reach validation with no evidence.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `specs/edge-cases` · harmful: 0
+- features: status-bar
+- evidence: validation.md edge cases: dirty pull, Escape, one popover at a time, no toast; STBR-25 refresh (specs/edge-cases)
+- last seen: 2026-09-19T17:53:18Z
+
+### L-037 - When a spec names a git command, name the flags that keep its behaviour independent of user and system git config such as pull.rebase, and pin that config in the real-git tests.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `git, main-process` · harmful: 0
+- features: status-bar
+- evidence: validation.md spec-precision note 3; src/main/git-sync.ts:35; src/main/git-sync.test.ts:337 (git, main-process)
+- last seen: 2026-09-19T18:18:03Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

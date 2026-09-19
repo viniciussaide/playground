@@ -17,6 +17,7 @@ import { linkTask } from './activity-notification'
 import { buildClaudeHookSettings } from './claude-hook-settings'
 import { readClipboardPaste } from './clipboard-reader'
 import { ConfigStore } from './config-store'
+import { readCommits, readSyncState, runGitOp } from './git-sync'
 import { runHookShell } from './hook-shell'
 import { emit, handle, onSend } from './ipc'
 import { createMcpResultServer } from './mcp-result-server'
@@ -269,6 +270,9 @@ app.whenReady().then(() => {
     removeWorktree(repoPath, worktreePath, { force })
   )
   handle('worktrees:changes', ({ worktreePath }) => changedFilesOf(worktreePath))
+  handle('git:sync-state', ({ worktreePath }) => readSyncState(worktreePath))
+  handle('git:commits', ({ worktreePath }) => readCommits(worktreePath))
+  handle('git:run', ({ worktreePath, op, remote }) => runGitOp(worktreePath, op, remote))
 
   const launcher = new ShortcutLauncher()
   handle('shortcuts:launch', ({ tool, path }) => launcher.launch(tool, path))

@@ -63,7 +63,7 @@ independent Verifier returned **PASS** in round 2 of 3, on branch `feature/sessi
   - owner hand checks;
   - done: pushed to `fork`, merged into `develop` with L-030..L-032 renumbered L-038..L-040;
   - the upstream PR waits for #93 and #94, then
-    `git rebase --onto origin/main develop feature/session-strip-polish`.
+    `git rebase --onto origin/main 9919139 feature/session-strip-polish`.
 - **Follow-up, not in scope:** `smoke-time.mjs:186` selects the first running row under
   `C:\Windows`, not the session it spawned. It could pause an owner's session in that folder.
 

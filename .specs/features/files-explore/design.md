@@ -48,7 +48,7 @@ graph TD
 
 | Component | Location | How to use |
 | --------- | -------- | ---------- |
-| `git()` / `gitFailureLine()` / `timeoutMs` | `src/main/git.ts` (status-bar T1) | Every git call in F1. **Hence the stack on `feature/status-bar`** — and it honours the proposed AD-022 (all git through one invoker) |
+| `git()` / `gitFailureLine()` / `timeoutMs` | `src/main/git.ts` (status-bar T1) | Every git call in F1. **Hence the stack on `feature/status-bar`** — and it honours AD-023 (all git through one invoker) |
 | `worktrees:changes` / `changedFilesOf` | `ipc-contract.ts:76`, `worktree-manager.ts:443` | The uncommitted-changes mode, unchanged (FXPL-12) |
 | `shortcuts:launch` + `ShortcutLauncher` | `shortcut-launcher.ts:40` | All four launchers (FXPL-25..29); two fixes below |
 | `openVisualStudio` + `VS_EDITIONS` | `shortcut-launcher.ts:72` (AD-016) | `.sln`/`.slnx` → VS 2026, elevated as today (FXPL-28/29). Passing a file path already works: the guard is `existsSync`, which accepts files |
@@ -255,11 +255,10 @@ export interface FilesChanged {
 | Git output format | `-z` everywhere a path is listed | NUL separation sidesteps git's C-quoting of unusual names entirely |
 | Watch batching | 250 ms | Inside FXPL-21/22's 1 s bound with room for the re-read and re-render |
 
-> **Project-level decisions to record on approval:**
-> - **AD (proposed)** — *the renderer never reads the filesystem; every file the Files direction shows is read in main and confined to the selected worktree by `resolveInside`.*
-> - **AD (proposed, at ship)** — *FXPL-31 supersedes STBR-30 and STBR-32*, following the AD-018 pattern.
->
-> Neither is written to `.specs/STATE.md` yet.
+> **Project-level decisions — recorded in `.specs/STATE.md` (2026-09-19):**
+> - **AD-024** — *the renderer never reads the filesystem; every file the Files direction shows is read in main and confined to the selected worktree by `resolveInside`.*
+> - **AD-025** — *Monaco is the app's read-only code and diff viewer* (design D1).
+> - **AD-028** — *FXPL-31 supersedes STBR-30 and STBR-32*, effective when this feature ships, following the AD-018 pattern.
 
 ---
 

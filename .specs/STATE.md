@@ -33,236 +33,32 @@ Handoff snapshot.
 
 ## Handoff
 
-**Status (current, 2026-09-17): `terminal-scroll-paste` COMPLETE -- T1-T14 executed and
-independent Verifier **PASS** (round 2 of 3) on branch `feature/terminal-scroll-paste`, cut from
-`origin/main` `fa78f78`. Phases 6 and 7 SKIPPED (Q2 verdict: cause 3 only; TSP-29..34 `Withdrawn`).
-Nothing uncommitted. **Pushed to `fork` and PR #95 open upstream**
-(`viniciussaide:feature/terminal-scroll-paste` -> `obogoni:main`, opened 2026-09-17 with owner
-go-ahead; CI `gate` **pass** in 4m56s, `mergeStateStatus` CLEAN, 24 files / +3247 -117). Report:
-`.specs/features/terminal-scroll-paste/validation.md`; `validate_state.py` exit 0.**
+**Status (current, 2026-09-19): `session-strip-polish` COMPLETE. T1-T6 are executed, and the
+independent Verifier returned **PASS** in round 2 of 3, on branch `feature/session-strip-polish`
+(cut from `develop` at `9919139`). Nothing is uncommitted and nothing is pushed: the local
+branch is ahead of `fork`. Report: `.specs/features/session-strip-polish/validation.md`;
+`validate_state.py` exits 0.**
 
-- **Verification:** suite **748 -> 820** (46 -> 51 files); typecheck/lint/test and
-  `npx electron-vite build` all exit 0. Round 1 **FAIL on evidence, no code defect** (18/18 mutants
-  killed); round 2 **PASS** with **23/23 mutants killed** -- the 18 re-run verbatim plus 6 new ones
-  on the changed test. 26/34 non-withdrawn ACs fully matched, 4 spec-precision, **7 owner-accepted
-  hand-verification items enumerated, 0 silent passes.**
-- **The Verifier ran a counterfactual on the one code change rather than trusting the claim:** the
-  memoised-`rand` mutant and a constant-suffix mutant both **survived** the old TSP-38 assertion
-  (exit 0, 20 passed) and both **die** against the new one. The second mutant keeps `randCalls === 2`
-  honest and would defeat a call-counter-only assertion; the path assertions catch it.
-- **Lint baseline moved and exit code hid it.** The fix round added a 19th prettier warning in its
-  own file against a baseline of 18, invisible at exit 0 because warnings do not fail the gate.
-  Fixed with `npx eslint --fix src/main/clipboard-reader.test.ts`; back to 18. **Record the count and
-  diff the count -- judging lint by exit code alone is correct for errors and blind to drift.**
-
-- **Commits:** `194aa4f` spec, `b3b41e3` + `1467c64` requirement-id realignment, then T1-T13 in
-  `90830f3`..`02f1413` (one per task). Suite **748 -> 819** (46 -> 51 files); `typecheck`, `lint`
-  and `npm test` exit 0, `npx electron-vite build` exit 0, verified by the orchestrator at the
-  phase boundary, not only by the workers.
-- **What shipped:** `src/shared/paste.ts` (`planPaste`, `quotePath`, `PASTE_GAP_MS`), the
-  `clipboard:read-paste` channel and the `pathForFile` bridge, `TerminalModeTracker`, a
-  `SessionRingBuffer` whose `snapshot()` prepends the modes its trimmed head carried (`tail()`
-  stays unprefixed -- cause 3, unconditional), `clipboard-reader`, `paste-temp` purge,
-  `terminal-modes.ts` (`modeName`, `formatModeLog`, `isProbeEnabled`), and in `TerminalPane.tsx`
-  the flag-gated mode probe, one serialized paste queue behind both Ctrl+V and right-click, and
-  file drop.
-
-**T14 verdict (owner UAT, 2026-09-17): cause 3 only.** The probe logged, and the scroll never died
-in any scenario the owner tried, including repeated Ctrl+C in opencode. T4 had already fixed cause 3
-unconditionally, and the original intermittent symptom matches it. **The evidence is a
-non-reproduction, not a measured difference:** the A/B against the pre-T4 1.1.1 install was offered
-and declined in favour of shipping, so this does not prove causes 1 and 2 cannot happen. The probe
-stays behind `playground.debug.terminalModes` so a returning defect is diagnosed against evidence.
-
-**To run the probe again:** `npm run build && npm start` -- **an installed/packaged build cannot run
-it**, because `optimizer.watchWindowShortcuts` (`src/main/index.ts:202`) only wires F12 to DevTools
-while unpackaged and blocks Ctrl+Shift+I when packaged. Set
-`localStorage.setItem('playground.debug.terminalModes', '1')`, enable **Verbose** in the console
-level dropdown (the probe uses `console.debug`, hidden by default), then remount the pane.
-
-**Verifier round 1 FAIL -- what it found and what was done, all resolved or accepted (owner decided:
-record honestly, do not refactor for testability):**
-
-- **7 ACs had no evidence of any kind and were missing from T14's owner-pending list**, so they read
-  as verified in Traceability: TSP-02, 03, 20, 23, 24, 26, 28, all pane-local. Now enumerated under
-  T14. The riskiest are **TSP-23/24** -- the serialized paste queue and its cancel-on-unmount, the
-  most intricate new logic here, shipping source-verified with no test by owner decision.
-- **TSP-38's assertion was tautological** (proved only that `pasteImageName` embeds the `rand` it is
-  handed; a suffix cached per module would have survived it). Replaced with a `readClipboardPaste`
-  test that pastes twice under one fixed `now` and asserts both paths and `randCalls === 2`.
-  Mutation-checked: caching `rand` now fails the test. Suite 819 -> 820.
-- **TSP-16's 5 s timeout and the exact chip text stay unasserted literals** (`src/main/index.ts:94`,
-  `TerminalPane.tsx:31`) while `PASTE_GAP_MS`/`COPIED_FEEDBACK_MS`/`PASTE_MAX_AGE_MS` were all pulled
-  into tested seams. Same convention, three exceptions -- accepted, not fixed.
-- **Third TSP-citation drift on this feature**, swept: the coverage matrix cited withdrawn ids and
-  `design.md` had no withdrawal marker. Citations inside the T15..T19 bodies are intentional.
-- Cleanup audit passed: the probe's CSI handlers `return false` unconditionally (returning `true`
-  would swallow every DECSET/DECRST and manufacture a superset of the bug, on flagged machines only,
-  with nothing in the suite to catch it), and no path writes to a disposed terminal. **One narrow
-  real defect left unfixed:** the replay `term.write(data, cb)` callback reads `term.modes` and can
-  fire after `dispose()` -- probe-only, so flag-gated. The Verifier's other note, that the cleared
-  `gapTimer` permanently retains the disposed terminal, **does not hold and was withdrawn in round
-  2**: a pending promise is not a GC root, so the closure graph is collectable once unreachable. The
-  mechanism is inverted -- **not** clearing the timer is the retaining case, since a live timer holds
-  `resolve` -> promise -> continuation -> `term` for up to `PASTE_GAP_MS`.
-
-**What the PASS does not claim, stated because it is the accepted risk:** nothing is verified about
-`TerminalPane.tsx`. **TSP-23/24** -- the serialized paste queue and its cancel-on-session-change, the
-most intricate new logic here -- ship on source review alone, and the 23/23 kill rate does not extend
-to them. The Verifier re-read the disposal path in both rounds and found no route where a disposed
-queue writes to a dead terminal.
-
-**Deliberately left as-is (cosmetic, recorded not fixed):**
-
-- `spec.md` Traceability reads `Implementing` for all 34 non-withdrawn ACs, so it does not
-  distinguish the 26 verified from the 7 accepted-pending. **This matches the project convention** --
-  `agents-rail-v2` is merged and Verifier-PASS and still reads `Implementing` throughout -- and it
-  under-claims, so nothing is falsely green. Introducing a per-AC status scheme on this branch alone
-  would diverge from every other feature.
-- The post-dispose replay callback: `term.write(data, cb)`'s callback reads `term.modes` and can fire
-  after `dispose()`. Probe-only (`replayPending = probing`), worst case a console throw on a terminal
-  that is already gone, no PTY or data consequence. A one-line `if (pasteDisposed) return` would close
-  it by reusing the existing flag.
-
-**Next:** PR #95 is open and awaiting review; `origin/main` is still `fa78f78`, so no rebase is
-needed. The feature is **not** merged into `develop` yet. After the upstream merge: `git fetch origin` -> `main`
-fast-forward -> merge `main` into `develop`. Expect a Handoff conflict and the lessons renumbering
-that `time-tracking` (#93) and `session-idle-notifications` (#94) also need.
-
-**A HOLE IN THE SKILL'S OWN CLOSING GATE -- do not trust `validate_state.py` blindly.** Reproduced
-this session with a synthetic report: a `validation.md` whose verdict reads `**Verdict: FAIL**` in
-prose **passes with exit 0**. `_verdict()` builds its haystack only from lines matching
-`^#{1,4}\s*validation\b` or an unanchored `\*{0,2}result\*{0,2}\s*:`, so the Discrimination
-Sensor's own `**Result**: ... killed ... PASS` line -- which `validate.md`'s template prescribes --
-becomes the only match and reads as a pass. This feature's report only exits 1 because its heading
-happens to be `## Validation: ... FAIL`. The owner decided 2026-09-17 not to patch the skill; verify
-a verdict by reading the report, not by the exit code.
-
-**Spec-precision gaps recorded during Execute (in `tasks.md`, not silently absorbed):**
-
-- **TSP-01** does not define the probe line's layout. The shipped shape is
-  `[term-modes] <id> CSI ?1049;1003;1006h alt-screen,any,sgr-mouse tracking=any buffer=alternate`,
-  pinned by test, and TSP-02/03 follow it. The `tracking=`/`buffer=` readouts are taken in a
-  `queueMicrotask` because xterm has no per-sequence post-apply hook: exact for a mode change that
-  arrives alone (the diagnostic case), settled-state for several changes inside one PTY chunk.
-- **TSP-16** says the failure chip sits "next to" the "Copiado" chip but also that it reuses that
-  element and timing. Implemented as reuse, so "Não foi possível colar" inherits the chip's green
-  background. A red variant is outside T12's Done-when.
-- `planPaste({kind:'text', text:''})` is undefined by the spec; returns `['']` and is unreachable
-  from `readClipboardPaste`.
-
-**Found during Execute, worth keeping:**
-
-- The edge-case requirement ids in `tasks.md`/`design.md` were **3 below** `spec.md` -- the edge
-  cases moved to TSP-35..40 when the conditional blocks took TSP-29..34. Twelve citations fixed in
-  `b3b41e3` and `1467c64`. The TSP-29..34 references in T15..T19 are the conditional ids and are
-  correct.
-- **Ctrl+Alt+V classified as `paste`** before T10, which would have swallowed the AltGr/Alt+V chord
-  Claude Code on Windows uses to read the clipboard itself (TSP-17). Fixed by excluding `altKey`,
-  mirroring the Ctrl+Z branch (`terminal-keys.ts:117` and `:122`). Latent defect, not a regression
-  of this branch.
-- **`<skill-dir>/scripts/lessons.py list` destroys data.** Run to load confirmed lessons, it
-  rewrote `.specs/lessons.json` and `.specs/LESSONS.md` and **deleted all 13 candidate lessons**,
-  keeping only the 2 confirmed ones it was asked to list. Reverted with `git checkout --`; restored
-  state is 15 lessons / 13 candidates / `next_id` 17. Do not run it; read `lessons.json` directly.
-
-**Merged into `develop` 2026-09-17** (`--no-ff`). Both conflicts were additive and resolved as
-the union: `src/main/index.ts` (this feature's `clipboard`/`randomBytes`/`fs.promises`/`tmpdir`
-imports and `readFileDropList` next to the notifications feature's `powerMonitor` and
-`readBranch`), and this Handoff. **`lessons.json` did not conflict**, because the Verifier's
-proposed lessons were deliberately not recorded -- the skill's `lessons.py` deletes candidate
-lessons, so `next_id` stays at `develop`'s 30 and the renumbering #93/#94 needed does not apply
-here. Recording those lessons is still open.
-
-**STILL TRUE from earlier handoffs (carried over):**
-
-- `session-activity-status` (PR #88): owner smoke 19/19 PASS; the two-theme visual pass of the
-  activity dots/loader and `prefers-reduced-motion` (ACTV-14/15/17/20) is still owner-pending.
-- Deferred follow-up: the three `quota_auto_resume_*` notification types are not consumed, so a
-  session paused by a usage limit stays `error` after Claude resumes (`_fired` → `working`,
-  `_stale` → `needs-input`, `_disabled` → `waiting`; Claude Code v2.1.234+).
-- `agents-rail-v2` two-theme visual pass (RAIL-26/27) is code-verified only; `opencode` and
-  `Ad-hoc` both resolve to `--amber` at 22×22.
-- The `wip(reconciler-core)` stash is gone from this clone; if it is not in another clone it is lost.
-- AD-017 follow-up: preserve `undoByte` in `SettingsDialog` `commitForm` (PR #83 has merged).
-- **PENDING -- bump the committed `package.json` version on the next delivery:** `v1.0.0` shipped
-  2026-09-02 from `cafb43f`, but the bump was never committed -- `main` still reads `0.1.0` and
-  nightlies publish `0.1.0-alpha.N`, semver-sorting below the shipped stable. Bump to `1.1.0`.
-
-**Prior (2026-09-16): `session-idle-notifications` EXECUTED + independent Verifier PASS
-(round 6, after rev4 and rev5). Owner smoke 36/36. PR #94 open upstream
-(`viniciussaide:feature/session-idle-notifications` → `obogoni:main`, "depends on #88"), merged
-locally into `develop`.**
-
-- **Branch:** `feature/session-idle-notifications`, stacked on `feature/session-activity-status`
-  (`65de9fd`, PR #88 still open upstream). Spec/design/tasks `c5e2304`..`4e7e69a`, code
-  `2e6bf64`..`40ab12f` (13 tasks), fix round `b3a00b3`.
-- **What shipped:** main decides (`activity-notification.ts` pure rules + `SessionNotifier`);
-  `SessionManager` reports each activity transition; OS notification when the window is
-  unfocused, in-app notice stack when focused on another session, nothing for the attached one;
-  a first event never notifies (NOTF-27). Settings dialog split into General / Notifications
-  tabs with a master switch plus one per state, flat `ui.notify*` keys, absent = on. Shared
-  `showOs` now holds each `Notification` until click/close, which also covers workflow toasts.
-- **Verification:** suite 917 → **990**. Round 1 FAIL on evidence only (NOTF-05 direction half,
-  06, 21, 23, 29 agent form) with 20/21 mutants killed (1 equivalent); round 2 PASS after smoke
-  and spec fixes. Report: `.specs/features/session-idle-notifications/validation.md`.
-- **Owner smoke 2026-09-16: 34/34 PASS**, including a real Windows notification and its click.
-  Two earlier runs stopped on smoke defects (rail v2 row labels; xterm not rendering while the
-  window is hidden), fixed in `d641837` and `57d88fc`. Still hand-verify: a notification clicked
-  after a minute, a minimized window, and the two-theme pass of tabs and notices.
-- **rev4 increment (2026-09-16), P4 NOTF-30..36:** the notification names the session's task —
-  title `#<id> · <pinned task title>` (or `#<id>`), clipped to 60 characters until rev5 removed the cut; agent and session
-  as a second body line; branch read with `git symbolic-ref --short HEAD` (2 s), no ADO call.
-  T14–T20 `ec0d66b`..`d1d5f94`, fix round `b522d5f` (also catches async notifier failures).
-  Suite 990 → **1006**; Verifier round 3 FAIL on evidence, round 4 PASS (18/18 mutants).
-  **Owner smoke 2026-09-16: 36/36 PASS**, and the Windows toast shows the three lines separately
-  (no ` — ` fallback needed).
-- **rev5 (2026-09-16), whole titles:** owner decided the app never cuts a title — no 60-character
-  limit, no `…`; the in-app title wraps freely. T21–T23 `133794e`..`39a589c`, fix round `ffc773c`
-  (test for a long session title on the body's second line). Suite **1006**; Verifier round 5
-  FAIL (1 surviving mutant), round 6 PASS (8/8). Owner hand check: a long pinned task title shown
-  whole in the in-app notice; Windows may shorten its own toast title.
-- **Merge into `develop`:** conflicts with `time-tracking` were all additive (`lifecycle` and
-  `onActivityChange` deps, `time:changed` next to `session:notice`/`session:focus`, both
-  `SessionManager` describe blocks). Lessons collided again: on `develop` this feature's
-  candidates are **L-025..L-029** (`next_id` 30); on the PR branch they are still L-019..L-023.
-  **Whichever of #93 / #94 merges second must renumber the lessons the same way.**
-- **Next:** when #88 merges,
-  `git rebase --onto origin/main feature/session-activity-status feature/session-idle-notifications`;
-  after #94 merges, `git fetch origin` → `main` fast-forward → merge `main` into `develop`.
-
-**Prior (2026-09-16): `time-tracking` EXECUTED + independent Verifier PASS
-(iteration 3 of 3), PR #93 open upstream (`viniciussaide:feature/time-tracking` →
-`obogoni:main`, CI `gate` pass, mergeable, awaiting review), merged locally into `develop`
-(`ad4ea03`).**
-
-- **Branch:** `feature/time-tracking`, cut from `origin/main` `fa78f78`, 36 commits
-  (`b1c6fdf` spec … `94e3493` validation). Pushed to `fork`.
-- **What shipped:** a main-process `TimeTracker` (AD-021) records dated periods per session
-  PTY run, with manual pause, suspend/resume handling, a 60 s heartbeated sidecar for crash
-  recovery, and delete/adjust. Counters on the rail row, group heads, detail bar, worktree
-  detail and pinned task cards; a weekly **Hours** direction with per-day Copy for Clockify.
-- **Verification:** suite 748 → **865** on the branch (1039 on `develop` after the merge).
-  Verifier round 1 FAIL (red lint gate misreported as green, TIME-14 rewrite not retried, 3
-  surviving mutants), round 2 FAIL (1 survivor in the retry fix), round 3 PASS: 25/26
-  mutants killed, 1 equivalent; 39 ACs test-backed, 10 hand-verified. Smoke
-  `scripts/smoke-time.mjs` 26/26 on the branch and on `develop`; crash recovery checked by
-  hand. Report: `.specs/features/time-tracking/validation.md`.
-- **Gate lesson (process, this session):** always judge `npm run lint` / `typecheck` /
-  `test` by **exit code** — the `… potentially fixable` line of ESLint's summary is not the
-  error count.
-- **Merge into `develop`:** conflicts with `session-activity-status` were all additive
-  (both `hooks` and `lifecycle` deps, counter before `StatusIndicator`, AD-019/020/021 rows).
-  Lessons collided: on `develop` the time-tracking candidates are **L-019..L-024**
-  (`next_id` 25); on the PR branch they are still L-017..L-022. **Whichever of #88 / #93
-  merges second must rebase and renumber the lessons the same way.**
-- **Owner-pending:** run `node scripts/smoke-time.mjs` yourself and record it in
-  `validation.md`; exercise OS suspend/resume (TIME-06/07) and the Hours minute refresh
-  (TIME-42) in the running app. Spec wording gaps, not defects: the owner's Copy preview was
-  never recorded (TIME-39) and the open-block `HH:MM–now` rendering is unspecified (TIME-36).
-- **CDP hand checks on this machine:** use an ad-hoc `pwsh` session in `C:/Windows` — the
-  `Claude` registry agent launches the real CLI — and the dev app shares the real
-  `%APPDATA%\playground` (real sessions and time log).
-- **Next:** after #93 merges upstream, `git fetch origin` → `main` fast-forward → merge
-  `main` into `develop`. Untracked spec awaiting its own session:
-  `terminal-scroll-paste` (Q2, the scroll cause, still open).
+- **Commits:** T1-T6 are `5522aa8`..`adcaaa4`. Then `19ef7bc` closed the Verifier's round-1
+  gaps, `80dbb7f` records the report and `423d055` adds lessons L-030..L-032.
+- **Verification:** the suite went from 1200 to **1216** tests (69 files). Typecheck, lint
+  (17 warnings, the baseline) and `npx electron-vite build` all exit 0. The discrimination
+  sensor killed 11 of 11 mutants. `scripts/smoke-strip.mjs` ran **24/24** against the dev
+  app, and the repaired `scripts/smoke-time.mjs` ran **26/26**.
+- **Spec correction:** the spec assumed that a session stopped while paused keeps its paused
+  flag. It does not: `TimeTracker.ended` drops the run with its mark, and a respawn starts
+  counting again. The edge cases and the assumption row are marked `[corrected at Execute]`.
+  The tracker is unchanged, because it is out of scope.
+- **Owner-pending hand checks:**
+  - the clock button in light and dark: hover border, focus ring, and a paused clock staying
+    dim on hover;
+  - a screen reader announcing the clock as a pressed / not-pressed toggle.
+- **Next:**
+  - owner hand checks;
+  - `git push fork feature/session-strip-polish`;
+  - merge into `develop`: renumber L-030..L-032, which collide with the status-bar lessons
+    already on `develop`;
+  - the upstream PR waits for #93 and #94, then
+    `git rebase --onto origin/main develop feature/session-strip-polish`.
+- **Follow-up, not in scope:** `smoke-time.mjs:186` selects the first running row under
+  `C:\Windows`, not the session it spawned. It could pause an owner's session in that folder.

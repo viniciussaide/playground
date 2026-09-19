@@ -119,6 +119,13 @@ Milestones follow the PRD's suggested slice ordering (issue #1, "Further Notes")
 - The session clock pauses and resumes on click — a `<button aria-pressed>` with a pause / play icon — replacing the Pause time / Resume time buttons (STRP-07..15)
 - 6 tasks, inline. Cut from `develop`, the only ref holding both halves (the pill arrived with #88, the clock with #93); its PR follows #93 and #94
 
+**Hours Calendar** - COMPLETE (Verifier PASS; PR #99, draft while #93 is open)
+
+- The Hours direction is a week calendar: Monday–Friday columns (weekend columns only when they hold time), each merged block a bar at the hours it happened, parallel agents side by side in lanes (HCAL-01..14)
+- The selected day's detail — groups, raw periods, edit, delete, Copy — moved into a drawer beside the grid, closed until a day or a bar is activated, so the whole view fits the window without page scroll (HCAL-15..19, 25..27; AD-031)
+- Task totals as chips above the grid, tooltips on the bars, a live-growing bar for running time (HCAL-20..23)
+- Three validated task colours for the week's three biggest tasks, the rest as Other, never repainted while shown (HCAL-11, 24; AD-030). 19 tasks; supersedes TIME-34 (AD-029)
+
 ---
 
 ## M5 — Embedded Agent Sessions (v2)

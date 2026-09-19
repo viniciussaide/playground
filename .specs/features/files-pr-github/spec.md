@@ -67,7 +67,7 @@ for GitHub, with the same surfaces and the same guarantees, adjusted to how GitH
 | Markdown | F4's renderer (`markdown-it`, HTML disabled); GitHub bodies are always markdown | One inert renderer for all third-party content | y |
 | Rate limit | When GitHub reports the limit exhausted, the mode says so with the reset time and does not retry | No polling exists to make it worse; a loop would | y |
 | Probes during Design | Only on a **scratch repository the owner names** — never on this repository's upstream, whose PRs notify real maintainers | Outward writes; privacy guardrail | y |
-| Project decision | F4's proposed AD is widened: the app writes PR comments to Azure DevOps **and GitHub**, only on explicit user action | One posture for both providers | y |
+| Project decision | **AD-027** (recorded 2026-09-19) already covers both providers: the app writes PR comments to Azure DevOps **and GitHub**, only on explicit user action, and probes never target this repository's upstream | One posture for both providers | y |
 | Branch base | `feature/files-pr-github` stacked on `feature/files-pr-ado` | Reuses every F4 surface | y |
 
 **Open questions:** one, logged above and owned by Design — confirming that GitHub rejects anchors outside the diff hunks, which decides the general-comment path's trigger.

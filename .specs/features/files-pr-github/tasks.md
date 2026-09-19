@@ -589,10 +589,10 @@ T20 → T21 → T22
 
 ### T21: Widen the recorded write posture to GitHub
 
-**What**: Amend the README's write-posture sentence (F4 T26) and the AD F4 appended to `.specs/STATE.md` so both name GitHub alongside Azure DevOps.
+**What**: Amend the README's write-posture sentence (F4 T26) so it names GitHub alongside Azure DevOps. **AD-027 already names both providers** (recorded 2026-09-19, at planning) — this task does not add an AD.
 **Where**: `README.md`
 **Depends on**: T20
-**Reuses**: F4 T26's wording.
+**Reuses**: F4 T26's wording; AD-027.
 **Requirement**: FPRG-24
 
 **Tools**: MCP: NONE · Skill: NONE
@@ -600,7 +600,7 @@ T20 → T21 → T22
 **Done when**:
 
 - [ ] README names both providers and exactly the four writes
-- [ ] The AD is amended in place, not duplicated, with the date of the amendment
+- [ ] `.specs/STATE.md` gains **no new AD**; AD-027 is amended in place only if what shipped differs from it
 - [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
 - [ ] Test count: **1070** (unchanged)
 

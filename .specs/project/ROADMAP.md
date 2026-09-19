@@ -112,6 +112,12 @@ Milestones follow the PRD's suggested slice ordering (issue #1, "Further Notes")
 - Fast-forward only, in-place `merge --ff-only` inside the worktree holding the checked-out base (else a direct ref fetch); any refresh failure (no upstream / fetch fail / diverged / dirty base) **blocks** the create with a readable inline error — never a silent stale base (WBR-02)
 - Per-dialog default, **not persisted** (no `AppConfig` field); inert when no base branch is given; new optional `worktrees:create` `updateBase` field; `GIT_TERMINAL_PROMPT=0` so a credential-less fetch fails fast (WBR-03/05)
 
+**Hours Calendar** - PLANNED (spec + design + tasks on `feature/hours-calendar`, stacked on `feature/time-tracking`)
+
+- The Hours direction becomes a week calendar: Monday–Friday columns (weekend columns only when they hold time), each merged block a bar at the hours it happened, parallel agents side by side (HCAL-01..14)
+- The selected day's detail — groups, raw periods, edit, delete, Copy — under the grid, unchanged (HCAL-15..20); legend, tooltips and a live-growing bar for running time (HCAL-21..23)
+- Three validated task colours for the week's three biggest tasks, the rest as Other, never repainted while shown (HCAL-11, 24; AD-030). 11 tasks; supersedes TIME-34 when it ships (AD-029)
+
 ---
 
 ## M5 — Embedded Agent Sessions (v2)

@@ -33,84 +33,21 @@ Handoff snapshot.
 
 ## Handoff
 
-**Status (current, 2026-09-13): `agents-rail-v2` EXECUTED + independent Verifier PASS on
-branch `feature/agents-rail-v2` (based on `origin/main` `83e67ce`, the PR #86 merge). Nothing
-uncommitted. PR not opened — push needs an explicit go-ahead.**
+**Status (current, 2026-09-19): `hours-calendar` EXECUTED + independent Verifier PASS (round 2) on
+branch `feature/hours-calendar`, stacked on `feature/time-tracking` (PR #93, still open). Nothing
+uncommitted. Not pushed, no PR — push needs an explicit go-ahead.**
 
-**OWNER SMOKE GATES RUN 2026-09-14 — ALL PASS.** `smoke-rail-v2.mjs` **16/16**,
-`smoke-agents.mjs` **16/16**, `smoke-agent-config.mjs` pass. 6 of the 8 class-2 ACs (RAIL-17, 18,
-20, 23, 24 + the rendering halves of 07/08/11/12) now carry executed evidence. Two first-run
-failures were both harness defects, not rail defects, and are fixed: the smoke read `aria-selected`
-before React re-rendered (`f3f330d`), and a pre-existing stale assertion counted `.ns-agent-chip`
-as 3 when that selector also matches the Ad-hoc chip and `SEEDED_AGENTS` has grown to four
-(`3453f42`, unrelated to this feature). Seed was `user/otavio/20754-monitor-acesso/23688-patch-14.0.3`
-→ `#23688`, which incidentally confirmed PR #81's last-segment `taskIdFromBranch` end-to-end.
-
-**STILL OUTSTANDING — the two-theme visual pass.** `RAIL-26` (long task title clamps at 2 lines,
-no horizontal overflow at 344px) and `RAIL-27` (a session whose stored agent matches no registry
-entry still renders a tinted tile) are **not decidable by any script** and remain code-verified
-only. The same pass should report how `opencode` and `Ad-hoc` read at 22×22 now both resolve to
-`--amber` — a pre-existing collision this feature surfaces but does not fix.
-
-**UNRELATED WORK PARKED IN A STASH:** `stash@{0}` ("wip(reconciler-core)") holds the AD-017
-Reconciler line for `.specs/STATE.md` plus the untracked `.specs/features/reconciler-core/`
-spec/design/context. It was set aside when this feature branched so it would not be swept into a
-rail commit. **Its AD-017 collides with the `dev-alias-setting` AD-017 already merged on `main`
-— renumber it (AD-019 or later) when it lands.** `git stash pop` on `docs/state-v1-release-note`
-restores it.
-
-0. **`agents-rail-v2` (RAIL-01..28) — EXECUTED, independent Verifier PASS.** Branch
-   `feature/agents-rail-v2`, 12 commits (`9bc144d..789468b`). Grouping is derived at render time
-   in a new pure module `src/renderer/src/lib/rail-groups.ts` (`buildRailGroups`, `statusClass`,
-   `flatRows`, `adjacentRowId`); `SessionRail.tsx` was rewritten to render that model and derives
-   nothing — a grep for `deriveAttribution|linkedPinFor|taskIdFromBranch|sort(|stripAnsi` in the
-   component returns nothing. **748 tests (712 baseline + 36), 747 passing**, the single failure
-   being the known local `worktree-manager` mixed-dirt `rmSync` case. Lint 0 errors / 18
-   pre-existing warnings. `npm run build:win` green. **Mutation sensor 6/6 killed** (both
-   precedence orders reversed, ordinal suffixing dropped, `adjacentRowId` wrapping instead of
-   clamping, header taken from the last session instead of the first, and a `.sort()` injected so
-   status changes reorder) — each killed by the test carrying the matching `RAIL-NN`, so the kills
-   are attributable rather than incidental. Unlike AD-015/AD-016, **author ≠ verifier was actually
-   met**: batch workers and the Verifier were separate agents. See `validation.md`.
-   Three owner decisions are recorded as confirmed spec assumptions: the `shell`/`agentLive`
-   sub-status stays out of scope (it was never built — `SessionStatus` is still `running|stopped`),
-   duplicate agent names inside a group get a per-group ordinal suffix, and the ACs are gated by
-   the extracted pure module rather than a new jsdom harness. One `SPEC_DEVIATION` at
-   `SessionRail.tsx:264`: rows are `div role="option"`, not `<button>`, because a row contains its
-   own action buttons. **AD-018** records that RAIL-12 retires AGCF-08 AC-2 only.
-
-1. **`dev-alias-setting` (DEVA-01..10) — EXECUTED, independent Verifier PASS 10/10.** 5
-   commits (`84e3601` docs spec, `3c432b6` docs defer undoByte, `3e82229` feat,
-   `915e78e` docs validation, `c675198` feat visibility). **Dev
-   alias** field in the ADO block of `SettingsDialog`: state populated from
-   `ado.devAlias ?? ''` (`SettingsDialog.tsx:73`), saved in the **same** `config:patch`
-   as org/project/templates with `devAlias.trim()` (`:121`), label "fills the {dev}
-   placeholder" (`:210-224`); `App.tsx:373` already re-threads it in `onSaved` (zero new
-   plumbing, DEVA-03). Gate: **667 tests / 44 files** (main baseline — the 706 from the
-   previous handoff were the develop tree with PR #83/84 unmerged), typecheck clean, lint
-   0 errors / 19 warnings (main baseline, measured on a throwaway worktree). Verifier:
-   8/8 ACs (3 executed-tested in `tasks.test.ts` — `{dev}` and segment-drop; 5
-   hand-verified per `TESTING.md:42`), sensor 2/4 killed — 2 survivors (M3: save-patch
-   without `devAlias`; M4: without `?? ''`) are renderer logic with no test seam by
-   convention, a documented gap, not a defect; optional future seam = extract the
-   save-patch builder into `src/shared`. Report:
-   `.specs/features/dev-alias-setting/validation.md`.
-   **Post-review increment (owner, `c675198`):** the Dev alias field is now **hidden
-   unless** an effective template (branch or worktree, blank = default) contains
-   `{dev}` (DEVA-09/10); re-verified PASS by an independent Verifier (5/5 checks,
-   sensor 3/4 killed, 1 equivalent mutant).
-   **Owner decision (AD-017):** the pre-existing `commitForm` `undoByte`-drop defect was
-   first included, then **REVERTED** from this branch — `AgentDef.undoByte` exists only in
-   PR #83 (open upstream); on the `main` base it does not compile (TS2353). **Follow-up
-   after #83 merges:** a one-line fix preserving `undoByte` in `commitForm` (recorded in
-   the spec's Out of Scope).
-1. **NEXT STEP:** open the PR `feature/dev-alias-setting` → upstream `main` (owner
-   go-ahead for push), then integrate locally into `develop` after merge. Untracked specs
-   awaiting their own session: `session-activity-status`, `session-idle-notifications`,
-   `sidebar-node-collapse` (stay in the working tree).
-
-**PENDING — bump the committed `package.json` version on the next delivery:** `v1.0.0`
-shipped 2026-09-02 from `cafb43f` (the PR #77 merge), but the bump is **never committed**
-— `main` still reads `0.1.0` and nightlies publish `0.1.0-alpha.N`, semver-sorting below
-the shipped stable. Bump to `1.1.0` on the next delivery (owner decided 2026-09-10 this
-branch ships without it).
+- T1..T11 committed (`19a2504`..`94f107d`); Verifier round 1 FAIL on 4 surviving mutants in
+  `hours-calendar.ts` (test-only gaps, recorded in `82862a0`, lessons L-023..L-026), fixed by
+  `be5d8ab` (3 unit tests + spec precision for HCAL-12 and the narrow-lane edge case). Round 2 PASS:
+  24/24 non-equivalent mutants killed, gate green — typecheck, lint 0 errors / 18 warnings (the
+  baseline), **896 tests**.
+- Live smokes on the dev app, 2026-09-19, owner-approved: `smoke-hours-calendar.mjs` **19/19**,
+  `smoke-time.mjs` unedited **26/26**; cleanup verified.
+- **Open, non-blocking:** smoke check 10 was tightened in `be5d8ab` to assert the tooltip's group
+  label and has not run live since. Confirm it on the next `smoke-hours-calendar.mjs` run.
+- Design deviations, recorded in their commits: `DayCard` takes `focus: { groupKey, start }` (a fresh
+  object per bar click) instead of `focusBlockStart`; `defaultDay(columns)` takes no `now`.
+- **Next:** push `feature/hours-calendar` to `fork` and open the upstream PR with "depends on #93"
+  (owner go-ahead). Once #93 merges: `git rebase --onto origin/main feature/time-tracking
+  feature/hours-calendar`, then force-with-lease to `fork`.

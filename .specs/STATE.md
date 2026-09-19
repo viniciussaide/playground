@@ -42,7 +42,7 @@ Handoff snapshot.
 
 **Status (current, 2026-09-19): `session-strip-polish` COMPLETE. T1-T6 are executed, and the
 independent Verifier returned **PASS** in round 2 of 3, on branch `feature/session-strip-polish`
-(cut from `develop` at `9919139`). Pushed to `fork` and merged into `develop`; no upstream PR yet. Report: `.specs/features/session-strip-polish/validation.md`;
+(cut from `develop` at `9919139`). Pushed to `fork`, merged into `develop`, and **draft PR #98** open upstream (stacked on #93 and #94). Report: `.specs/features/session-strip-polish/validation.md`;
 `validate_state.py` exits 0.**
 
 - **Commits:** T1-T6 are `5522aa8`..`adcaaa4`. Then `19ef7bc` closed the Verifier's round-1

@@ -282,6 +282,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: P1 - src/renderer/src/components/HoursView.tsx:286 vs scripts/smoke-hours-calendar.mjs:342-356 (smoke)
 - last seen: 2026-09-19T22:19:57Z
 
+### L-051 - A check that accepts 'rows or an empty-state note' passes the very failure it exists to catch, because the note is what an empty state renders; name the rows expected instead.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `smoke/cdp` · harmful: 0
+- features: files-explore
+- evidence: scripts/smoke-files.mjs afterRestart (smoke/cdp)
+- last seen: 2026-09-21T00:20:03Z
+
+### L-052 - Read a restored selection from a control every direction renders, such as the status bar: the sidebar does not exist outside the Tree direction, so looking there reports null for a selection that is present.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `smoke/cdp` · harmful: 0
+- features: files-explore
+- evidence: scripts/smoke-files.mjs afterRestart (smoke/cdp)
+- last seen: 2026-09-21T00:20:03Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

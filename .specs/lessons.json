@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 51,
+  "next_id": 53,
   "lessons": [
     {
       "id": "L-001",
@@ -821,6 +821,42 @@
       ],
       "created": "2026-09-19T22:19:57Z",
       "last_seen": "2026-09-19T22:19:57Z"
+    },
+    {
+      "id": "L-051",
+      "key": "ac_gap::a check that accepts rows or an empty state note passes the very failure it exists to catch because the note is what an empty state renders name the rows expected instead",
+      "text": "A check that accepts 'rows or an empty-state note' passes the very failure it exists to catch, because the note is what an empty state renders; name the rows expected instead.",
+      "signal": "ac_gap",
+      "scope": "smoke/cdp",
+      "status": "candidate",
+      "features": [
+        "files-explore"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "scripts/smoke-files.mjs afterRestart (smoke/cdp)"
+      ],
+      "created": "2026-09-21T00:20:03Z",
+      "last_seen": "2026-09-21T00:20:03Z"
+    },
+    {
+      "id": "L-052",
+      "key": "ac_gap::read a restored selection from a control every direction renders such as the status bar the sidebar does not exist outside the tree direction so looking there reports null for a selection that is present",
+      "text": "Read a restored selection from a control every direction renders, such as the status bar: the sidebar does not exist outside the Tree direction, so looking there reports null for a selection that is present.",
+      "signal": "ac_gap",
+      "scope": "smoke/cdp",
+      "status": "candidate",
+      "features": [
+        "files-explore"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "scripts/smoke-files.mjs afterRestart (smoke/cdp)"
+      ],
+      "created": "2026-09-21T00:20:03Z",
+      "last_seen": "2026-09-21T00:20:03Z"
     }
   ]
 }

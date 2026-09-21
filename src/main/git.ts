@@ -3,6 +3,9 @@ import { promisify } from 'node:util'
 
 const run = promisify(execFile)
 
+/** Stdout ceiling for any git call: far above what a large repository produces. */
+const MAX_STDOUT_BYTES = 64 * 1024 * 1024
+
 /**
  * The single way this app runs git (AD-023, STBR-27): `execFile`, so no shell
  * ever parses the arguments, a hidden window, and `GIT_TERMINAL_PROMPT=0`.
@@ -20,9 +23,23 @@ export function git(
     cwd,
     windowsHide: true,
     env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
-    timeout: opts.timeoutMs
+    timeout: opts.timeoutMs,
+    // execFile defaults to 1 MiB of stdout and turns anything larger into
+    // "stdout maxBuffer length exceeded" — a message that says nothing about
+    // the repository being big. A large repository reaches that on ordinary
+    // commands, so the ceiling is a safety net here rather than a limit any
+    // caller is meant to rely on; the callers that need a real cap measure it
+    // themselves, as file-diff does before reading a blob.
+    maxBuffer: MAX_STDOUT_BYTES
   })
 }
+
+/**
+ * How a module runs git when a test needs to stand in for it. Injectable so a
+ * test can prove what a code path did NOT ask for — the only way to show that
+ * a listing never read a subtree, since the evidence is an absence.
+ */
+export type GitRunner = (cwd: string, args: string[]) => Promise<{ stdout: string }>
 
 /** Git's own first stderr line (e.g. "fatal: …") reads better than execFile's wrapper message. */
 export function gitFailureLine(err: unknown): string {

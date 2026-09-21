@@ -8,6 +8,7 @@ export type IconName =
   | 'sun'
   | 'moon'
   | 'folder'
+  | 'file'
   | 'chevron-down'
   | 'git-fork'
   | 'plus'
@@ -82,6 +83,12 @@ const PATHS: Record<IconName, JSX.Element> = {
   moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />,
   folder: (
     <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+  ),
+  file: (
+    <>
+      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+      <path d="M14 2v5h6" />
+    </>
   ),
   'chevron-down': <path d="m6 9 6 6 6-6" />,
   'git-fork': (

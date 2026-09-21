@@ -146,9 +146,9 @@ into a full explorer with diffs.
 **Acceptance Criteria**:
 
 29. WHILE a worktree is selected the bar SHALL show the number of changed files in it <!-- state-driven -->
-30. WHEN the user activates the counter THEN a popover SHALL list every changed path with its change status, using the five values `ChangedFile` already carries (modified, added, deleted, renamed, untracked) <!-- event-driven -->
-31. WHILE the worktree has no changes the counter SHALL read `0` and its popover SHALL say there are none <!-- state-driven -->
-32. The changed-files popover SHALL offer no per-file action <!-- ubiquitous -->
+30. ~~WHEN the user activates the counter THEN a popover SHALL list every changed path with its change status, using the five values `ChangedFile` already carries (modified, added, deleted, renamed, untracked)~~ **Superseded by FXPL-31 (AD-028), delivered 2026-09-20 in `files-explore` T22.** The counter now opens the Files direction on that worktree in uncommitted-changes mode; `ChangesPopover` is removed. The popover was always the counter's stand-in for a surface that did not exist yet. <!-- event-driven -->
+31. WHILE the worktree has no changes the counter SHALL read `0` ~~and its popover SHALL say there are none~~ **The popover clause is superseded by FXPL-31 (AD-028), delivered 2026-09-20 in `files-explore` T22**, together with STBR-30 and STBR-32: there is no popover to say anything. The counter still reads `0`. <!-- state-driven -->
+32. ~~The changed-files popover SHALL offer no per-file action~~ **Superseded by FXPL-31 (AD-028), delivered 2026-09-20 in `files-explore` T22.** There is no popover; the Files direction lists the changed paths and opens each one in a tab. <!-- ubiquitous -->
 
 **Independent Test**: Dirty a worktree with one modified, one added, one deleted and one untracked file; the counter reads `4` and the popover lists all four with the status `parseChangedFiles` assigns each.
 

@@ -51,49 +51,65 @@ Handoff snapshot.
 
 ## Handoff
 
-**Status (current, 2026-09-20): the Files epic's first three slices are COMPLETE and each has an
-open upstream PR. Merged locally into `develop` (`6912ce3`).**
+**Status (current, 2026-09-20): the Files epic's three slices are COMPLETE, each has an open upstream
+PR, and all three carry both rounds of the owner's review. Integrated into `develop` (`d489775`).**
 
 | Slice | Branch | Verifier | PR |
 | ----- | ------ | -------- | -- |
-| F1 `files-explore` | `feature/files-explore` `72d6e98` | PASS, round 3 of 3 | **#100** (depends on #97) |
-| F2 `files-diff` | `feature/files-diff` `1802d35` | PASS, round 1 | **#101** (depends on #100) |
-| F3 `files-commits` | `feature/files-commits` `cd44640` | PASS, round 2 of 3 | **#102** (depends on #101) |
+| F1 `files-explore` | `feature/files-explore` `a82bbce` | PASS, round 3 of 3 | **#100** (depends on #97) |
+| F2 `files-diff` | `feature/files-diff` `bf2fc7e` | PASS, round 1 | **#101** (depends on #100) |
+| F3 `files-commits` | `feature/files-commits` `ca9403b` | PASS, round 2 of 3 | **#102** (depends on #101) |
 
-The three are stacked in that order on `feature/status-bar` (PR #97), which is still open upstream.
-Nothing has been merged into `obogoni/playground`; the local `develop` merge is the only integration.
+Stacked in that order on `feature/status-bar` (PR #97), still open upstream. Nothing has been merged
+into `obogoni/playground`; the `develop` merge is local integration only. `develop` also carries
+`hours-calendar` (PR #99) and the session work before it, and its top bar reads Tree, Board, Agents,
+Files, Workflows, Hours.
 
-- **F3 verification:** suite **1168 -> 1177** (64 files); typecheck, lint (0 errors / 18 warnings,
-  the standing baseline) and `electron-vite build` exit 0. CDP smoke
-  `scripts/smoke-files-commits.mjs` **27/27** against a live dev app on a seeded repository of 104
-  commits, with an isolated `--user-data-dir`. Report: `.specs/features/files-commits/validation.md`.
-  Round 1 returned FAIL on test strength only — no shipped code was wrong — and named two surviving
-  mutants plus one AC with no evidence at all; all three are closed. Round 2 returned PASS with three
-  survivors, two of which were closed afterwards (recorded as an addendum in the report, marked
-  plainly as author self-check rather than a third round).
-- **Defect found and fixed during F3, in shipped code:** `commitFiles` used `Promise.all`, which
-  returns on the first rejection and leaves its sibling git process running. On Windows that child
-  held the worktree as its cwd and blocked the directory's removal — an intermittent EPERM roughly
-  one full-suite run in six. Now `allSettled`. It cost four wrong diagnoses before the error text was
-  finally captured; the lesson is L-029.
-- **Merge into `develop`:** six files conflicted, all additively (config keys, contract imports, two
-  helpers in `main/index.ts`, two top-bar directions, and two blocks of decision rows). Every
-  conflict kept both sides. Merged tree: **1504 tests / 82 files**, lint 0 errors / 17 warnings,
-  build green.
-- **Carried, non-blocking:** FCMT-07's *rendered* base prompt is unasserted on both sides (the pure
-  decision behind it is unit-tested); FCMT-32's window-focus path, FCMT-16's focus-when-already-open
-  and FCMT-11's restore-on-return are each argued rather than driven. `inTreeOrder` in
-  `AllChangesTab.tsx` is pure and untested. `files-diff/design.md` § Data Models still declares the
-  removed `FileStat { binary: boolean }`. Candidate lessons L-019..L-029 await promotion.
-- **Owner hand checks NOT yet done on F3** (a CDP smoke counts DOM nodes; it cannot see that a screen
-  is unreadable, mis-themed or drawn in tofu — in F2 the smoke found one defect and the owner found
-  three): click **Open in browser** on one real pushed commit of a real repository, since the smoke
-  never clicks an enabled one; hover a row and read the full message tooltip; and judge the
-  four-mode selector at the left column's narrowest width, where it now wraps to two lines.
+**Owner review, 2026-09-20 — eight fixes, each landed on the slice that owns it.**
+
+- **The Folder mode showed nothing on a large repository**, only `stdout maxBuffer length exceeded`.
+  `ls-files --cached` lists every tracked *descendant*, so drawing twenty rows read every path
+  beneath them: 4.59 MB / 1.5 s for the root, and 4.2 MB for one folder holding 42,197 of a
+  repository's 47,471 files — which is why no pathspec saved the subfolders either. `listDir` now asks
+  for one level: `ls-tree`, the index delta, and the existing untracked read, in parallel. End to end
+  on that repository the root lists in 564 ms and the big folder in 531 ms. `git.ts` also gained an
+  explicit 64 MiB `maxBuffer` as a floor under every other call. AD-036.
+- **Files followed only the Tree's selection.** Selecting a session now selects the worktree it runs
+  in, resolved from its `cwd` to the deepest containing worktree. AD-037.
+- **The commit row led with the sha, and the author's name was clipped to one letter.** The subject
+  leads now; Copy sha and Open in browser moved to a right-click menu, because as buttons they
+  reserved ~150px of every row through `opacity: 0`, which hides a control without releasing its
+  width. FCMT-03, 21 and 23 amended. AD-038.
+- **Files sits beside Agents**, and **the app reopens on the worktree it closed on**
+  (`ui.selectedWorktree`, FXPL-33). The selection was plain React state, so every launch started on
+  nothing and the Files direction had no worktree to open on. Restored once, after both the config
+  and the tree have arrived, and only while the tree still holds that worktree. AD-039.
+- **Evidence.** The listing regression test re-imposes the old 1 MiB ceiling through an injected
+  runner over a repository seeded past it, and fails for any implementation that reads the subtree.
+  The row clipping is asserted with `scrollWidth` against `clientWidth`, which `textContent` cannot
+  see. `smoke-files.mjs` gained an `--after-restart` mode for the half one launch cannot show, and
+  is **27 + 2**; `smoke-files-commits.mjs` is **30/30**, up from 27. Both new restart checks were
+  falsified by disabling the restore.
+
+**Defect found inside F3's own code while chasing an intermittent failure:** `commitFiles` used
+`Promise.all`, which returns on the first rejection and leaves its sibling git process running. On
+Windows that child held the worktree as its cwd and blocked the directory's removal — an EPERM about
+one full-suite run in six. Now `allSettled`. Four wrong diagnoses preceded capturing the error text.
+
+**Carried, non-blocking:** FCMT-07's *rendered* base prompt is unasserted on both sides (the pure
+decision behind it is unit-tested); FCMT-32's window-focus path, FCMT-16's focus-when-already-open
+and FCMT-11's restore-on-return are argued rather than driven. `inTreeOrder` in `AllChangesTab.tsx`
+is pure and untested. `files-diff/design.md` § Data Models still declares the removed
+`FileStat { binary: boolean }`, and `files-commits/design.md` still describes the row as carrying a
+short sha. `validate_spec.py files-explore` reports 2 pre-existing errors: `FXPL-28a`/`28b`, the
+sub-criteria AD-033 added, do not match the validator's ID shape. Candidate lessons await promotion.
+
+**Owner hand check still NOT done:** click **Open in browser** on one real pushed commit of a real
+repository. The smoke never clicks an enabled one, because the seeded address is fictitious.
 
 **Next:** F4 `files-pr-ado` (27 tasks), stacked on F3. Re-chain it with
 `git rebase --onto feature/files-commits eec156e feature/files-pr-ado` — the base is F3's **previous
 tip**, not the common ancestor, or the range replays F3's own commits. Re-measure the test baseline
-as the first act of Execute; it is **1177** on F3's tip. **F4's T1 writes to a real Azure DevOps pull
+as the first act of Execute; it is **1188** on F3's tip. **F4's T1 writes to a real Azure DevOps pull
 request**: a sandbox PR the owner names, with a go-ahead at that moment. F4 also flips the README's
 "ADO is read-only" claim, per AD-027.

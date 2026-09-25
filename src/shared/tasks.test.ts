@@ -131,7 +131,9 @@ describe('taskIdFromBranch', () => {
   })
 
   it('extracts the leaf task id from the nested user format (BRANCH-01)', () => {
-    expect(taskIdFromBranch('user/jdoe/10001-user-story/10002-nested-branch')).toBe(10002)
+    expect(
+      taskIdFromBranch('user/jdoe/10001-user-story/10002-nested-branch')
+    ).toBe(10002)
   })
 
   it('tags a parent-only nested branch with its last-segment number (edge case)', () => {

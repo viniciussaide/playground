@@ -28,9 +28,9 @@ export type IconName =
   | 'help-circle'
   | 'x-circle'
   | 'stop-square'
-  | 'loader'
   | 'clock'
   | 'pause'
+  | 'loader'
   | 'git-sync'
   | 'git-pull'
   | 'git-push'
@@ -196,9 +196,6 @@ const PATHS: Record<IconName, JSX.Element> = {
   'stop-square': (
     <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none" />
   ),
-  // Open arc: it reads as motion when the row spins it, and as a ring when the
-  // OS asks for reduced motion.
-  loader: <path d="M21 12a9 9 0 1 1-6.219-8.56" />,
   clock: (
     <>
       <circle cx="12" cy="12" r="9" />
@@ -212,6 +209,9 @@ const PATHS: Record<IconName, JSX.Element> = {
       <rect x="13.5" y="5" width="4" height="14" rx="1" fill="currentColor" stroke="none" />
     </>
   ),
+  // Open arc: it reads as motion when the row spins it, and as a ring when the
+  // OS asks for reduced motion.
+  loader: <path d="M21 12a9 9 0 1 1-6.219-8.56" />,
   // The refresh arrows turned a quarter, so Sync reads apart from Refresh and
   // Respawn while keeping the round-trip shape.
   'git-sync': (

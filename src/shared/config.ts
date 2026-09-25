@@ -59,6 +59,11 @@ export interface SessionView extends PersistedSession {
    *  for ad-hoc and non-Claude sessions, for stopped sessions, and until the
    *  first hook event arrives. Never persisted (ACTV-09). */
   activity?: SessionActivity
+  /** The name Claude Code gives this session, read from `claude agents --json`
+   *  and matched by the `session_id` its hooks report (AD-040). Absent until the
+   *  first successful listing after the first hook event, for ad-hoc and
+   *  non-Claude sessions, and for stopped sessions. Never persisted (SNAME-15). */
+  name?: string
 }
 
 /** One worktree's remembered Files lens (FXPL-13). `base` is absent until the
@@ -71,7 +76,7 @@ export interface FilesState {
 export interface AppConfig {
   ui: {
     theme: 'dark' | 'light'
-    direction: 'tree' | 'board' | 'agents' | 'workflows' | 'hours' | 'files'
+    direction: 'tree' | 'board' | 'agents' | 'workflows' | 'files' | 'hours'
     /** Hosting shell for new agent PTYs; running sessions keep their own (AGCF-02). */
     defaultShell: Shell
     /** Persisted sidebar width; absent = 230px default (PANE-01). */
@@ -84,17 +89,6 @@ export interface AppConfig {
     tasksCollapsed?: boolean
     /** Workspace ids folded in the sidebar tree; absent = every workspace expanded (WSCL-06). */
     collapsedWorkspaces?: string[]
-    /** Master switch for session activity notifications; absent = on (NOTF-13, NOTF-17).
-     *  Never clears the per-state switches below (NOTF-19). */
-    notify?: boolean
-    /** Notify when a session enters `needs-approval`; absent = on (NOTF-14). */
-    notifyNeedsApproval?: boolean
-    /** Notify when a session enters `needs-input`; absent = on (NOTF-14). */
-    notifyNeedsInput?: boolean
-    /** Notify when a session enters `waiting`; absent = on (NOTF-14). */
-    notifyWaiting?: boolean
-    /** Notify when a session enters `error`; absent = on (NOTF-14). */
-    notifyError?: boolean
     /** What the Files direction last showed per worktree; absent = full folder
      *  and the `origin/HEAD` default (FXPL-13, design D4). */
     files?: Record<string, FilesState>
@@ -106,6 +100,17 @@ export interface AppConfig {
     /** Hide leading and trailing whitespace changes, and the line-ending strip
      *  and markers with them; absent = whitespace shown (FDIF-15/16). */
     diffIgnoreWhitespace?: boolean
+    /** Master switch for session activity notifications; absent = on (NOTF-13, NOTF-17).
+     *  Never clears the per-state switches below (NOTF-19). */
+    notify?: boolean
+    /** Notify when a session enters `needs-approval`; absent = on (NOTF-14). */
+    notifyNeedsApproval?: boolean
+    /** Notify when a session enters `needs-input`; absent = on (NOTF-14). */
+    notifyNeedsInput?: boolean
+    /** Notify when a session enters `waiting`; absent = on (NOTF-14). */
+    notifyWaiting?: boolean
+    /** Notify when a session enters `error`; absent = on (NOTF-14). */
+    notifyError?: boolean
   }
   workspaces: WorkspaceEntry[]
   /** Editable coding-agent registry; seeded from `SEEDED_AGENTS` (AGCF-01). */

@@ -113,18 +113,17 @@ Milestones follow the PRD's suggested slice ordering (issue #1, "Further Notes")
 - Fast-forward only, in-place `merge --ff-only` inside the worktree holding the checked-out base (else a direct ref fetch); any refresh failure (no upstream / fetch fail / diverged / dirty base) **blocks** the create with a readable inline error — never a silent stale base (WBR-02)
 - Per-dialog default, **not persisted** (no `AppConfig` field); inert when no base branch is given; new optional `worktrees:create` `updateBase` field; `GIT_TERMINAL_PROMPT=0` so a credential-less fetch fails fast (WBR-03/05)
 
-**Session Strip Polish** - PLANNED (spec + tasks on `feature/session-strip-polish`)
+**Session Strip Polish** - COMPLETE (on `feature/session-strip-polish`, PR #98)
 
 - An MCP tool reads `MCP <server>` in the session detail's activity pill, the raw tool name kept in its tooltip; the rail tooltip and the OS notification keep the raw name (STRP-01..06)
 - The session clock pauses and resumes on click — a `<button aria-pressed>` with a pause / play icon — replacing the Pause time / Resume time buttons (STRP-07..15)
 - 6 tasks, inline. Cut from `develop`, the only ref holding both halves (the pill arrived with #88, the clock with #93); its PR follows #93 and #94
 
-**Hours Calendar** - COMPLETE (Verifier PASS; PR #99, draft while #93 is open)
+**Hours Calendar** - COMPLETE (on `feature/hours-calendar`, PR #99)
 
-- The Hours direction is a week calendar: Monday–Friday columns (weekend columns only when they hold time), each merged block a bar at the hours it happened, parallel agents side by side in lanes (HCAL-01..14)
-- The selected day's detail — groups, raw periods, edit, delete, Copy — moved into a drawer beside the grid, closed until a day or a bar is activated, so the whole view fits the window without page scroll (HCAL-15..19, 25..27; AD-031)
-- Task totals as chips above the grid, tooltips on the bars, a live-growing bar for running time (HCAL-20..23)
-- Three validated task colours for the week's three biggest tasks, the rest as Other, never repainted while shown (HCAL-11, 24; AD-030). 19 tasks; supersedes TIME-34 (AD-029)
+- The Hours direction becomes a week calendar: Monday–Friday columns (weekend columns only when they hold time), each merged block a bar at the hours it happened, parallel agents side by side (HCAL-01..14)
+- The selected day's detail — groups, raw periods, edit, delete, Copy — under the grid, unchanged (HCAL-15..20); legend, tooltips and a live-growing bar for running time (HCAL-21..23)
+- Three validated task colours for the week's three biggest tasks, the rest as Other, never repainted while shown (HCAL-11, 24; AD-030). 11 tasks; supersedes TIME-34 when it ships (AD-029)
 
 ---
 

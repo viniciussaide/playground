@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 53,
+  "next_id": 54,
   "lessons": [
     {
       "id": "L-001",
@@ -245,114 +245,204 @@
     },
     {
       "id": "L-019",
-      "key": "gate_fail::in renderer components and hooks keep date now out of render and setstate out of synchronous effect bodies because eslint plugin react hooks v7 purity and set state in effect rules fail the lint gate",
-      "text": "In renderer components and hooks keep Date.now() out of render and setState out of synchronous effect bodies, because eslint-plugin-react-hooks v7 purity and set-state-in-effect rules fail the lint gate",
-      "signal": "gate_fail",
-      "scope": "renderer",
+      "key": "surviving_mutant::pin a spec mandated numeric limit with a literal assertion on the default production uses a test that overrides the value to run fast leaves the default free to drift",
+      "text": "Pin a spec-mandated numeric limit with a literal assertion on the default production uses; a test that overrides the value to run fast leaves the default free to drift.",
+      "signal": "surviving_mutant",
+      "scope": "src/main/**",
       "status": "candidate",
       "features": [
-        "time-tracking"
+        "status-bar"
       ],
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "src/renderer/src/components/HoursView.tsx:53, src/renderer/src/lib/use-time.ts:60 (renderer)"
+        "M17 src/main/git-sync.ts:7 OP_TIMEOUT_MS (STBR-24) (src/main/**)"
       ],
-      "created": "2026-09-16T22:26:36Z",
-      "last_seen": "2026-09-16T22:26:36Z"
+      "created": "2026-09-19T16:44:45Z",
+      "last_seen": "2026-09-19T16:44:45Z"
     },
     {
       "id": "L-020",
-      "key": "surviving_mutant::assert the persisted store or sidecar write after every orchestrator state transition not only the emitted change event",
-      "text": "Assert the persisted store or sidecar write after every orchestrator state transition, not only the emitted change event",
+      "key": "surviving_mutant::when an ac mandates an environment variable or spawn option for a child process assert it from inside the spawned process or on the spawn call testing the wrapper s outcomes never observes it",
+      "text": "When an AC mandates an environment variable or spawn option for a child process, assert it from inside the spawned process or on the spawn call; testing the wrapper's outcomes never observes it.",
       "signal": "surviving_mutant",
-      "scope": "main-orchestrators",
+      "scope": "src/main/**",
       "status": "candidate",
       "features": [
-        "time-tracking"
+        "status-bar"
       ],
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "M6 src/main/time-tracker.ts:95; M19 src/main/time-tracker.ts:104 (main-orchestrators)"
+        "M18 src/main/git.ts:22 GIT_TERMINAL_PROMPT (STBR-27) (src/main/**)"
       ],
-      "created": "2026-09-16T22:26:36Z",
-      "last_seen": "2026-09-16T22:26:36Z"
+      "created": "2026-09-19T16:44:45Z",
+      "last_seen": "2026-09-19T16:44:45Z"
     },
     {
       "id": "L-021",
-      "key": "surviving_mutant::test an atomic file rewrite by failing the write or rename through an injected seam and asserting the previous content survives not by checking that no tmp file remains",
-      "text": "Test an atomic file rewrite by failing the write or rename through an injected seam and asserting the previous content survives, not by checking that no tmp file remains",
-      "signal": "surviving_mutant",
-      "scope": "file-stores",
+      "key": "ac_gap::when a task names a smoke script as the sole evidence for an ac confirm the script has a numbered check asserting that ac before marking it done listing the requirement id is not a check",
+      "text": "When a task names a smoke script as the sole evidence for an AC, confirm the script has a numbered check asserting that AC before marking it done; listing the requirement ID is not a check.",
+      "signal": "ac_gap",
+      "scope": "scripts/smoke",
       "status": "candidate",
       "features": [
-        "time-tracking"
+        "status-bar"
       ],
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "M13 src/main/time-log-store.ts:138 (file-stores)"
+        "STBR-23 / M19 src/renderer/src/components/SyncPopover.tsx:94; tasks.md T18 claims sole evidence (scripts/smoke)"
       ],
-      "created": "2026-09-16T22:26:37Z",
-      "last_seen": "2026-09-16T22:26:37Z"
+      "created": "2026-09-19T16:44:45Z",
+      "last_seen": "2026-09-19T16:44:45Z"
     },
     {
       "id": "L-022",
-      "key": "ac_gap::when a spec promises retry on the next write cover every write path of the store with a fail then succeed test including whole file rewrites",
-      "text": "When a spec promises retry on the next write, cover every write path of the store with a fail-then-succeed test, including whole-file rewrites",
-      "signal": "ac_gap",
-      "scope": "file-stores",
+      "key": "spec_precision_gap::before an edge case cites a state the app already derives confirm the model carries it at that level otherwise name the state the feature must add",
+      "text": "Before an edge case cites a state the app already derives, confirm the model carries it at that level; otherwise name the state the feature must add.",
+      "signal": "spec_precision_gap",
+      "scope": "spec",
       "status": "candidate",
       "features": [
-        "time-tracking"
+        "status-bar"
       ],
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "TIME-14 src/main/time-log-store.ts:98 (file-stores)"
+        "spec.md Edge Cases: path-missing state the tree already derives (only WorkspaceNode.missing exists) (spec)"
       ],
-      "created": "2026-09-16T22:26:37Z",
-      "last_seen": "2026-09-16T22:26:37Z"
+      "created": "2026-09-19T16:44:45Z",
+      "last_seen": "2026-09-19T16:44:45Z"
     },
     {
       "id": "L-023",
-      "key": "spec_precision_gap::when a spec cites an owner selected sample output paste the literal sample into the spec including line endings so tests can assert it byte for byte",
-      "text": "When a spec cites an owner-selected sample output, paste the literal sample into the spec, including line endings, so tests can assert it byte-for-byte",
-      "signal": "spec_precision_gap",
-      "scope": "specs",
+      "key": "spec_deviation::git pull and push write progress and hint lines to stderr before the error so report the first fatal or error line rather than the first stderr line",
+      "text": "Git pull and push write progress and hint lines to stderr before the error, so report the first fatal or error line rather than the first stderr line.",
+      "signal": "spec_deviation",
+      "scope": "src/main/**",
       "status": "candidate",
       "features": [
-        "time-tracking"
+        "status-bar"
       ],
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "TIME-39 / T8 src/renderer/src/lib/hours-copy.test.ts:28 (specs)"
+        "src/main/git-sync.ts:69-80 errorLine vs gitFailureLine (src/main/**)"
       ],
-      "created": "2026-09-16T22:26:37Z",
-      "last_seen": "2026-09-16T22:26:37Z"
+      "created": "2026-09-19T16:44:46Z",
+      "last_seen": "2026-09-19T16:44:46Z"
     },
     {
       "id": "L-024",
-      "key": "surviving_mutant::after a test proves a failed write is retried perform one more write and assert the result so a retry flag that is never cleared is caught",
-      "text": "After a test proves a failed write is retried, perform one more write and assert the result, so a retry flag that is never cleared is caught",
+      "key": "surviving_mutant::when an error extractor accepts several prefixes drive a real failure for each prefix testing only one leaves the others and flags that turn the refusal into success free to change unseen",
+      "text": "When an error extractor accepts several prefixes, drive a real failure for each prefix; testing only one leaves the others, and flags that turn the refusal into success, free to change unseen.",
       "signal": "surviving_mutant",
-      "scope": "file-stores",
+      "scope": "main/git",
       "status": "candidate",
       "features": [
-        "time-tracking"
+        "status-bar"
       ],
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "M21 src/main/time-log-store.ts:107 (file-stores)"
+        "validation.md M29, M30 (src/main/git-sync.ts:81, :35) (main/git)"
       ],
-      "created": "2026-09-16T22:42:48Z",
-      "last_seen": "2026-09-16T22:42:48Z"
+      "created": "2026-09-19T17:53:18Z",
+      "last_seen": "2026-09-19T17:53:18Z"
     },
     {
       "id": "L-025",
+      "key": "ac_gap::map every spec edge case to its own test or numbered smoke check in tasks md as acs are edge cases left to structure or to the tool s own behaviour reach validation with no evidence",
+      "text": "Map every spec edge case to its own test or numbered smoke check in tasks.md, as ACs are; edge cases left to structure or to the tool's own behaviour reach validation with no evidence.",
+      "signal": "ac_gap",
+      "scope": "specs/edge-cases",
+      "status": "candidate",
+      "features": [
+        "status-bar"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md edge cases: dirty pull, Escape, one popover at a time, no toast; STBR-25 refresh (specs/edge-cases)"
+      ],
+      "created": "2026-09-19T17:53:18Z",
+      "last_seen": "2026-09-19T17:53:18Z"
+    },
+    {
+      "id": "L-026",
+      "key": "spec_precision_gap::when a spec names a git command name the flags that keep its behaviour independent of user and system git config such as pull rebase and pin that config in the real git tests",
+      "text": "When a spec names a git command, name the flags that keep its behaviour independent of user and system git config such as pull.rebase, and pin that config in the real-git tests.",
+      "signal": "spec_precision_gap",
+      "scope": "git, main-process",
+      "status": "candidate",
+      "features": [
+        "status-bar"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md spec-precision note 3; src/main/git-sync.ts:35; src/main/git-sync.test.ts:337 (git, main-process)"
+      ],
+      "created": "2026-09-19T18:18:03Z",
+      "last_seen": "2026-09-19T18:18:03Z"
+    },
+    {
+      "id": "L-027",
+      "key": "surviving_mutant::a rejection fixture must reach the guard it claims to test a wrong shape input that is also the wrong length dies on the length check leaving the real guard unproven",
+      "text": "A rejection fixture must reach the guard it claims to test: a wrong-shape input that is also the wrong length dies on the length check, leaving the real guard unproven.",
+      "signal": "surviving_mutant",
+      "scope": "tests/fixtures",
+      "status": "candidate",
+      "features": [
+        "files-commits"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md M1 (src/main/remote-url.ts:29; src/main/remote-url.test.ts:59) (tests/fixtures)"
+      ],
+      "created": "2026-09-20T22:58:11Z",
+      "last_seen": "2026-09-20T22:58:11Z"
+    },
+    {
+      "id": "L-028",
+      "key": "surviving_mutant::when an ac says more than n seed a fixture at exactly n counts above and below it cannot tell from",
+      "text": "When an AC says 'more than N', seed a fixture at exactly N: counts above and below it cannot tell > from >=.",
+      "signal": "surviving_mutant",
+      "scope": "tests/boundaries",
+      "status": "candidate",
+      "features": [
+        "files-commits"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md M5 (src/main/commit-log.ts:82) (tests/boundaries)"
+      ],
+      "created": "2026-09-20T22:58:11Z",
+      "last_seen": "2026-09-20T22:58:11Z"
+    },
+    {
+      "id": "L-029",
+      "key": "gate_fail::promise all returns on the first rejection and abandons its siblings still running on windows a child holding a temp directory as its cwd then blocks its removal so use allsettled when every branch spawns a process",
+      "text": "Promise.all returns on the first rejection and abandons its siblings still running; on Windows a child holding a temp directory as its cwd then blocks its removal, so use allSettled when every branch spawns a process.",
+      "signal": "gate_fail",
+      "scope": "src/main/**, windows",
+      "status": "candidate",
+      "features": [
+        "files-commits"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/main/commit-log.ts commitFiles; intermittent EPERM in commit-log.test.ts teardown (src/main/**, windows)"
+      ],
+      "created": "2026-09-20T22:58:11Z",
+      "last_seen": "2026-09-20T22:58:11Z"
+    },
+    {
+      "id": "L-030",
       "key": "ac_gap::every acceptance criterion left to hand verification must appear as a named line in the owner smoke script s hand verify header or as a smoke check",
       "text": "Every acceptance criterion left to hand-verification must appear as a named line in the owner smoke script's hand-verify header or as a smoke check",
       "signal": "ac_gap",
@@ -371,7 +461,7 @@
       "last_seen": "2026-09-17T01:30:15Z"
     },
     {
-      "id": "L-026",
+      "id": "L-031",
       "key": "ac_gap::a smoke check for a state change must start from a different state or it cannot fail",
       "text": "A smoke check for a state change must start from a different state, or it cannot fail",
       "signal": "ac_gap",
@@ -389,7 +479,7 @@
       "last_seen": "2026-09-17T00:29:17Z"
     },
     {
-      "id": "L-027",
+      "id": "L-032",
       "key": "spec_precision_gap::when the spec leaves user facing wording open fix the exact wording in the spec before tests pin it",
       "text": "When the spec leaves user-facing wording open, fix the exact wording in the spec before tests pin it",
       "signal": "spec_precision_gap",
@@ -407,7 +497,7 @@
       "last_seen": "2026-09-17T00:29:17Z"
     },
     {
-      "id": "L-028",
+      "id": "L-033",
       "key": "spec_deviation::when the design replaces a mechanism a confirmed spec row names update that spec row in the same change or mark a spec deviation at the code",
       "text": "When the design replaces a mechanism a confirmed spec row names, update that spec row in the same change or mark a SPEC_DEVIATION at the code",
       "signal": "spec_deviation",
@@ -426,7 +516,7 @@
       "last_seen": "2026-09-17T01:50:57Z"
     },
     {
-      "id": "L-029",
+      "id": "L-034",
       "key": "surviving_mutant::when a rule says a value is never cut test it with a long value at every place the value is rendered not only the first",
       "text": "When a rule says a value is never cut, test it with a long value at every place the value is rendered, not only the first",
       "signal": "surviving_mutant",
@@ -444,202 +534,112 @@
       "last_seen": "2026-09-17T01:50:57Z"
     },
     {
-      "id": "L-030",
-      "key": "surviving_mutant::pin a spec mandated numeric limit with a literal assertion on the default production uses a test that overrides the value to run fast leaves the default free to drift",
-      "text": "Pin a spec-mandated numeric limit with a literal assertion on the default production uses; a test that overrides the value to run fast leaves the default free to drift.",
-      "signal": "surviving_mutant",
-      "scope": "src/main/**",
-      "status": "candidate",
-      "features": [
-        "status-bar"
-      ],
-      "recurrence": 1,
-      "harmful": 0,
-      "evidence": [
-        "M17 src/main/git-sync.ts:7 OP_TIMEOUT_MS (STBR-24) (src/main/**)"
-      ],
-      "created": "2026-09-19T16:44:45Z",
-      "last_seen": "2026-09-19T16:44:45Z"
-    },
-    {
-      "id": "L-031",
-      "key": "surviving_mutant::when an ac mandates an environment variable or spawn option for a child process assert it from inside the spawned process or on the spawn call testing the wrapper s outcomes never observes it",
-      "text": "When an AC mandates an environment variable or spawn option for a child process, assert it from inside the spawned process or on the spawn call; testing the wrapper's outcomes never observes it.",
-      "signal": "surviving_mutant",
-      "scope": "src/main/**",
-      "status": "candidate",
-      "features": [
-        "status-bar"
-      ],
-      "recurrence": 1,
-      "harmful": 0,
-      "evidence": [
-        "M18 src/main/git.ts:22 GIT_TERMINAL_PROMPT (STBR-27) (src/main/**)"
-      ],
-      "created": "2026-09-19T16:44:45Z",
-      "last_seen": "2026-09-19T16:44:45Z"
-    },
-    {
-      "id": "L-032",
-      "key": "ac_gap::when a task names a smoke script as the sole evidence for an ac confirm the script has a numbered check asserting that ac before marking it done listing the requirement id is not a check",
-      "text": "When a task names a smoke script as the sole evidence for an AC, confirm the script has a numbered check asserting that AC before marking it done; listing the requirement ID is not a check.",
-      "signal": "ac_gap",
-      "scope": "scripts/smoke",
-      "status": "candidate",
-      "features": [
-        "status-bar"
-      ],
-      "recurrence": 1,
-      "harmful": 0,
-      "evidence": [
-        "STBR-23 / M19 src/renderer/src/components/SyncPopover.tsx:94; tasks.md T18 claims sole evidence (scripts/smoke)"
-      ],
-      "created": "2026-09-19T16:44:45Z",
-      "last_seen": "2026-09-19T16:44:45Z"
-    },
-    {
-      "id": "L-033",
-      "key": "spec_precision_gap::before an edge case cites a state the app already derives confirm the model carries it at that level otherwise name the state the feature must add",
-      "text": "Before an edge case cites a state the app already derives, confirm the model carries it at that level; otherwise name the state the feature must add.",
-      "signal": "spec_precision_gap",
-      "scope": "spec",
-      "status": "candidate",
-      "features": [
-        "status-bar"
-      ],
-      "recurrence": 1,
-      "harmful": 0,
-      "evidence": [
-        "spec.md Edge Cases: path-missing state the tree already derives (only WorkspaceNode.missing exists) (spec)"
-      ],
-      "created": "2026-09-19T16:44:45Z",
-      "last_seen": "2026-09-19T16:44:45Z"
-    },
-    {
-      "id": "L-034",
-      "key": "spec_deviation::git pull and push write progress and hint lines to stderr before the error so report the first fatal or error line rather than the first stderr line",
-      "text": "Git pull and push write progress and hint lines to stderr before the error, so report the first fatal or error line rather than the first stderr line.",
-      "signal": "spec_deviation",
-      "scope": "src/main/**",
-      "status": "candidate",
-      "features": [
-        "status-bar"
-      ],
-      "recurrence": 1,
-      "harmful": 0,
-      "evidence": [
-        "src/main/git-sync.ts:69-80 errorLine vs gitFailureLine (src/main/**)"
-      ],
-      "created": "2026-09-19T16:44:46Z",
-      "last_seen": "2026-09-19T16:44:46Z"
-    },
-    {
       "id": "L-035",
-      "key": "surviving_mutant::when an error extractor accepts several prefixes drive a real failure for each prefix testing only one leaves the others and flags that turn the refusal into success free to change unseen",
-      "text": "When an error extractor accepts several prefixes, drive a real failure for each prefix; testing only one leaves the others, and flags that turn the refusal into success, free to change unseen.",
-      "signal": "surviving_mutant",
-      "scope": "main/git",
+      "key": "gate_fail::in renderer components and hooks keep date now out of render and setstate out of synchronous effect bodies because eslint plugin react hooks v7 purity and set state in effect rules fail the lint gate",
+      "text": "In renderer components and hooks keep Date.now() out of render and setState out of synchronous effect bodies, because eslint-plugin-react-hooks v7 purity and set-state-in-effect rules fail the lint gate",
+      "signal": "gate_fail",
+      "scope": "renderer",
       "status": "candidate",
       "features": [
-        "status-bar"
+        "time-tracking"
       ],
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "validation.md M29, M30 (src/main/git-sync.ts:81, :35) (main/git)"
+        "src/renderer/src/components/HoursView.tsx:53, src/renderer/src/lib/use-time.ts:60 (renderer)"
       ],
-      "created": "2026-09-19T17:53:18Z",
-      "last_seen": "2026-09-19T17:53:18Z"
+      "created": "2026-09-16T22:26:36Z",
+      "last_seen": "2026-09-16T22:26:36Z"
     },
     {
       "id": "L-036",
-      "key": "ac_gap::map every spec edge case to its own test or numbered smoke check in tasks md as acs are edge cases left to structure or to the tool s own behaviour reach validation with no evidence",
-      "text": "Map every spec edge case to its own test or numbered smoke check in tasks.md, as ACs are; edge cases left to structure or to the tool's own behaviour reach validation with no evidence.",
-      "signal": "ac_gap",
-      "scope": "specs/edge-cases",
+      "key": "surviving_mutant::assert the persisted store or sidecar write after every orchestrator state transition not only the emitted change event",
+      "text": "Assert the persisted store or sidecar write after every orchestrator state transition, not only the emitted change event",
+      "signal": "surviving_mutant",
+      "scope": "main-orchestrators",
       "status": "candidate",
       "features": [
-        "status-bar"
+        "time-tracking"
       ],
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "validation.md edge cases: dirty pull, Escape, one popover at a time, no toast; STBR-25 refresh (specs/edge-cases)"
+        "M6 src/main/time-tracker.ts:95; M19 src/main/time-tracker.ts:104 (main-orchestrators)"
       ],
-      "created": "2026-09-19T17:53:18Z",
-      "last_seen": "2026-09-19T17:53:18Z"
+      "created": "2026-09-16T22:26:36Z",
+      "last_seen": "2026-09-16T22:26:36Z"
     },
     {
       "id": "L-037",
-      "key": "spec_precision_gap::when a spec names a git command name the flags that keep its behaviour independent of user and system git config such as pull rebase and pin that config in the real git tests",
-      "text": "When a spec names a git command, name the flags that keep its behaviour independent of user and system git config such as pull.rebase, and pin that config in the real-git tests.",
-      "signal": "spec_precision_gap",
-      "scope": "git, main-process",
+      "key": "surviving_mutant::test an atomic file rewrite by failing the write or rename through an injected seam and asserting the previous content survives not by checking that no tmp file remains",
+      "text": "Test an atomic file rewrite by failing the write or rename through an injected seam and asserting the previous content survives, not by checking that no tmp file remains",
+      "signal": "surviving_mutant",
+      "scope": "file-stores",
       "status": "candidate",
       "features": [
-        "status-bar"
+        "time-tracking"
       ],
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "validation.md spec-precision note 3; src/main/git-sync.ts:35; src/main/git-sync.test.ts:337 (git, main-process)"
+        "M13 src/main/time-log-store.ts:138 (file-stores)"
       ],
-      "created": "2026-09-19T18:18:03Z",
-      "last_seen": "2026-09-19T18:18:03Z"
+      "created": "2026-09-16T22:26:37Z",
+      "last_seen": "2026-09-16T22:26:37Z"
     },
     {
       "id": "L-038",
-      "key": "spec_deviation::before writing an edge case as exactly today s behaviour read the state owner s lifecycle code e g timetracker ended drops the run and its paused flag a grilled default about existing behaviour is a premise to verify not a fact",
-      "text": "Before writing an edge case as 'exactly today's behaviour', read the state owner's lifecycle code (e.g. TimeTracker.ended drops the run and its paused flag); a grilled default about existing behaviour is a premise to verify, not a fact.",
-      "signal": "spec_deviation",
-      "scope": "spec/edge-cases",
+      "key": "ac_gap::when a spec promises retry on the next write cover every write path of the store with a fail then succeed test including whole file rewrites",
+      "text": "When a spec promises retry on the next write, cover every write path of the store with a fail-then-succeed test, including whole-file rewrites",
+      "signal": "ac_gap",
+      "scope": "file-stores",
       "status": "candidate",
       "features": [
-        "session-strip-polish"
+        "time-tracking"
       ],
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "spec.md Edge Cases; src/main/time-tracker.ts:80-86 (spec/edge-cases)"
+        "TIME-14 src/main/time-log-store.ts:98 (file-stores)"
       ],
-      "created": "2026-09-19T19:49:53Z",
-      "last_seen": "2026-09-19T19:49:53Z"
+      "created": "2026-09-16T22:26:37Z",
+      "last_seen": "2026-09-16T22:26:37Z"
     },
     {
       "id": "L-039",
-      "key": "ac_gap::in a smoke that toggles state start each check from a state the previous check confirmed and flip it so a dead input fails its own check instead of a later one passing because nothing changed",
-      "text": "In a smoke that toggles state, start each check from a state the previous check confirmed and flip it, so a dead input fails its own check instead of a later one passing because nothing changed.",
-      "signal": "ac_gap",
-      "scope": "scripts/smoke-*.mjs",
+      "key": "spec_precision_gap::when a spec cites an owner selected sample output paste the literal sample into the spec including line endings so tests can assert it byte for byte",
+      "text": "When a spec cites an owner-selected sample output, paste the literal sample into the spec, including line endings, so tests can assert it byte-for-byte",
+      "signal": "spec_precision_gap",
+      "scope": "specs",
       "status": "candidate",
       "features": [
-        "session-strip-polish"
+        "time-tracking"
       ],
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "scripts/smoke-strip.mjs:317-320 (round 1) (scripts/smoke-*.mjs)"
+        "TIME-39 / T8 src/renderer/src/lib/hours-copy.test.ts:28 (specs)"
       ],
-      "created": "2026-09-19T19:49:54Z",
-      "last_seen": "2026-09-19T19:49:54Z"
+      "created": "2026-09-16T22:26:37Z",
+      "last_seen": "2026-09-16T22:26:37Z"
     },
     {
       "id": "L-040",
-      "key": "ac_gap::when a task removes or renames a ui control grep scripts for its label and selectors smoke scripts are outside the unit gate and break silently",
-      "text": "When a task removes or renames a UI control, grep scripts/ for its label and selectors; smoke scripts are outside the unit gate and break silently.",
-      "signal": "ac_gap",
-      "scope": "scripts/smoke-*.mjs",
+      "key": "surviving_mutant::after a test proves a failed write is retried perform one more write and assert the result so a retry flag that is never cleared is caught",
+      "text": "After a test proves a failed write is retried, perform one more write and assert the result, so a retry flag that is never cleared is caught",
+      "signal": "surviving_mutant",
+      "scope": "file-stores",
       "status": "candidate",
       "features": [
-        "session-strip-polish"
+        "time-tracking"
       ],
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "scripts/smoke-time.mjs:188-212 (round 1) (scripts/smoke-*.mjs)"
+        "M21 src/main/time-log-store.ts:107 (file-stores)"
       ],
-      "created": "2026-09-19T19:49:54Z",
-      "last_seen": "2026-09-19T19:49:54Z"
+      "created": "2026-09-16T22:42:48Z",
+      "last_seen": "2026-09-16T22:42:48Z"
     },
     {
       "id": "L-041",
@@ -824,39 +824,57 @@
     },
     {
       "id": "L-051",
-      "key": "ac_gap::a check that accepts rows or an empty state note passes the very failure it exists to catch because the note is what an empty state renders name the rows expected instead",
-      "text": "A check that accepts 'rows or an empty-state note' passes the very failure it exists to catch, because the note is what an empty state renders; name the rows expected instead.",
-      "signal": "ac_gap",
-      "scope": "smoke/cdp",
+      "key": "spec_deviation::before writing an edge case as exactly today s behaviour read the state owner s lifecycle code e g timetracker ended drops the run and its paused flag a grilled default about existing behaviour is a premise to verify not a fact",
+      "text": "Before writing an edge case as 'exactly today's behaviour', read the state owner's lifecycle code (e.g. TimeTracker.ended drops the run and its paused flag); a grilled default about existing behaviour is a premise to verify, not a fact.",
+      "signal": "spec_deviation",
+      "scope": "spec/edge-cases",
       "status": "candidate",
       "features": [
-        "files-explore"
+        "session-strip-polish"
       ],
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "scripts/smoke-files.mjs afterRestart (smoke/cdp)"
+        "spec.md Edge Cases; src/main/time-tracker.ts:80-86 (spec/edge-cases)"
       ],
-      "created": "2026-09-21T00:20:03Z",
-      "last_seen": "2026-09-21T00:20:03Z"
+      "created": "2026-09-19T19:49:53Z",
+      "last_seen": "2026-09-19T19:49:53Z"
     },
     {
       "id": "L-052",
-      "key": "ac_gap::read a restored selection from a control every direction renders such as the status bar the sidebar does not exist outside the tree direction so looking there reports null for a selection that is present",
-      "text": "Read a restored selection from a control every direction renders, such as the status bar: the sidebar does not exist outside the Tree direction, so looking there reports null for a selection that is present.",
+      "key": "ac_gap::in a smoke that toggles state start each check from a state the previous check confirmed and flip it so a dead input fails its own check instead of a later one passing because nothing changed",
+      "text": "In a smoke that toggles state, start each check from a state the previous check confirmed and flip it, so a dead input fails its own check instead of a later one passing because nothing changed.",
       "signal": "ac_gap",
-      "scope": "smoke/cdp",
+      "scope": "scripts/smoke-*.mjs",
       "status": "candidate",
       "features": [
-        "files-explore"
+        "session-strip-polish"
       ],
       "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "scripts/smoke-files.mjs afterRestart (smoke/cdp)"
+        "scripts/smoke-strip.mjs:317-320 (round 1) (scripts/smoke-*.mjs)"
       ],
-      "created": "2026-09-21T00:20:03Z",
-      "last_seen": "2026-09-21T00:20:03Z"
+      "created": "2026-09-19T19:49:54Z",
+      "last_seen": "2026-09-19T19:49:54Z"
+    },
+    {
+      "id": "L-053",
+      "key": "ac_gap::when a task removes or renames a ui control grep scripts for its label and selectors smoke scripts are outside the unit gate and break silently",
+      "text": "When a task removes or renames a UI control, grep scripts/ for its label and selectors; smoke scripts are outside the unit gate and break silently.",
+      "signal": "ac_gap",
+      "scope": "scripts/smoke-*.mjs",
+      "status": "candidate",
+      "features": [
+        "session-strip-polish"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "scripts/smoke-time.mjs:188-212 (round 1) (scripts/smoke-*.mjs)"
+      ],
+      "created": "2026-09-19T19:49:54Z",
+      "last_seen": "2026-09-19T19:49:54Z"
     }
   ]
 }

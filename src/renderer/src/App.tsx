@@ -139,6 +139,7 @@ function App(): JSX.Element {
     }
     return titles
   }, [tasks.tasks])
+
   // Same reason, and one more: the Files watch follows the direction, so leaving
   // Files has to send `files:watch(null)` instead of racing FilesView's unmount
   // (FXPL-23). The hook reads the persisted lens out of `ui` and writes it back
@@ -468,6 +469,7 @@ function App(): JSX.Element {
             onNew={() => openNewSession()}
             onPauseTime={time.pause}
             onResumeTime={time.resume}
+            onToast={setToast}
           />
         ) : ui.direction === 'workflows' ? (
           <WorkflowsView

@@ -2,7 +2,7 @@ import { app, shell, clipboard, dialog, BrowserWindow, Notification, powerMonito
 import { execFile, execFileSync, spawn } from 'node:child_process'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, watch, writeFileSync } from 'node:fs'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, stat, writeFile } from 'node:fs/promises'
 import { homedir, tmpdir } from 'node:os'
 import { promisify } from 'node:util'
 import { join, resolve } from 'path'
@@ -31,9 +31,12 @@ import { purgePasteDir } from './paste-temp'
 import { withPostCreateHook } from './post-create-hook'
 import { PtyPort } from './pty-port'
 import { resolvePostCreateCommand } from './repo-config'
+import { scrubAuthEnv } from './scrub-auth-env'
 import { SessionManager, type ActivityHooks, type EmitFn } from './session-manager'
+import { LinkOpener } from './link-opener'
+import { SessionNamePoller } from './session-name-poller'
 import { SessionNotifier } from './session-notifier'
-import { ShortcutLauncher } from './shortcut-launcher'
+import { ShortcutLauncher, spawnDetached } from './shortcut-launcher'
 import { TaskBoard } from './task-board'
 import { TimeLogStore } from './time-log-store'
 import { buildSnapshot, readGit } from './time-snapshot'
@@ -104,24 +107,6 @@ async function readBranch(cwd: string): Promise<string | null> {
 }
 
 /**
- * The real `fs.watch` behind `FileWatcher`'s port. A path that vanishes between
- * the selection and the watch throws synchronously, and an unwatchable path
- * errors asynchronously; neither may take the main process down, so both come
- * back as a handle that watches nothing.
- */
-const watchPort: WatchPort = (path, opts, listener) => {
-  try {
-    const watcher = watch(path, { recursive: opts.recursive }, (_event, filename) =>
-      listener(typeof filename === 'string' ? filename : '')
-    )
-    watcher.on('error', () => watcher.close())
-    return { close: () => watcher.close() }
-  } catch {
-    return { close: () => {} }
-  }
-}
-
-/**
  * The Explorer file list, read through Windows PowerShell 5.1. On Electron
  * 39.8.10 `clipboard.readBuffer('FileNameW')` returns only the first copied file
  * and `CF_HDROP` comes back empty, so `GetFileDropList()` on an STA thread is the
@@ -147,6 +132,24 @@ async function readFileDropList(): Promise<string> {
     { timeout: 5_000, windowsHide: true, encoding: 'utf8' }
   )
   return stdout
+}
+
+/**
+ * The real `fs.watch` behind `FileWatcher`'s port. A path that vanishes between
+ * the selection and the watch throws synchronously, and an unwatchable path
+ * errors asynchronously; neither may take the main process down, so both come
+ * back as a handle that watches nothing.
+ */
+const watchPort: WatchPort = (path, opts, listener) => {
+  try {
+    const watcher = watch(path, { recursive: opts.recursive }, (_event, filename) =>
+      listener(typeof filename === 'string' ? filename : '')
+    )
+    watcher.on('error', () => watcher.close())
+    return { close: () => watcher.close() }
+  } catch {
+    return { close: () => {} }
+  }
 }
 
 /**
@@ -183,6 +186,7 @@ const spawnAgent: AgentSpawn = (bin, argv, { cwd, env }): AgentChild => {
   return {
     onStdout: (listener) => child.stdout?.on('data', (chunk) => listener(chunk.toString())),
     onStderr: (listener) => child.stderr?.on('data', (chunk) => listener(chunk.toString())),
+    onError: (listener) => child.on('error', listener),
     onClose: (listener) => child.on('close', (code) => listener(code)),
     kill: () => child.kill()
   }
@@ -192,9 +196,11 @@ const spawnAgent: AgentSpawn = (bin, argv, { cwd, env }): AgentChild => {
 // emit() (the app is single-window) and window-all-closed can killAll().
 let mainWindow: BrowserWindow | null = null
 let sessionManager: SessionManager | null = null
+let timeTracker: TimeTracker | null = null
 /** Closes the activity hook listener on quit; set once the server is created. */
 let stopHookServer: (() => Promise<void>) | null = null
-let timeTracker: TimeTracker | null = null
+/** Kills the in-flight `claude agents --json` on quit (SNAME-14). */
+let namePoller: SessionNamePoller | null = null
 
 function createWindow(): void {
   // Create the browser window.
@@ -343,6 +349,25 @@ app.whenReady().then(() => {
   const launcher = new ShortcutLauncher()
   handle('shortcuts:launch', ({ tool, path }) => launcher.launch(tool, path))
 
+  const linkOpener = new LinkOpener({
+    homedir,
+    stat,
+    openPath: (path) => shell.openPath(path),
+    openExternal: (url) => shell.openExternal(url),
+    spawnDetached,
+    // `assoc` exits 0 only when the extension has a ProgId; a plain `exec`
+    // would resolve either way, so the exit code is what answers the question.
+    hasAssociation: (ext) =>
+      execFileAsync('cmd.exe', ['/c', 'assoc', ext], { windowsHide: true }).then(
+        () => true,
+        () => false
+      )
+  })
+  handle('links:probe', ({ cwd, paths }) => linkOpener.probe(cwd, paths))
+  handle('links:openUrl', ({ url }) => linkOpener.openUrl(url))
+  handle('links:openPath', ({ cwd, pathText }) => linkOpener.openPath(cwd, pathText))
+  handle('links:openFileUrl', ({ url }) => linkOpener.openFileUrl(url))
+
   const adoGateway = new AdoGateway()
   const taskBoard = new TaskBoard(configStore, adoGateway)
   handle('tasks:list', () => taskBoard.list())
@@ -415,6 +440,41 @@ app.whenReady().then(() => {
     )
   }
 
+  // Time tracking (AD-021). The tracker must recover the periods a crash left
+  // open before SessionManager exists, so no new run can mix with them.
+  const tracker = new TimeTracker({
+    store: new TimeLogStore(app.getPath('userData')),
+    now: Date.now,
+    newId: randomUUID,
+    resolveSnapshot: (cwd) => {
+      const pinnedTitles = new Map<number, string>()
+      for (const task of taskBoard.list().tasks) {
+        if (task.details && !pinnedTitles.has(task.id))
+          pinnedTitles.set(task.id, task.details.title)
+      }
+      return buildSnapshot({
+        cwd,
+        ...readGit(cwd),
+        workspacePaths: registry.list().map((ws) => ws.path),
+        pinnedTitles
+      })
+    },
+    emit: () => emitToWindow('time:changed', { at: new Date().toISOString() })
+  })
+  tracker.recover()
+  timeTracker = tracker
+  handle('time:snapshot', () => tracker.snapshot())
+  handle('time:pause', ({ sessionId }) => tracker.pause(sessionId))
+  handle('time:resume', ({ sessionId }) => tracker.resume(sessionId))
+  handle('time:delete', ({ id }) => tracker.deletePeriod(id))
+  handle('time:adjust', ({ id, start, end }) => tracker.adjustPeriod(id, start, end))
+  // The sidecar heartbeat bounds what a crash can lose to 60 s (TIME-04); unref'd
+  // so it never keeps the process alive.
+  setInterval(() => tracker.heartbeat(), 60_000).unref()
+  powerMonitor.on('suspend', () => tracker.suspend())
+  powerMonitor.on('resume', () => tracker.resumeFromSuspend())
+  // lock-screen / unlock-screen are deliberately not subscribed (TIME-08).
+
   const sessionNotifier = new SessionNotifier({
     prefs: () => readNotificationPrefs(configStore.get().ui),
     windowFocused,
@@ -453,58 +513,56 @@ app.whenReady().then(() => {
     })
     .catch((err) => console.error('[activity-hooks] server did not start', err))
 
-  // Time tracking (AD-021). The tracker must recover the periods a crash left
-  // open before SessionManager exists, so no new run can mix with them.
-  const tracker = new TimeTracker({
-    store: new TimeLogStore(app.getPath('userData')),
-    now: Date.now,
-    newId: randomUUID,
-    resolveSnapshot: (cwd) => {
-      const pinnedTitles = new Map<number, string>()
-      for (const task of taskBoard.list().tasks) {
-        if (task.details && !pinnedTitles.has(task.id))
-          pinnedTitles.set(task.id, task.details.title)
-      }
-      return buildSnapshot({
-        cwd,
-        ...readGit(cwd),
-        workspacePaths: registry.list().map((ws) => ws.path),
-        pinnedTitles
-      })
-    },
-    emit: () => emitToWindow('time:changed', { at: new Date().toISOString() })
-  })
-  tracker.recover()
-  timeTracker = tracker
-  handle('time:snapshot', () => tracker.snapshot())
-  handle('time:pause', ({ sessionId }) => tracker.pause(sessionId))
-  handle('time:resume', ({ sessionId }) => tracker.resume(sessionId))
-  handle('time:delete', ({ id }) => tracker.deletePeriod(id))
-  handle('time:adjust', ({ id, start, end }) => tracker.adjustPeriod(id, start, end))
-  // The sidecar heartbeat bounds what a crash can lose to 60 s (TIME-04); unref'd
-  // so it never keeps the process alive.
-  setInterval(() => tracker.heartbeat(), 60_000).unref()
-  powerMonitor.on('suspend', () => tracker.suspend())
-  powerMonitor.on('resume', () => tracker.resumeFromSuspend())
-  // lock-screen / unlock-screen are deliberately not subscribed (TIME-08).
+  // Resolve the `claude` binary (WF3-23): the first `where claude` hit on PATH, else the
+  // optional `agent.claudePath` config override, else throw so the step fails clearly
+  // without spawning. `agent` is not a typed AppConfig section yet (WF4+), read via cast.
+  // Declared here, ahead of the SessionManager, because the name poller needs it too.
+  const resolveClaude = (): string => {
+    try {
+      const out = execFileSync('where', ['claude'], { encoding: 'utf8', windowsHide: true })
+      const first = out
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .find((line) => line.length > 0)
+      if (first) return first
+    } catch {
+      // not on PATH — fall through to the config override
+    }
+    const configured = (configStore.get() as { agent?: { claudePath?: string } }).agent?.claudePath
+    if (configured) return configured
+    throw new Error('agent binary not found')
+  }
 
+  // Session names (AD-040): the poller reads `claude agents --json` through the
+  // same spawn seam and env posture as the headless runner; `cwd` is only there
+  // because spawn needs one — the listing is machine-wide. This wiring is the
+  // hand-verified boundary (TESTING.md); the CDP smoke in T8 exercises it.
+  namePoller = new SessionNamePoller({
+    spawn: spawnAgent,
+    resolveBin: resolveClaude,
+    cwd: app.getPath('userData'),
+    env: scrubAuthEnv(process.env),
+    log: (msg) => console.error(msg)
+  })
   sessionManager = new SessionManager({
     port: new PtyPort(),
     config: configStore,
     emit: emitToWindow,
     fsExists: existsSync,
-    hooks: activityHooks,
     lifecycle: tracker,
+    hooks: activityHooks,
     // handle() is async since it looks the task up; a failure after the lookup
     // (in showOs, say) must be logged, not left as an unhandled rejection.
     onActivityChange: (change) => {
       sessionNotifier
         .handle(change)
         .catch((err) => console.error('[notifications] session notification failed', err))
-    }
+    },
+    names: namePoller
   })
   const sessions = sessionManager
   hookServer.onEvent((sessionId, payload) => sessions.handleHookEvent(sessionId, payload))
+  namePoller.onListing((names) => sessions.applyNames(names))
   handle('sessions:list', () => sessions.list())
   handle('sessions:spawn', ({ agentName, cwd, adhocCommand }) =>
     sessions.spawn(agentName, cwd, adhocCommand)
@@ -567,24 +625,6 @@ app.whenReady().then(() => {
   // DI'd runner drives a headless `claude` child through it (real spawn seam,
   // `resolveClaude`, `randomUUID` tokens) and is injected as the ctx `agent` capability.
   const resultServer = createMcpResultServer()
-  // Resolve the `claude` binary (WF3-23): the first `where claude` hit on PATH, else the
-  // optional `agent.claudePath` config override, else throw so the step fails clearly
-  // without spawning. `agent` is not a typed AppConfig section yet (WF4+), read via cast.
-  const resolveClaude = (): string => {
-    try {
-      const out = execFileSync('where', ['claude'], { encoding: 'utf8', windowsHide: true })
-      const first = out
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .find((line) => line.length > 0)
-      if (first) return first
-    } catch {
-      // not on PATH — fall through to the config override
-    }
-    const configured = (configStore.get() as { agent?: { claudePath?: string } }).agent?.claudePath
-    if (configured) return configured
-    throw new Error('agent binary not found')
-  }
   const agentRunner = new AgentStepRunner({
     server: resultServer,
     spawn: spawnAgent,
@@ -671,6 +711,7 @@ app.on('window-all-closed', () => {
   // After killAll: its synchronous finalize already ended each run, so this only
   // closes whatever is still open, at the quit instant (TIME-09).
   timeTracker?.closeAll()
+  namePoller?.dispose()
   void stopHookServer?.()
   if (process.platform !== 'darwin') {
     app.quit()

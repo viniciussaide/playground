@@ -9,11 +9,11 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ---
 
 **Design**: none — no architectural decision; the fix is one CSS declaration and the rest is smoke tooling. The one open fact (`--user-data-dir`) is measured by T1, with its fallback decided in the spec.
-**Status**: Draft — awaiting owner approval (planned 2026-09-22)
+**Status**: Approved by the owner 2026-09-25 — executing
 
-**Branch**: `feature/hours-calendar` (draft PR #99), tip `5cda0b1` at planning. The fix is part of that PR, not a new branch (grill Q3). Pushing to `fork` and merging into `develop` wait for the owner's go-ahead at that moment.
+**Branch**: `feature/hours-calendar` (PR #99, issue #105), tip `5cda0b1` at planning and `1a89301` at Execute, after the 2026-09-25 rebase onto `origin/main`. The fix is part of that PR, not a new branch (grill Q3). Pushing to `fork` and merging into `develop` wait for the owner's go-ahead at that moment.
 
-**Test baseline**: 893 tests on `5cda0b1` per the hours-calendar hand-off — **re-measure** with `npx vitest run` as the first act of Execute. Record the lint warning count at the same time.
+**Test baseline**: measured at T1 on `1a89301`: **1691 tests** (91 files), lint 0 errors / **18 warnings**.
 
 **Seed day**: Sunday of the previous week (owner, 2026-09-22). Steps 1–8 use the current week and step 9 uses week −4; neither touches it.
 
@@ -87,9 +87,16 @@ T6 → T7
 
 **Done when**:
 
-- [ ] The probe period is found (switch honoured) or not found (switch ignored) — the id itself is the evidence, not the presence of Chromium files in the directory, which Chromium writes either way
-- [ ] `%APPDATA%\playground\time-log.jsonl` has the same size and hash before and after the probe
-- [ ] Baselines recorded: test count, lint warning count
+- [x] The probe period is found (switch honoured) or not found (switch ignored) — the id itself is the evidence, not the presence of Chromium files in the directory, which Chromium writes either way
+- [x] `%APPDATA%\playground\time-log.jsonl` has the same size and hash before and after the probe
+- [x] Baselines recorded: test count, lint warning count
+
+**Result (2026-09-25): switch honoured.** `npm run dev -- -- --user-data-dir=<fresh temp dir> --remote-debugging-port=9222`
+on `1a89301`, with a one-line `time-log.jsonl` holding a fictitious period: `time:snapshot` returned exactly
+one period, the probe's id (`{"found":true,"periods":1}`), so `app.getPath('userData')` follows the switch in
+Electron 39 and the app read nothing else. The real `time-log.jsonl` kept its size (19054 bytes) and SHA-256
+(`7eb50822…`). Baselines: **1691 tests**, lint 0 errors / **18 warnings**. T2 and T3 are skipped and HDRW-12..14
+are N/A.
 
 **Tests**: none
 **Gate**: manual
@@ -99,6 +106,8 @@ T6 → T7
 ---
 
 ### T2: Pure `userDataOverride` helper (only if T1 finds the switch ignored)
+
+**Status**: Skipped — T1: switch honoured
 
 **What**: A pure function `userDataOverride(env, isPackaged)` returning the path to use, or `null` to keep Electron's default.
 **Where**: `src/main/user-data-override.ts` (new) and its co-located test
@@ -127,6 +136,8 @@ T6 → T7
 ---
 
 ### T3: Apply the override before any store reads `userData` (only if T2 ran)
+
+**Status**: Skipped — T1: switch honoured
 
 **What**: Call `app.setPath('userData', …)` with `userDataOverride(process.env, app.isPackaged)` at the top of the main entry, before `app` is ready and before any `app.getPath('userData')`.
 **Where**: `src/main/index.ts`
@@ -167,10 +178,16 @@ T6 → T7
 
 **Done when**:
 
-- [ ] `--seed` output: a new directory with exactly 14 lines that the app accepts (checked in T5 by `time:snapshot`, not by reading the file back with the script's own writer)
-- [ ] A second `--seed` aimed at an existing directory exits non-zero and writes nothing (HDRW-06) — exercised by temporarily pinning the timestamp, then reverted
-- [ ] No real work item, client or company name in the seed (public repository)
-- [ ] Gate check passes: `npm run lint` (warning count unchanged)
+- [x] `--seed` output: a new directory with exactly 14 lines that the app accepts (checked in T5 by `time:snapshot`, not by reading the file back with the script's own writer)
+- [x] A second `--seed` aimed at an existing directory exits non-zero and writes nothing (HDRW-06) — exercised by temporarily pinning the timestamp, then reverted
+- [x] No real work item, client or company name in the seed (public repository)
+- [x] Gate check passes: `npm run lint` (warning count unchanged)
+
+**Result (2026-09-25):** `--seed` exited 0 with no app running (CDP port 9222 closed), creating
+`%TEMP%\playground-smoke-hours-<ms>` with 14 lines on `20/09/2026 (dom)`, 08:00–12:40 local, ids
+`hours-smoke-seed-01..14`, `taskId` 9101..9114, and the directory in the pointer file. With the directory name pinned
+in a scratch copy of the script, the second run exited 1 with `Seed directory already exists, nothing written`, and
+left the log (hash and mtime) and the pointer file untouched. Lint 0 errors / 18 warnings.
 
 **Tests**: manual
 **Gate**: manual
@@ -194,11 +211,28 @@ T6 → T7
 
 **Done when**:
 
-- [ ] Run against the owner's normal dev app (real data): exits non-zero with `not running on the seeded data`, spawns no session, and the real `time-log.jsonl` is unchanged (HDRW-08)
-- [ ] Run with the pointer file removed: same refusal (HDRW-08)
-- [ ] Run on the seeded directory: steps 1–9 pass as before (HDRW-11), then the app closes and the directory and pointer are gone (HDRW-09)
-- [ ] A forced failure (one check temporarily inverted, then reverted): the app stays open, the directory stays, its path is printed (HDRW-10)
-- [ ] Gate check passes: `npm run lint` (warning count unchanged)
+- [ ] Run against the owner's normal dev app (real data): exits non-zero with `not running on the seeded data`, spawns no session, and the real `time-log.jsonl` is unchanged (HDRW-08) — **pending the owner**, see the result below
+- [x] Run with the pointer file removed: same refusal (HDRW-08)
+- [x] Run on the seeded directory: steps 1–9 pass as before (HDRW-11), then the app closes and the directory and pointer are gone (HDRW-09)
+- [x] A forced failure (one check temporarily inverted, then reverted): the app stays open, the directory stays, its path is printed (HDRW-10)
+- [x] Gate check passes: `npm run lint` (warning count unchanged)
+
+**Result (2026-09-25):**
+
+- The app on the seeded directory reported `{"sessions":0,"periods":14,"open":0,"seed":14}`: it accepts every
+  seeded line (T4's first criterion).
+- Pointer file moved aside: exit 1, `not running on the seeded data — no …playground-smoke-hours.last; run with --seed
+  first`; sessions 0 and periods 14 before and after, so nothing was spawned or written.
+- App on an empty `--user-data-dir`, pointer present: exit 1, `not running on the seeded data — 14 seeded periods
+  missing`; sessions 0 and periods 0 before and after. This is the branch a real-data run takes.
+- Forced failure, from a scratch copy with the "exactly one header is today's" check inverted: 28/29, exit 1,
+  `Seeded data left in place for inspection: <dir>`; the app, the directory and the pointer stayed.
+- Seeded run: **29/29** (steps 1–9 unchanged), then `App closed; deleted <dir> and <pointer>`, the dev process exited
+  0 and nothing named `playground-smoke-hours*` was left in `%TEMP%`.
+- Lint 0 errors / 18 warnings, after `prettier --write` on the script.
+- **Not run: the refusal against the owner's real data.** Launching the dev app on `%APPDATA%\playground` was
+  denied by the session's permission check, so the empty-directory run above stands in for it. `time-log.jsonl`,
+  `config.json` and `time-open.json` in `%APPDATA%\playground` kept their SHA-256 through the whole task.
 
 **Tests**: manual
 **Gate**: manual
@@ -222,9 +256,28 @@ T6 → T7
 
 **Done when**:
 
-- [ ] Run on the **current** CSS: HDRW-01 and HDRW-02 **FAIL**, HDRW-03 and HDRW-04 pass — output pasted into this task as the red evidence
-- [ ] HDRW-03 seen to fail with `min-height: 100%` temporarily removed from `.hours-day`, then restored
-- [ ] Gate check passes: `npm run lint` (warning count unchanged)
+- [x] Run on the **current** CSS: HDRW-01 and HDRW-02 **FAIL**, HDRW-03 and HDRW-04 pass — output pasted into this task as the red evidence
+- [x] HDRW-03 seen to fail with `min-height: 100%` temporarily removed from `.hours-day`, then restored
+- [x] Gate check passes: `npm run lint` (warning count unchanged)
+
+**Red evidence (2026-09-25, seeded Sunday 20/09/2026, CSS of `1a89301`), 32/34, exit 1:**
+
+```
+30. PASS  precondition: the seeded Sunday holds 14 groups and overflows the drawer — {"groups":14,"drawerTop":258,"drawerBottom":598,"drawerClient":340,"drawerScroll":912,"cardBottom":598,"cardHeight":340,"cardClient":339,"cardScroll":911,"lastBottom":1170}
+31. FAIL  a tall day's card reaches past its last group and does not overflow — card bottom 598.0, last group 1170.0, card 911/339
+32. FAIL  the drawer scrolls, and at its end shows the card's bottom border at its bottom edge — drawer 912/340, card bottom 26.0 vs drawer bottom 598.0
+33. PASS  the page does not scroll with a tall day open — {"scrolls":false,"gridBottom":598,"gridWidth":664,"height":640}
+34. PASS  a short day's card still fills the drawer's height — card 432.0 vs drawer 432, last group 324.0
+```
+
+With `min-height: 100%` removed from `.hours-day` (HMR, same app and seed), check 34 FAILED — `card 170.7 vs drawer
+432` — and 31 and 32 passed: the shrink comes from `min-height: 100%` on a shrinkable flex item, so dropping it
+would also cure the tall day, but lose the short day's full height the owner kept (grill Q2). `flex: none` keeps
+both. The CSS was restored from a copy; `git status` showed only the smoke script modified.
+
+**Spec-precision gap, closed:** AC 2 said the card's bottom border must come "into the drawer's visible area". On
+the defect it does, above the spilling groups, whenever the overflow is shorter than the drawer. Step 10 asserts
+the border at the visible area's bottom edge (within 1 px), and the spec's AC 2 now says so.
 
 **Tests**: manual
 **Gate**: manual
@@ -248,10 +301,16 @@ T6 → T7
 
 **Done when**:
 
-- [ ] The full smoke passes on a fresh seed, steps 1–10, and cleans up after itself
-- [ ] `%APPDATA%\playground\time-log.jsonl` is unchanged by the whole run (size and hash)
-- [ ] Gate check passes: `npm run typecheck && npm run lint && npm test` and `npx electron-vite build`
-- [ ] Test count: baseline (+3 if T2 ran), no silent deletions
+- [x] The full smoke passes on a fresh seed, steps 1–10, and cleans up after itself
+- [x] `%APPDATA%\playground\time-log.jsonl` is unchanged by the whole run (size and hash)
+- [x] Gate check passes: `npm run typecheck && npm run lint && npm test` and `npx electron-vite build`
+- [x] Test count: baseline (+3 if T2 ran), no silent deletions
+
+**Result (2026-09-25):** on a fresh seed the smoke ran **34/34**, exit 0 — step 10 now reads `card bottom 1182.7,
+last group 1170.0, card 923/923` and `card bottom 598.0 vs drawer bottom 598.0`, the short day `card 432.0 vs
+drawer 432` — then closed the app and deleted the directory and the pointer. `time-log.jsonl`, `config.json` and
+`time-open.json` in `%APPDATA%\playground` kept their SHA-256. Gate: typecheck 0, lint 0 errors / 18 warnings,
+**1691 tests** (the baseline; T2 did not run), `electron-vite build` green.
 
 **Tests**: none
 **Gate**: build

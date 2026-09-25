@@ -456,6 +456,14 @@ Verifier PASS round 6 on branch `feature/hours-calendar`, rebased onto `origin/m
 - **Rebase onto `origin/main` (2026-09-25):** code diff unchanged; the conflicts were all in
   `.specs/` — decision rows and roadmap entries kept on both sides, lessons renumbered as above.
   Gate on the rebased tip: typecheck 0, lint 0 errors / 18 warnings, **1691 tests**.
+- **Drawer growth (issue #105), 2026-09-25:** a busy day's groups spilled out of the day card in the drawer.
+  `flex: none` on `.hours-day` (`bcc8e3f`) fixes it; `min-height: 100%` still fills the drawer on a short day. The
+  Hours smoke now brings its own data: `--seed` writes a tall past Sunday into a throwaway `--user-data-dir`, the run
+  refuses anything else (`not running on the seeded data`), and step 10 checks the card geometry. Red 32/34 before
+  the fix, 34/34 after; independent Verifier PASS, 4/4 mutants killed (`hours-drawer-growth/validation.md`). The
+  refusal against the owner's real data was not run (launching the dev app on it is not permitted to the agent); an
+  empty directory took the same branch. Commits `6a2211e..6fa96d4` pushed to `fork`; PR #99 closes #105. A
+  follow-up makes a pass fail when the clean-up leaves the seed behind (the Verifier's one minor gap).
 - **Next:** review of PR #99.
 
 ### `session-strip-polish` (PR #98)

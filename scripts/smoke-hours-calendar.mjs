@@ -25,6 +25,10 @@
  *   9. a day with no time opens a drawer that says so; time recorded on that
  *      open day fills it, and deleting that time closes it (HCAL-17, HCAL-27,
  *      edge case)
+ *  10. at 1100 × 640 the seeded Sunday, taller than the drawer, stays inside its
+ *      card: the card reaches past its last group, the drawer scrolls it as one
+ *      unit and the page does not scroll; a short day still fills the drawer
+ *      (HDRW-01..04)
  *
  * NOT automatable here, all from the same fact — ad-hoc sessions in a non-git
  * cwd carry no task: the colours of the task slots (HCAL-11 and the frozen
@@ -37,9 +41,20 @@
  * The script restores the owner's direction and theme and deletes every period
  * it created.
  *
- * Run: npm run dev -- -- --remote-debugging-port=9222   (in one shell)
- *      node scripts/smoke-hours-calendar.mjs             (in another)
+ * It runs only on its own throwaway data, never on the owner's hours:
+ *   1. node scripts/smoke-hours-calendar.mjs --seed
+ *        writes a tall past Sunday into a new directory under %TEMP% and
+ *        prints the next command
+ *   2. npm run dev -- -- "--user-data-dir=<that directory>" --remote-debugging-port=9222
+ *   3. node scripts/smoke-hours-calendar.mjs
+ *        refuses with `not running on the seeded data` unless every seeded
+ *        period is in the app; on a pass it closes the app and deletes the
+ *        directory, on a failure it leaves both and prints the directory
  */
+
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 const PORT = Number(process.env.SMOKE_PORT) || 9222
 const WEEKDAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
@@ -174,6 +189,62 @@ const overlapsDay = (snapshot, day) => {
   ].some(([s, e]) => s < end && e > start)
 }
 
+// --seed: a throwaway userData directory holding one tall day, the previous
+// week's Sunday (always past and complete, and outside every other step's
+// weeks). Fictitious tasks only: the repository is public.
+const TEMP = realpathSync.native(tmpdir())
+const POINTER = join(TEMP, 'playground-smoke-hours.last')
+const SEED_TITLES = [
+  'Fix login redirect',
+  'Add CSV export',
+  'Cache the price list',
+  'Retry failed webhooks',
+  'Paginate the audit log',
+  'Validate invoice dates',
+  'Trim the search index',
+  'Rename the billing flag',
+  'Upgrade the chart library',
+  'Localise the error pages',
+  'Speed up the report query',
+  'Guard the upload size',
+  'Archive stale drafts',
+  'Fix the timezone offset'
+]
+const seedId = (i) => `hours-smoke-seed-${String(i + 1).padStart(2, '0')}`
+
+if (process.argv.includes('--seed')) {
+  const dir = join(TEMP, `playground-smoke-hours-${Date.now()}`)
+  if (existsSync(dir)) {
+    console.error(`Seed directory already exists, nothing written: ${dir}`)
+    process.exit(1)
+  }
+  const sunday = weekDay(-1, 6)
+  const lines = SEED_TITLES.map((title, i) => {
+    const start = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate(), 8, 20 * i)
+    const taskId = 9101 + i
+    return JSON.stringify({
+      v: 1,
+      id: seedId(i),
+      sessionId: 'hours-smoke-seed',
+      agent: 'Ad-hoc',
+      cwd: 'C:\\Windows',
+      start: start.toISOString(),
+      end: new Date(start.getTime() + 20 * 60_000).toISOString(),
+      workspacePath: null,
+      repoName: 'acme-widgets',
+      branch: `feature/${taskId}-seed`,
+      taskId,
+      taskTitle: title
+    })
+  })
+  mkdirSync(dir)
+  writeFileSync(join(dir, 'time-log.jsonl'), lines.join('\n') + '\n')
+  writeFileSync(POINTER, dir)
+  console.log(`Seeded ${lines.length} periods on ${dayHeader(sunday)} in ${dir}`)
+  console.log(`Launch: npm run dev -- -- "--user-data-dir=${dir}" --remote-debugging-port=${PORT}`)
+  process.exit(0)
+}
+
 const target = await pageTarget()
 ws = new WebSocket(target.webSocketDebuggerUrl)
 await new Promise((resolve, reject) => {
@@ -183,6 +254,18 @@ await new Promise((resolve, reject) => {
 await send('Runtime.enable')
 await send('Page.enable')
 await waitFor(`typeof window.api !== 'undefined'`, 'the preload bridge')
+
+// Refuse anything but the seeded directory, before a session or a write.
+const seededDir = existsSync(POINTER) ? readFileSync(POINTER, 'utf8').trim() : null
+const snapshotIds = new Set((await invoke('time:snapshot')).periods.map((p) => p.id))
+const missingSeed = SEED_TITLES.map((_, i) => seedId(i)).filter((id) => !snapshotIds.has(id))
+if (!seededDir || missingSeed.length > 0) {
+  console.error(
+    `not running on the seeded data — ${!seededDir ? `no ${POINTER}` : `${missingSeed.length} seeded periods missing`}; run with --seed first`
+  )
+  ws.close()
+  process.exit(1)
+}
 
 const original = (await invoke('config:get')).ui
 const before = await invoke('time:snapshot')
@@ -560,6 +643,77 @@ try {
     )
     await nav('This week')
   }
+
+  // 10. A tall day stays inside its card, at 1100 × 640 (HDRW-01..04).
+  const seedStart = new Date(before.periods.find((p) => p.id === seedId(0)).start)
+  const seedHeader = dayHeader(
+    new Date(seedStart.getFullYear(), seedStart.getMonth(), seedStart.getDate())
+  )
+  const cardGeometry = () =>
+    evaluate(
+      `(() => { const d = document.querySelector('.hours-drawer'); const c = d?.querySelector('.hours-day'); const groups = [...(c?.querySelectorAll('.hours-group') ?? [])]; if (!c || groups.length === 0) return null; const dr = d.getBoundingClientRect(); const cr = c.getBoundingClientRect(); return { groups: groups.length, drawerTop: dr.top, drawerBottom: dr.top + d.clientHeight, drawerClient: d.clientHeight, drawerScroll: d.scrollHeight, cardBottom: cr.bottom, cardHeight: cr.height, cardClient: c.clientHeight, cardScroll: c.scrollHeight, lastBottom: groups[groups.length - 1].getBoundingClientRect().bottom } })()`
+    )
+  await send('Emulation.setDeviceMetricsOverride', {
+    width: 1100,
+    height: 640,
+    deviceScaleFactor: 1,
+    mobile: false
+  })
+  await sleep(400)
+  for (let i = 0; i < 8 && !(await headLabels()).some((l) => l.startsWith(seedHeader)); i++) {
+    await nav('Previous week')
+    await sleep(300)
+  }
+  await clickHead(seedHeader)
+  await sleep(400)
+  const tall = await cardGeometry()
+  const tallFit = await fits()
+  check(
+    'precondition: the seeded Sunday holds 14 groups and overflows the drawer',
+    tall?.groups === 14 && tall.lastBottom > tall.drawerBottom,
+    JSON.stringify(tall)
+  )
+  check(
+    "a tall day's card reaches past its last group and does not overflow",
+    Boolean(tall) && tall.cardBottom >= tall.lastBottom && tall.cardScroll <= tall.cardClient + 1,
+    tall
+      ? `card bottom ${tall.cardBottom.toFixed(1)}, last group ${tall.lastBottom.toFixed(1)}, card ${tall.cardScroll}/${tall.cardClient}`
+      : 'no card'
+  )
+  await evaluate(
+    `(() => { const d = document.querySelector('.hours-drawer'); d.scrollTop = d.scrollHeight; return true })()`
+  )
+  await sleep(200)
+  const scrolled = await cardGeometry()
+  check(
+    "the drawer scrolls, and at its end shows the card's bottom border at its bottom edge",
+    Boolean(tall && scrolled) &&
+      tall.drawerScroll > tall.drawerClient &&
+      Math.abs(scrolled.cardBottom - scrolled.drawerBottom) <= 1,
+    scrolled
+      ? `drawer ${tall.drawerScroll}/${tall.drawerClient}, card bottom ${scrolled.cardBottom.toFixed(1)} vs drawer bottom ${scrolled.drawerBottom.toFixed(1)}`
+      : 'no card'
+  )
+  check(
+    'the page does not scroll with a tall day open',
+    !tallFit.scrolls && tallFit.gridBottom <= tallFit.height,
+    JSON.stringify(tallFit)
+  )
+  await nav('This week')
+  await sleep(300)
+  await clickHead(todayHeader)
+  await sleep(400)
+  const short = await cardGeometry()
+  await send('Emulation.clearDeviceMetricsOverride')
+  check(
+    "a short day's card still fills the drawer's height",
+    Boolean(short) &&
+      short.lastBottom < short.drawerBottom &&
+      short.cardHeight >= short.drawerClient - 1,
+    short
+      ? `card ${short.cardHeight.toFixed(1)} vs drawer ${short.drawerClient}, last group ${short.lastBottom.toFixed(1)}`
+      : 'no card'
+  )
 } finally {
   for (const id of sessionIds) {
     await invoke('sessions:stop', { id }).catch(() => {})
@@ -580,4 +734,38 @@ try {
 
 const failed = checks.filter((c) => !c.ok)
 console.log(`\n${checks.length - failed.length}/${checks.length} checks passed`)
-process.exit(failed.length === 0 ? 0 : 1)
+if (failed.length > 0) {
+  console.log(`Seeded data left in place for inspection: ${seededDir}`)
+  process.exit(1)
+}
+
+// A pass: close the app, which holds the profile open, then delete its data.
+if (
+  !/^playground-smoke-hours-\d+$/.test(seededDir.split('\\').pop()) ||
+  !seededDir.startsWith(TEMP)
+) {
+  console.error(`Not deleting ${seededDir}: not a seeded directory under ${TEMP}`)
+  process.exit(1)
+}
+const browser = new WebSocket(
+  (await (await fetch(`http://127.0.0.1:${PORT}/json/version`)).json()).webSocketDebuggerUrl
+)
+await new Promise((resolve) => browser.addEventListener('open', resolve))
+browser.send(JSON.stringify({ id: 1, method: 'Browser.close' }))
+for (let i = 0; i < 40; i++) {
+  try {
+    await fetch(`http://127.0.0.1:${PORT}/json/version`)
+    await sleep(250)
+  } catch {
+    break
+  }
+}
+rmSync(seededDir, { recursive: true, force: true, maxRetries: 20, retryDelay: 500 })
+rmSync(POINTER, { force: true })
+const leftBehind = [seededDir, POINTER].filter((p) => existsSync(p))
+if (leftBehind.length > 0) {
+  console.error(`Checks passed, but clean-up left: ${leftBehind.join(', ')}`)
+  process.exit(1)
+}
+console.log(`App closed; deleted ${seededDir} and ${POINTER}`)
+process.exit(0)

@@ -331,6 +331,17 @@ The Verifier failed iteration 1 on evidence, not behaviour. Fixes:
   - set C: the buttons wired to the wrong set → checks 38 to 43 FAIL, FPOL-18 included.
 - **Code**: `StripMenu` moved above `changeShortcut`'s doc comment.
 
+### Amendment 1 (owner, 2026-09-26, after PR #125)
+
+The owner wants the pin on every tab, like the close button, with its icon telling whether the tab is pinned: outlined when unpinned, filled in the accent colour when pinned, placed before the close button, and the close button kept on pinned tabs. FPOL-02, FPOL-03 and FPOL-10 are amended in `spec.md`. The rules (`pinTab`, `unpinTab`, `togglePin`, `tabsAfterClose`) already cover it, so no unit test changes.
+
+- **A1 — the pin on every tab.** `FileTabs.tsx` renders the pin button and the close button on every tab but All changes, the pin first, with `aria-label` Pin/Unpin and `aria-pressed`; `FileTabs.css` draws it outlined and muted, filled and accented on a pinned tab. Gate: `npm run typecheck && npm run lint && npm test` and `npx electron-vite build`.
+  - [x] Done (1680 tests, 18 lint warnings, build passes; seen in the app: outlined pins and closes on every tab, the pinned one filled in the accent)
+- **A2 — smoke.** Section 12 checks a pin and a close on every tab, the pin's computed fill (none when unpinned, the accent when pinned), a click on an unpinned tab's pin pinning it without moving the focus, and a pinned tab's close button closing it; the per-worktree check counts pinned tabs, not pin buttons. Each changed check seen failing against a mutant, then passing on a fresh launch.
+  - [x] Done: 45/45 on a fresh launch (two new checks). Mutants, each on a fresh launch: E (the old look, pin only on pinned tabs) failed 22, 24-28, 39; F (pinned pin not filled) failed 22, 25-28; G (the pin only unpins) failed 25; H (pinned tabs lose the close) failed 22, 25-28, 39. The seed now also removes `fxd-smoke-other`, which a second seed left behind and git refused to add again
+- **A3 — fix round 1 (Verifier, amendment iteration 1, 2026-09-26).** The Verifier failed A2 on evidence: the smoke asserted a filled pin but not the accent, never looked at All changes' buttons, checked the focus on the tab whose pin it clicked, and closed a pinned tab without first reading that it was pinned. `tabMarks` now compares the pin's computed fill with the resolved `--accent` and marks a tab with no buttons `bare`; check 22 requires All changes `bare`; check 25 pins f00 while f01 is active; check 39 reads f02 `pinned` before its close. `Icon.tsx`'s pin comment follows FPOL-02. Mutants on a fresh launch: I (the pinned pin keeps the faint colour) failed 22, 25-28, 39; JK (a pin on All changes, a pin that focuses its tab) failed 22 and 25; clean run 45/45.
+  - [x] Done
+
 ## Phase Execution Map
 
 ```

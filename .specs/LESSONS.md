@@ -324,6 +324,18 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: FICN-13 (validation.md, FileIcon.tsx:53-62) (renderer-ui)
 - last seen: 2026-09-26T17:07:36Z
 
+### L-058 - Assert a styled state by the value the spec names, such as its colour, not only by whether the style is present
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `smoke-ui` · harmful: 0
+- features: files-view-polish
+- evidence: FPOL-02 scripts/smoke-files-diff.mjs:322 (smoke-ui)
+- last seen: 2026-09-26T18:10:13Z
+
+### L-059 - When a change widens a condition to more elements, assert that the elements it still excludes lack the element
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `smoke-ui` · harmful: 0
+- features: files-view-polish
+- evidence: FPOL-02 src/renderer/src/components/FileTabs.tsx:241 (smoke-ui)
+- last seen: 2026-09-26T18:10:13Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

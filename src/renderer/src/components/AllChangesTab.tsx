@@ -37,6 +37,11 @@ interface AllChangesTabProps {
   unchanged?: UnchangedChoice | null
   /** A press of Hide unchanged or Show unchanged (FOLD-11..13). */
   onUnchanged?: (mode: UnchangedMode) => void
+  /**
+   * Offers each section header's ↶ for its file (FDSC-38). Only the uncommitted
+   * stack passes it; a commit tab never does (FDSC-41).
+   */
+  onDiscard?: (changed: ChangedPath) => void
 }
 
 /** The mode's list in the tree's order — the order the user just read on the left. */
@@ -78,7 +83,8 @@ export function AllChangesTab({
   refreshToken,
   onHandle,
   unchanged = null,
-  onUnchanged
+  onUnchanged,
+  onDiscard
 }: AllChangesTabProps): JSX.Element {
   const ordered = useMemo(() => inTreeOrder(files), [files])
   const shown = useMemo(() => {
@@ -367,6 +373,7 @@ export function AllChangesTab({
             onToggle={onToggle}
             onElement={onElement}
             onHandle={onSectionHandle}
+            onDiscard={onDiscard}
           />
         ))}
       </div>

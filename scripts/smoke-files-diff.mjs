@@ -1253,7 +1253,7 @@ async function drive() {
   await sleep(2200)
   const stackState = `({
     sections: document.querySelectorAll('.diff-section').length,
-    expanded: [...document.querySelectorAll('.diff-section-header')]
+    expanded: [...document.querySelectorAll('.diff-section-toggle')]
       .filter((e) => e.getAttribute('aria-expanded') === 'true').length,
     diffEditors: ${liveDiffEditors},
     monacoEditors: document.querySelectorAll('.all-changes .monaco-editor').length

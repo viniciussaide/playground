@@ -12,7 +12,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 and stores its content as a list of pieces with running counts of newlines, walk weight and surrogate
 pairs, so a cap check reads only counts and a trim scans only what it drops; a frozen copy of today's
 class in a `*.fixture.ts` is the oracle every output test compares against.
-**Status**: Draft (planned 2026-10-01), awaiting the owner's approval.
+**Status**: Approved (planned 2026-10-01, approved by the owner 2026-10-01).
 
 **Branch**: `feature/scrollback-append`, stacked on `feature/perf-diagnostics` (plan commit `d4a3da9`,
 #147). **This feature executes only after #147 is executed**: it needs #147's bench

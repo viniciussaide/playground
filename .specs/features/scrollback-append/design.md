@@ -1,7 +1,7 @@
 # Scrollback Append Design
 
 **Spec**: `.specs/features/scrollback-append/spec.md`
-**Status**: Draft (planned 2026-10-01). Executes after #147; T1 can stop the work on #147's baseline.
+**Status**: Approved (planned 2026-10-01, approved by the owner 2026-10-01). Executes after #147; T1 can stop the work on #147's baseline.
 
 ---
 
@@ -82,7 +82,7 @@ graph TD
 ### `SessionRingBuffer` (`src/main/session-ring-buffer.ts`, rewritten inside)
 
 - **Purpose**: the same bounded scrollback, with appends that cost the chunk.
-- **Public surface** (unchanged, plus the two test seams, pending owner):
+- **Public surface** (unchanged, plus the two test seams, owner confirmed 2026-10-01):
 
   ```typescript
   export interface SessionRingBufferOptions {

@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import type { SessionView } from '../../../shared/config'
 import type { PinnedTaskView, WorkItemDetails } from '../../../shared/tasks'
-import type { WorkspaceNode } from '../../../shared/tree'
+import type { WorkspaceNode, WorktreeNode } from '../../../shared/tree'
 import {
   adjacentRowId,
   buildRailGroups,
   flatRows,
   headerCounts,
+  railRowEqual,
   statusClass,
+  type RailRow,
+  type LevelGroup,
   type OrphanGroup,
   type TaskGroup
 } from './rail-groups'
@@ -814,5 +817,208 @@ describe('buildRailGroups with a linked task (HTSK-11, HTSK-20)', () => {
     expect(task.ariaLabel).toBe('#24173 Fix the login redirect')
     expect(orphanGroup(groups[1]).reason).toBe('untagged')
     expect(orphanGroup(groups[2]).reason).toBe('detached')
+  })
+})
+
+describe('buildRailGroups level groups (ISO-08, ISO-09)', () => {
+  const MAIN = { id: 'M:/Work/api', path: 'M:/Work/api', branch: 'develop', isDefault: true }
+  const TASK_MAIN = {
+    id: 'M:/Work/web',
+    path: 'M:/Work/web',
+    branch: 'user/otavio/24173-fix-login',
+    isDefault: true
+  }
+  const LINKED = {
+    id: 'M:/Work/api-main',
+    path: 'M:/Work/api-main',
+    branch: 'spike',
+    isDefault: false
+  }
+  const SIDE_MAIN = { id: 'D:/Side/api', path: 'D:/Side/api', branch: 'trunk', isDefault: true }
+
+  function node(w: { id: string; path: string; branch: string; isDefault: boolean }): WorktreeNode {
+    return { ...w, dirty: false, changes: 0 }
+  }
+
+  const levelTree: WorkspaceNode[] = [
+    {
+      id: 'm:/work',
+      path: 'M:/Work',
+      displayName: 'Work projects',
+      repos: [
+        { name: 'api', path: 'M:/Work/api', worktrees: [node(MAIN), node(LINKED)] },
+        { name: 'web', path: 'M:/Work/web', worktrees: [node(TASK_MAIN)] }
+      ]
+    },
+    {
+      id: 'd:/side',
+      path: 'D:/Side',
+      displayName: 'side',
+      repos: [{ name: 'api', path: 'D:/Side/api', worktrees: [node(SIDE_MAIN)] }]
+    }
+  ]
+
+  function levelGroup(group: unknown): LevelGroup {
+    const g = group as LevelGroup
+    expect(g.kind).toBe('level')
+    return g
+  }
+
+  it('labels a task-less workspace session `Workspace · <displayName>` (Rail group AC 1)', () => {
+    const groups = buildRailGroups([session({ id: 's1', cwd: 'M:/Work' })], levelTree, [])
+    const group = levelGroup(groups[0])
+
+    expect(group.level).toBe('workspace')
+    expect(group.label).toBe('Workspace · Work projects')
+    expect(group.note).toBe('Work')
+    expect(group.ariaLabel).toBe('Workspace · Work projects')
+    expect(group.key).toBe('level:m:/work')
+    expect(group.rows.map((r) => r.id)).toEqual(['s1'])
+  })
+
+  it('labels a task-less repo session `Repo · <name>` with its branch as the note (Rail group AC 2)', () => {
+    const groups = buildRailGroups([session({ id: 's1', cwd: 'M:/Work/api' })], levelTree, [])
+    const group = levelGroup(groups[0])
+
+    expect(group.level).toBe('repo')
+    expect(group.label).toBe('Repo · api')
+    expect(group.note).toBe('develop')
+    expect(group.ariaLabel).toBe('Repo · api')
+  })
+
+  it('shares one group between sessions at the same level and path, in persisted order (Rail group AC 3)', () => {
+    const groups = buildRailGroups(
+      [
+        session({ id: 'a', cwd: 'M:/Work' }),
+        session({ id: 'x', cwd: 'C:/scratch/sandbox' }),
+        session({ id: 'b', cwd: 'm:\\work\\' })
+      ],
+      levelTree,
+      []
+    )
+
+    expect(groups.map((g) => g.key)).toEqual(['level:m:/work', 'session:x'])
+    expect(groups[0].rows.map((r) => r.id)).toEqual(['a', 'b'])
+  })
+
+  it('keeps same-named repos of two workspaces in separate groups (Edge Case "same repo name")', () => {
+    const groups = buildRailGroups(
+      [session({ id: 'a', cwd: 'M:/Work/api' }), session({ id: 'b', cwd: 'D:/Side/api' })],
+      levelTree,
+      []
+    )
+
+    expect(groups.map((g) => g.key)).toEqual(['level:m:/work/api', 'level:d:/side/api'])
+    expect(groups.map((g) => levelGroup(g).label)).toEqual(['Repo · api', 'Repo · api'])
+    expect(groups.map((g) => levelGroup(g).note)).toEqual(['develop', 'trunk'])
+  })
+
+  it('puts a primary checkout whose branch carries a task in the task group (Rail group AC 4)', () => {
+    const groups = buildRailGroups([session({ id: 's1', cwd: 'M:/Work/web' })], levelTree, pinned)
+
+    expect(groups.map((g) => g.key)).toEqual(['task:24173'])
+    expect(taskGroup(groups[0]).taskId).toBe(24173)
+  })
+
+  it('puts a hand-linked workspace session in its task group (Rail group AC 4)', () => {
+    const groups = buildRailGroups(
+      [session({ id: 's1', cwd: 'M:/Work', task: { id: 4821, title: 'Brainstorm' } })],
+      levelTree,
+      []
+    )
+
+    expect(groups.map((g) => g.key)).toEqual(['task:4821'])
+  })
+
+  it('keeps the `worktree path missing` orphan for a missing workspace or repo session (Rail group AC 5)', () => {
+    const groups = buildRailGroups(
+      [
+        session({ id: 'w', cwd: 'M:/Work', pathMissing: true }),
+        session({ id: 'r', cwd: 'M:/Work/api', pathMissing: true })
+      ],
+      levelTree,
+      []
+    )
+
+    expect(groups.map((g) => g.key)).toEqual(['session:w', 'session:r'])
+    for (const g of groups) {
+      expect(orphanGroup(g).reason).toBe('missing')
+      expect(orphanGroup(g).note).toBe('worktree path missing')
+    }
+  })
+
+  it('gives a task-less linked worktree session no level group (Rail group AC 6)', () => {
+    const groups = buildRailGroups([session({ id: 's1', cwd: LINKED.path })], levelTree, [])
+    const group = orphanGroup(groups[0])
+
+    expect(group.key).toBe('session:s1')
+    expect(group.reason).toBe('untagged')
+    expect(group.note).toBe('untagged worktree')
+  })
+
+  it('keeps a session with no level detached (Rail group AC 6)', () => {
+    const groups = buildRailGroups([session({ id: 's1', cwd: 'M:/Work/api/src' })], levelTree, [])
+
+    expect(orphanGroup(groups[0]).note).toBe('detached · src')
+  })
+
+  it('falls back to `detached · <folder>` once the workspace leaves the tree (Edge Case "workspace removed")', () => {
+    const groups = buildRailGroups([session({ id: 's1', cwd: 'M:/Work' })], levelTree.slice(1), [])
+    const group = orphanGroup(groups[0])
+
+    expect(group.key).toBe('session:s1')
+    expect(group.reason).toBe('detached')
+    expect(group.note).toBe('detached · Work')
+  })
+})
+
+describe('railRowEqual (PERF-09)', () => {
+  const sessions = [
+    session({ id: 's1', status: 'running', activity: { state: 'working', subagents: 0 } }),
+    session({ id: 's2' })
+  ]
+  const rowsOf = (): RailRow[] => flatRows(buildRailGroups(sessions, tree(WT_A), pinned))
+
+  it('treats the fresh rows of two runs over the same inputs as equal', () => {
+    const first = rowsOf()
+    const second = rowsOf()
+
+    expect(second[0]).not.toBe(first[0])
+    expect(second[0].actions).not.toBe(first[0].actions)
+    expect(railRowEqual(first[0], second[0])).toBe(true)
+    expect(railRowEqual(first[1], second[1])).toBe(true)
+  })
+
+  it('compares actions element by element', () => {
+    const [row] = rowsOf()
+
+    expect(railRowEqual(row, { ...row, actions: ['stop'] })).toBe(true)
+    expect(railRowEqual(row, { ...row, actions: ['respawn', 'remove'] })).toBe(false)
+    expect(railRowEqual(row, { ...row, actions: ['stop', 'remove'] })).toBe(false)
+  })
+
+  it('is not equal when the id differs', () => {
+    const [row] = rowsOf()
+    expect(railRowEqual(row, { ...row, id: 'other' })).toBe(false)
+  })
+
+  it('is not equal when the label differs', () => {
+    const [row] = rowsOf()
+    expect(railRowEqual(row, { ...row, label: 'Claude 2' })).toBe(false)
+  })
+
+  it('is not equal when the status differs', () => {
+    const [row] = rowsOf()
+    expect(railRowEqual(row, { ...row, status: 'waiting' })).toBe(false)
+  })
+
+  it('is not equal when the tooltip differs', () => {
+    const [row] = rowsOf()
+    expect(railRowEqual(row, { ...row, tooltip: `${row.tooltip} · Bash` })).toBe(false)
+  })
+
+  it('compares the session by identity, not by content', () => {
+    const [row] = rowsOf()
+    expect(railRowEqual(row, { ...row, session: { ...row.session } })).toBe(false)
   })
 })

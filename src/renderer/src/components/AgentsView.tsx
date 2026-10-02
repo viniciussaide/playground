@@ -7,10 +7,12 @@ import type { PinnedTaskView, SessionTask } from '../../../shared/tasks'
 import type { PeriodTaskChoice, TimeSnapshot } from '../../../shared/time'
 import type { WorkspaceNode } from '../../../shared/tree'
 import { agentTileStyle } from '../lib/agent-color'
+import { openWorktreeTarget } from '../lib/isolation-level'
 import { deriveAttribution, linkedPinFor } from '../lib/session-attribution'
 import { detailPillClass, detailPillText, detailPillTitle } from '../lib/session-activity'
 import { badgeTypeOf, stateClass, typeClass } from '../lib/task-pills'
 import { Icon } from './Icon'
+import { PerfProfiler } from './PerfProfiler'
 import { SessionRail } from './SessionRail'
 import { TaskPicker } from './TaskPicker'
 import { SessionClock } from './TimeCounter'
@@ -30,7 +32,7 @@ interface AgentsViewProps {
   onRemove: (id: string) => void
   onRename: (id: string, title: string) => void
   onDuplicate: (id: string) => void
-  onOpenWorktree: (cwd: string) => void
+  onOpenWorktree: (worktreeId: string) => void
   onNew: () => void
   onPauseTime: (id: string) => void
   onResumeTime: (id: string) => void
@@ -84,23 +86,25 @@ export function AgentsView({
         onSetTask={onSetTask}
       />
       {active ? (
-        <SessionDetail
-          session={active}
-          tree={tree}
-          agents={agents}
-          tasks={tasks}
-          time={time}
-          onStop={onStop}
-          onRespawn={onRespawn}
-          onRemove={onRemove}
-          onRename={onRename}
-          onDuplicate={onDuplicate}
-          onOpenWorktree={onOpenWorktree}
-          onPauseTime={onPauseTime}
-          onResumeTime={onResumeTime}
-          onToast={onToast}
-          onSetTask={onSetTask}
-        />
+        <PerfProfiler name="SessionDetail" id={active.id}>
+          <SessionDetail
+            session={active}
+            tree={tree}
+            agents={agents}
+            tasks={tasks}
+            time={time}
+            onStop={onStop}
+            onRespawn={onRespawn}
+            onRemove={onRemove}
+            onRename={onRename}
+            onDuplicate={onDuplicate}
+            onOpenWorktree={onOpenWorktree}
+            onPauseTime={onPauseTime}
+            onResumeTime={onResumeTime}
+            onToast={onToast}
+            onSetTask={onSetTask}
+          />
+        </PerfProfiler>
       ) : (
         <div className="agents-detail-empty">
           <Icon name="terminal" size={26} />
@@ -125,7 +129,7 @@ interface SessionDetailProps {
   onRemove: (id: string) => void
   onRename: (id: string, title: string) => void
   onDuplicate: (id: string) => void
-  onOpenWorktree: (cwd: string) => void
+  onOpenWorktree: (worktreeId: string) => void
   onPauseTime: (id: string) => void
   onResumeTime: (id: string) => void
   onToast: (message: string) => void
@@ -155,8 +159,9 @@ function SessionDetail({
     session.task
   )
   const pin = linkedPinFor(tasks, taskId)
-  // The worktree is reachable only when the cwd matched a live worktree (ACTX-04).
-  const canOpenWorktree = !detached && !session.pathMissing
+  // The tree node the cwd opens: the worktree, or a repo session's primary
+  // checkout; a workspace or detached session has none (ACTX-04, ISO-10).
+  const worktreeTarget = openWorktreeTarget(tree, session)
   const running = session.status === 'running'
   // Pausing stops only the count; the PTY keeps running and taking input (TIME-20).
   const timePaused = time.paused.includes(session.id)
@@ -217,9 +222,15 @@ function SessionDetail({
           )}
           <span className="agents-detail-cwd">{session.cwd}</span>
         </div>
+        {/* The pill stays on one line and truncates, so its title carries the
+            full text (PERF-10).
+            SPEC_DEVIATION: design.md puts the full text in the title in every case;
+            while the activity names a tool, the title stays the raw tool name.
+            Reason: STRP-05 requires the raw tool name as the pill's title, and the
+            design does not amend it. */}
         <span
           className={`agents-detail-pill ${detailPillClass(session)}`}
-          title={detailPillTitle(session)}
+          title={detailPillTitle(session) || detailPillText(session)}
         >
           {detailPillText(session)}
         </span>
@@ -240,12 +251,12 @@ function SessionDetail({
           }
         />
         <div className="agents-detail-actions">
-          {canOpenWorktree && (
+          {worktreeTarget !== null && (
             <button
               type="button"
               className="agents-detail-btn"
               title="Open this session's worktree in the Tree view (launch Explorer / Terminal / VS / VS Code)"
-              onClick={() => onOpenWorktree(session.cwd)}
+              onClick={() => onOpenWorktree(worktreeTarget)}
             >
               <Icon name="external-link" size={13} /> Open worktree
             </button>

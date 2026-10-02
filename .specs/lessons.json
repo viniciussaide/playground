@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 91,
+  "next_id": 98,
   "lessons": [
     {
       "id": "L-001",
@@ -69,17 +69,19 @@
       "text": "A default-constant test that asserts resolvePaneWidth(undefined, bounds, DEFAULT) against DEFAULT itself cannot detect a change to that constant — pin every spec-derived default with a literal assertion, not a self-referential one.",
       "signal": "surviving_mutant",
       "scope": "renderer/lib",
-      "status": "candidate",
+      "status": "confirmed",
       "features": [
-        "sidebar-resize-collapse"
+        "sidebar-resize-collapse",
+        "agent-task-link"
       ],
-      "recurrence": 1,
+      "recurrence": 2,
       "harmful": 0,
       "evidence": [
-        "src/renderer/src/lib/pane-layout.test.ts:41 (renderer/lib)"
+        "src/renderer/src/lib/pane-layout.test.ts:41 (renderer/lib)",
+        "validation.md M7; src/main/session-manager.test.ts:858 (ATSK-01) (src/main)"
       ],
       "created": "2026-08-31T22:35:36Z",
-      "last_seen": "2026-08-31T22:35:36Z"
+      "last_seen": "2026-09-28T22:09:36Z"
     },
     {
       "id": "L-010",
@@ -231,19 +233,17 @@
       "text": "When an AC lands in a layer the project exempts from unit tests, extract the decision into a lib module and test that, rather than deferring the evidence to a smoke script that has not been written yet",
       "signal": "ac_gap",
       "scope": "renderer",
-      "status": "confirmed",
+      "status": "candidate",
       "features": [
-        "session-activity-status",
-        "diff-fold-refresh"
+        "session-activity-status"
       ],
-      "recurrence": 2,
+      "recurrence": 1,
       "harmful": 0,
       "evidence": [
-        "ACTV-07, ACTV-27 (renderer)",
-        "FOLD-08 / S3 src/renderer/src/components/DiffViewer.tsx:298 (renderer)"
+        "ACTV-07, ACTV-27 (renderer)"
       ],
       "created": "2026-09-16T00:25:09Z",
-      "last_seen": "2026-09-27T13:52:57Z"
+      "last_seen": "2026-09-16T00:25:09Z"
     },
     {
       "id": "L-019",
@@ -893,8 +893,8 @@
       "evidence": [
         "M09 M20 M24 M26 M27 src/main/activity-machine.ts:176 (activity-machine)"
       ],
-      "created": "2026-09-26T01:32:22Z",
-      "last_seen": "2026-09-26T01:32:22Z"
+      "created": "2026-09-26T01:30:53Z",
+      "last_seen": "2026-09-26T01:30:53Z"
     },
     {
       "id": "L-055",
@@ -911,47 +911,11 @@
       "evidence": [
         "M10 src/main/activity-machine.ts:161 (activity-machine)"
       ],
-      "created": "2026-09-26T01:32:23Z",
-      "last_seen": "2026-09-26T01:32:23Z"
+      "created": "2026-09-26T01:30:53Z",
+      "last_seen": "2026-09-26T01:30:53Z"
     },
     {
       "id": "L-056",
-      "key": "spec_deviation::budget entry chunk growth against the unminified renderer build where eager glue code counts byte for byte",
-      "text": "Budget entry-chunk growth against the unminified renderer build, where eager glue code counts byte for byte",
-      "signal": "spec_deviation",
-      "scope": "renderer-build",
-      "status": "candidate",
-      "features": [
-        "file-icons"
-      ],
-      "recurrence": 1,
-      "harmful": 0,
-      "evidence": [
-        "tasks.md T6 SPEC_DEVIATION (entry chunk +4,633 B vs 1 KB) (renderer-build)"
-      ],
-      "created": "2026-09-26T17:07:36Z",
-      "last_seen": "2026-09-26T17:07:36Z"
-    },
-    {
-      "id": "L-057",
-      "key": "spec_precision_gap::when an ac keeps today s look as a fallback name the fallback for elements that had nothing before",
-      "text": "When an AC keeps today's look as a fallback, name the fallback for elements that had nothing before",
-      "signal": "spec_precision_gap",
-      "scope": "renderer-ui",
-      "status": "candidate",
-      "features": [
-        "file-icons"
-      ],
-      "recurrence": 1,
-      "harmful": 0,
-      "evidence": [
-        "FICN-13 (validation.md, FileIcon.tsx:53-62) (renderer-ui)"
-      ],
-      "created": "2026-09-26T17:07:36Z",
-      "last_seen": "2026-09-26T17:07:36Z"
-    },
-    {
-      "id": "L-058",
       "key": "ac_gap::assert a styled state by the value the spec names such as its colour not only by whether the style is present",
       "text": "Assert a styled state by the value the spec names, such as its colour, not only by whether the style is present",
       "signal": "ac_gap",
@@ -965,11 +929,11 @@
       "evidence": [
         "FPOL-02 scripts/smoke-files-diff.mjs:322 (smoke-ui)"
       ],
-      "created": "2026-09-26T18:10:13Z",
-      "last_seen": "2026-09-26T18:10:13Z"
+      "created": "2026-09-26T17:54:24Z",
+      "last_seen": "2026-09-26T17:54:24Z"
     },
     {
-      "id": "L-059",
+      "id": "L-057",
       "key": "ac_gap::when a change widens a condition to more elements assert that the elements it still excludes lack the element",
       "text": "When a change widens a condition to more elements, assert that the elements it still excludes lack the element",
       "signal": "ac_gap",
@@ -983,8 +947,44 @@
       "evidence": [
         "FPOL-02 src/renderer/src/components/FileTabs.tsx:241 (smoke-ui)"
       ],
-      "created": "2026-09-26T18:10:13Z",
-      "last_seen": "2026-09-26T18:10:13Z"
+      "created": "2026-09-26T17:54:24Z",
+      "last_seen": "2026-09-26T17:54:24Z"
+    },
+    {
+      "id": "L-058",
+      "key": "spec_deviation::budget entry chunk growth against the unminified renderer build where eager glue code counts byte for byte",
+      "text": "Budget entry-chunk growth against the unminified renderer build, where eager glue code counts byte for byte",
+      "signal": "spec_deviation",
+      "scope": "renderer-build",
+      "status": "candidate",
+      "features": [
+        "file-icons"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "tasks.md T6 SPEC_DEVIATION (entry chunk +4,633 B vs 1 KB) (renderer-build)"
+      ],
+      "created": "2026-09-26T17:05:30Z",
+      "last_seen": "2026-09-26T17:05:30Z"
+    },
+    {
+      "id": "L-059",
+      "key": "spec_precision_gap::when an ac keeps today s look as a fallback name the fallback for elements that had nothing before",
+      "text": "When an AC keeps today's look as a fallback, name the fallback for elements that had nothing before",
+      "signal": "spec_precision_gap",
+      "scope": "renderer-ui",
+      "status": "candidate",
+      "features": [
+        "file-icons"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "FICN-13 (validation.md, FileIcon.tsx:53-62) (renderer-ui)"
+      ],
+      "created": "2026-09-26T17:05:30Z",
+      "last_seen": "2026-09-26T17:05:30Z"
     },
     {
       "id": "L-060",
@@ -1543,6 +1543,132 @@
       ],
       "created": "2026-09-28T00:27:37Z",
       "last_seen": "2026-09-28T00:27:37Z"
+    },
+    {
+      "id": "L-091",
+      "key": "ac_gap::when a spec states a round trip property between a renderer and its inverse parser test it over templates that exercise every structural position of each empty able placeholder leading middle trailing segment not only the examples named in the spec",
+      "text": "When a spec states a round-trip property between a renderer and its inverse parser, test it over templates that exercise every structural position of each empty-able placeholder (leading, middle, trailing segment), not only the examples named in the spec",
+      "signal": "ac_gap",
+      "scope": "shared-tasks",
+      "status": "candidate",
+      "features": [
+        "auto-pin-from-worktrees"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "APIN-04 AC 8; src/shared/tasks.ts:115-119 (shared-tasks)"
+      ],
+      "created": "2026-09-29T13:32:34Z",
+      "last_seen": "2026-09-29T13:32:34Z"
+    },
+    {
+      "id": "L-092",
+      "key": "surviving_mutant::give every spec edge case that crosses two operations such as undo then redo its own unit test even when a live check covers it since only the unit test fails when one side regresses",
+      "text": "Give every spec edge case that crosses two operations (such as undo then redo) its own unit test even when a live check covers it, since only the unit test fails when one side regresses",
+      "signal": "surviving_mutant",
+      "scope": "testing",
+      "status": "candidate",
+      "features": [
+        "auto-pin-from-worktrees"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "M18; src/main/task-board.ts unpin; spec Edge Case 5 (testing)"
+      ],
+      "created": "2026-09-29T13:32:35Z",
+      "last_seen": "2026-09-29T13:32:35Z"
+    },
+    {
+      "id": "L-093",
+      "key": "spec_precision_gap::when a spec requires a template to be parseable back into its values state which templates are unsupported because adjacent placeholders make the rendered text ambiguous",
+      "text": "When a spec requires a template to be parseable back into its values, state which templates are unsupported because adjacent placeholders make the rendered text ambiguous",
+      "signal": "spec_precision_gap",
+      "scope": "specs",
+      "status": "candidate",
+      "features": [
+        "auto-pin-from-worktrees"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "APIN-04 AC 8 ({usId}{id} -> 94821) (specs)"
+      ],
+      "created": "2026-09-29T13:32:35Z",
+      "last_seen": "2026-09-29T13:32:35Z"
+    },
+    {
+      "id": "L-094",
+      "key": "spec_precision_gap::when a spec splits one existing list into several views state which view each existing entry point and highlight lands on for items that moved out of the default view",
+      "text": "When a spec splits one existing list into several views, state which view each existing entry point and highlight lands on for items that moved out of the default view",
+      "signal": "spec_precision_gap",
+      "scope": "renderer-dialogs",
+      "status": "candidate",
+      "features": [
+        "agent-isolation-level"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md G1; src/renderer/src/components/NewSessionDialog.tsx:217-220 (renderer-dialogs)"
+      ],
+      "created": "2026-09-29T20:52:08Z",
+      "last_seen": "2026-09-29T20:52:08Z"
+    },
+    {
+      "id": "L-095",
+      "key": "ac_gap::a powershell snippet published for scripts or agents must call invoke webrequest usebasicparsing windows powershell 5 1 otherwise prompts after the response so a non interactive caller errors although the request succeeded",
+      "text": "A PowerShell snippet published for scripts or agents must call Invoke-WebRequest -UseBasicParsing: Windows PowerShell 5.1 otherwise prompts after the response, so a non-interactive caller errors although the request succeeded.",
+      "signal": "ac_gap",
+      "scope": "docs",
+      "status": "candidate",
+      "features": [
+        "agent-task-link"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md round 1 gap 2; README.md:49 (ATSK-12) (docs)"
+      ],
+      "created": "2026-09-28T22:09:36Z",
+      "last_seen": "2026-09-28T22:09:36Z"
+    },
+    {
+      "id": "L-096",
+      "key": "spec_deviation::when a design changes an element that an earlier feature s spec already constrains cite that requirement in the design and either amend it or keep it explicitly so the implementer never has to choose between the two",
+      "text": "When a design changes an element that an earlier feature's spec already constrains, cite that requirement in the design and either amend it or keep it explicitly, so the implementer never has to choose between the two",
+      "signal": "spec_deviation",
+      "scope": "design",
+      "status": "candidate",
+      "features": [
+        "multi-agent-performance"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/renderer/src/components/AgentsView.tsx:225 SPEC_DEVIATION (PERF-10 pill title vs STRP-05) (design)"
+      ],
+      "created": "2026-10-01T20:45:03Z",
+      "last_seen": "2026-10-01T20:45:03Z"
+    },
+    {
+      "id": "L-097",
+      "key": "surviving_mutant::for a queue or scheduler test that it goes idle when it cannot make progress no pending deferred turn while at capacity not only that it never exceeds capacity a loosened outer guard keeps the cap but spins the event loop",
+      "text": "For a queue or scheduler, test that it goes idle when it cannot make progress (no pending deferred turn while at capacity), not only that it never exceeds capacity: a loosened outer guard keeps the cap but spins the event loop",
+      "signal": "surviving_mutant",
+      "scope": "testing/schedulers",
+      "status": "candidate",
+      "features": [
+        "multi-agent-performance"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/main/spawn-pacer.ts:27 (P8 mutant 2) (testing/schedulers)"
+      ],
+      "created": "2026-10-01T22:23:16Z",
+      "last_seen": "2026-10-01T22:23:16Z"
     }
   ]
 }

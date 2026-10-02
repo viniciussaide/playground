@@ -467,12 +467,12 @@ export function FileTabs({ worktreePath, files, onToast, onDiscard }: FileTabsPr
             ignoreWhitespace={files.diffIgnoreWhitespace}
             refreshToken={files.refreshToken}
             onHandle={onHandle}
-            // One tab across both diff lenses, so one choice (FOLD-20).
-            unchanged={files.unchangedFor(ALL_CHANGES_KEY)}
-            onUnchanged={(mode) => files.pressUnchanged(ALL_CHANGES_KEY, mode)}
             // FDSC-38/40: the section ↶ belongs to the uncommitted stack only;
             // diff to origin gets none.
             onDiscard={files.mode === 'uncommitted' ? (changed) => onDiscard([changed]) : undefined}
+            // One tab across both diff lenses, so one choice (FOLD-20).
+            unchanged={files.unchangedFor(ALL_CHANGES_KEY)}
+            onUnchanged={(mode) => files.pressUnchanged(ALL_CHANGES_KEY, mode)}
           />
         ) : active.kind === 'diff' ? (
           <DiffBody key={tabKeyOf(active)} files={files} tab={active} onHandle={onHandle} />

@@ -125,10 +125,10 @@ export interface IpcContract {
   'tasks:refresh': { req: void; res: TasksSnapshot }
   /** Resolves the first Hierarchy-Reverse parent (the US) of a pinned task; null when absent (PARENT-02). */
   'tasks:parent': { req: { id: number; org: string; project: string }; res: ParentOfResult }
-  /** Opens a pinned task's stored work item URL in the browser; main refuses anything not https on dev.azure.com (PTOP-01..07). */
-  'tasks:open': { req: { id: number; org: string; project: string }; res: LaunchResult }
   /** Fetches one work item for the task picker without pinning it; failures are returned (HTSK-02, HTSK-04, HTSK-05). */
   'tasks:lookup': { req: { input: string }; res: LookupTaskResult }
+  /** Opens a pinned task's stored work item URL in the browser; main refuses anything not https on dev.azure.com (PTOP-01..07). */
+  'tasks:open': { req: { id: number; org: string; project: string }; res: LaunchResult }
   /** Persisted ∪ running sessions, reconciled with pathMissing (no network/spawn). */
   'sessions:list': { req: void; res: SessionView[] }
   /** Resolve agent (or run `adhocCommand` raw) + cwd, shell-host the PTY, persist, return the view; `task` links it by hand (HTSK-09). */
@@ -259,6 +259,8 @@ export interface IpcEvents {
   /** The agent's own session name changed; `null` clears it back to the agent
    *  display name (SNAME-02, SNAME-04). */
   'session:name': { id: string; name: string | null }
+  /** A session's task link changed in main, e.g. set by its agent; `null` = From branch (ATSK-06). */
+  'session:task': { id: string; task: SessionTask | null }
   /** A run's folded lifecycle status changed (WF2-12). */
   'workflow:status': { runId: string; status: RunStatus }
   /** A `step-started` event — an executed `ctx.*` primitive / `ctx.step` group (WF2-10). */
@@ -280,6 +282,8 @@ export interface IpcEvents {
   'files:changed': FilesChanged
   /** A worktree's git state moved and its changes were recounted; patch them into the tree (SCRF-01/03). */
   'worktree:status': { worktreePath: string; dirty: boolean; changes: number }
+  /** An auto-pin pass after `tree:get` pinned tasks derived from worktree branches (APIN-06). */
+  'tasks:changed': { snapshot: TasksSnapshot }
 }
 
 export interface IpcSends {

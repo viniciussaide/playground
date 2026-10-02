@@ -35,12 +35,12 @@ export type IconName =
   | 'git-pull'
   | 'git-push'
   | 'git-fetch'
-  | 'pin'
-  | 'ellipsis'
-  | 'undo'
   | 'tag'
   | 'scissors'
   | 'hand'
+  | 'undo'
+  | 'pin'
+  | 'ellipsis'
 
 const PATHS: Record<IconName, JSX.Element> = {
   'git-branch': (
@@ -265,13 +265,6 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="M5 21h14" />
     </>
   ),
-  // A hook pointing back left over a return arc: put it back as it was.
-  undo: (
-    <>
-      <path d="M9 5 4 10l5 5" />
-      <path d="M4 10h11a5 5 0 0 1 0 10h-4" />
-    </>
-  ),
   tag: (
     <>
       <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
@@ -293,6 +286,13 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2" />
       <path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8" />
       <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+    </>
+  ),
+  // A hook pointing back left over a return arc: put it back as it was.
+  undo: (
+    <>
+      <path d="M9 5 4 10l5 5" />
+      <path d="M4 10h11a5 5 0 0 1 0 10h-4" />
     </>
   )
 }

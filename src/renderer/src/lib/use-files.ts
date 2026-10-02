@@ -25,6 +25,7 @@ import {
   type DiffMode,
   type UnchangedMode
 } from './diff-view'
+import { afterDiscard } from './discard-view'
 import {
   filesStateFor,
   keepUnchanged,
@@ -39,7 +40,6 @@ import {
   type UnchangedChoice,
   type UnchangedChoices
 } from './files-view'
-import { afterDiscard } from './discard-view'
 
 /** One open file (FXPL-18): what was read for it, and when it was last picked. */
 export interface FileTab {
@@ -207,6 +207,12 @@ export interface UseFiles {
   openCommitInBrowser: (sha: string) => Promise<LaunchResult>
   focusTab: (key: string) => void
   closeTab: (key: string) => void
+  /**
+   * Discards exactly these uncommitted entries, as the confirmation listed them
+   * (FDSC-45), then settles the tabs the result touched and re-lists the mode
+   * (FDSC-28..32). Never rejects: a failed request reads as every entry kept.
+   */
+  discard: (entries: ChangedPath[]) => Promise<DiscardResult>
   /** Pins an unpinned tab or unpins a pinned one; the focus stays where it is (FPOL-01/03/04). */
   togglePin: (key: string) => void
   /** One of the strip's bulk closes, on the selected worktree's tabs (FPOL-06..11). */
@@ -215,12 +221,6 @@ export interface UseFiles {
   unchangedFor: (key: string) => UnchangedChoice | null
   /** Records a press of Hide unchanged or Show unchanged in one tab (FOLD-12, FOLD-13). */
   pressUnchanged: (key: string, mode: UnchangedMode) => void
-  /**
-   * Discards exactly these uncommitted entries, as the confirmation listed them
-   * (FDSC-45), then settles the tabs the result touched and re-lists the mode
-   * (FDSC-28..32). Never rejects: a failed request reads as every entry kept.
-   */
-  discard: (entries: ChangedPath[]) => Promise<DiscardResult>
 }
 
 /**
@@ -734,48 +734,6 @@ export function useFiles({
     [worktreePath, patchFiles, mode]
   )
 
-  // Pins live on the worktree's tabs, so each worktree keeps its own (FXPL-18).
-  const togglePin = useCallback(
-    (key: string): void => {
-      if (!worktreePath) return
-      patchFiles(worktreePath, (s) => {
-        const tab = s.tabs.find((open) => tabKeyOf(open) === key)
-        if (!tab) return {}
-        return { tabs: tab.pinned ? unpinTab(s.tabs, key) : pinTab(s.tabs, key) }
-      })
-    },
-    [worktreePath, patchFiles]
-  )
-
-  const closeTabs = useCallback(
-    (action: BulkClose): void => {
-      if (!worktreePath) return
-      patchFiles(worktreePath, (s) => {
-        // The strip, as for one close: the rule has to see All changes to
-        // spare it and to hand it the focus (FDIF-17).
-        const strip = tabsWithAllChanges(s.tabs, mode).map((tab) => ({
-          key: tabKeyOf(tab),
-          pinned: 'pinned' in tab && tab.pinned === true
-        }))
-        const after = tabsAfterBulkClose(strip, s.activeTab, action)
-        return {
-          tabs: s.tabs.filter((tab) => after.keys.includes(tabKeyOf(tab))),
-          activeTab: after.active,
-          unchanged: keepUnchanged(s.unchanged, after.keys)
-        }
-      })
-    },
-    [worktreePath, patchFiles, mode]
-  )
-
-  const pressUnchanged = useCallback(
-    (key: string, mode: UnchangedMode): void => {
-      if (!worktreePath) return
-      patchFiles(worktreePath, (s) => ({ unchanged: recordPress(s.unchanged, key, mode) }))
-    },
-    [worktreePath, patchFiles]
-  )
-
   const discard = useCallback(
     async (entries: ChangedPath[]): Promise<DiscardResult> => {
       if (!worktreePath) {
@@ -822,6 +780,48 @@ export function useFiles({
       return result
     },
     [worktreePath, patchFiles, readTab, refreshMode]
+  )
+
+  // Pins live on the worktree's tabs, so each worktree keeps its own (FXPL-18).
+  const togglePin = useCallback(
+    (key: string): void => {
+      if (!worktreePath) return
+      patchFiles(worktreePath, (s) => {
+        const tab = s.tabs.find((open) => tabKeyOf(open) === key)
+        if (!tab) return {}
+        return { tabs: tab.pinned ? unpinTab(s.tabs, key) : pinTab(s.tabs, key) }
+      })
+    },
+    [worktreePath, patchFiles]
+  )
+
+  const closeTabs = useCallback(
+    (action: BulkClose): void => {
+      if (!worktreePath) return
+      patchFiles(worktreePath, (s) => {
+        // The strip, as for one close: the rule has to see All changes to
+        // spare it and to hand it the focus (FDIF-17).
+        const strip = tabsWithAllChanges(s.tabs, mode).map((tab) => ({
+          key: tabKeyOf(tab),
+          pinned: 'pinned' in tab && tab.pinned === true
+        }))
+        const after = tabsAfterBulkClose(strip, s.activeTab, action)
+        return {
+          tabs: s.tabs.filter((tab) => after.keys.includes(tabKeyOf(tab))),
+          activeTab: after.active,
+          unchanged: keepUnchanged(s.unchanged, after.keys)
+        }
+      })
+    },
+    [worktreePath, patchFiles, mode]
+  )
+
+  const pressUnchanged = useCallback(
+    (key: string, mode: UnchangedMode): void => {
+      if (!worktreePath) return
+      patchFiles(worktreePath, (s) => ({ unchanged: recordPress(s.unchanged, key, mode) }))
+    },
+    [worktreePath, patchFiles]
   )
 
   // `tabsWithAllChanges` is generic over what the strip holds and widens its
@@ -876,11 +876,11 @@ export function useFiles({
     openCommitInBrowser,
     focusTab,
     closeTab,
+    discard,
     togglePin,
     closeTabs,
     unchangedFor: (key) => here.unchanged[key] ?? null,
-    pressUnchanged,
-    discard
+    pressUnchanged
   }
 }
 

@@ -33,15 +33,15 @@ interface AllChangesTabProps {
   refreshToken: number
   /** The stack's own navigation, for the tab strip's buttons and keys (FDIF-26). */
   onHandle?: (handle: DiffHandle | null) => void
-  /** This tab's last Hide unchanged / Show unchanged press, handed to every section. */
-  unchanged?: UnchangedChoice | null
-  /** A press of Hide unchanged or Show unchanged (FOLD-11..13). */
-  onUnchanged?: (mode: UnchangedMode) => void
   /**
    * Offers each section header's ↶ for its file (FDSC-38). Only the uncommitted
    * stack passes it; a commit tab never does (FDSC-41).
    */
   onDiscard?: (changed: ChangedPath) => void
+  /** This tab's last Hide unchanged / Show unchanged press, handed to every section. */
+  unchanged?: UnchangedChoice | null
+  /** A press of Hide unchanged or Show unchanged (FOLD-11..13). */
+  onUnchanged?: (mode: UnchangedMode) => void
 }
 
 /** The mode's list in the tree's order — the order the user just read on the left. */
@@ -82,9 +82,9 @@ export function AllChangesTab({
   ignoreWhitespace,
   refreshToken,
   onHandle,
+  onDiscard,
   unchanged = null,
-  onUnchanged,
-  onDiscard
+  onUnchanged
 }: AllChangesTabProps): JSX.Element {
   const ordered = useMemo(() => inTreeOrder(files), [files])
   const shown = useMemo(() => {

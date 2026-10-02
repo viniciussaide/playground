@@ -20,11 +20,11 @@ Corroborated across multiple features. Safe to apply as guidance.
 - evidence: validation.md round-2 gate section; tree.test.ts / worktree-manager.test.ts timeouts (testing) (+1 more)
 - last seen: 2026-07-31T12:27:40Z
 
-### L-018 - When an AC lands in a layer the project exempts from unit tests, extract the decision into a lib module and test that, rather than deferring the evidence to a smoke script that has not been written yet
-- signal: `ac_gap` · recurrence: 2 feature(s) · scope: `renderer` · harmful: 0
-- features: session-activity-status, diff-fold-refresh
-- evidence: ACTV-07, ACTV-27 (renderer) (+1 more)
-- last seen: 2026-09-27T13:52:57Z
+### L-009 - A default-constant test that asserts resolvePaneWidth(undefined, bounds, DEFAULT) against DEFAULT itself cannot detect a change to that constant — pin every spec-derived default with a literal assertion, not a self-referential one.
+- signal: `surviving_mutant` · recurrence: 2 feature(s) · scope: `renderer/lib` · harmful: 0
+- features: sidebar-resize-collapse, agent-task-link
+- evidence: src/renderer/src/lib/pane-layout.test.ts:41 (renderer/lib) (+1 more)
+- last seen: 2026-09-28T22:09:36Z
 
 ## Candidates (under observation - do NOT load as guidance yet)
 
@@ -35,12 +35,6 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - features: vs2026-admin-shortcut
 - evidence: M4/M5: launch() -> VS_EDITIONS[tool]; openVisualStudio(edition) (src/main/**)
 - last seen: 2026-08-28T19:48:01Z
-
-### L-009 - A default-constant test that asserts resolvePaneWidth(undefined, bounds, DEFAULT) against DEFAULT itself cannot detect a change to that constant — pin every spec-derived default with a literal assertion, not a self-referential one.
-- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `renderer/lib` · harmful: 0
-- features: sidebar-resize-collapse
-- evidence: src/renderer/src/lib/pane-layout.test.ts:41 (renderer/lib)
-- last seen: 2026-08-31T22:35:36Z
 
 ### L-010 - When a spec edge case says 'empty/whitespace', guard with trim().length > 0, not length > 0, or whitespace-only selections slip past the empty check.
 - signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `src/renderer/src/components` · harmful: 0
@@ -88,6 +82,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `testing` · harmful: 0
 - features: session-activity-status
 - evidence: activity-machine.ts:77,:108 (testing)
+- last seen: 2026-09-16T00:25:09Z
+
+### L-018 - When an AC lands in a layer the project exempts from unit tests, extract the decision into a lib module and test that, rather than deferring the evidence to a smoke script that has not been written yet
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `renderer` · harmful: 0
+- features: session-activity-status
+- evidence: ACTV-07, ACTV-27 (renderer)
 - last seen: 2026-09-16T00:25:09Z
 
 ### L-019 - Pin a spec-mandated numeric limit with a literal assertion on the default production uses; a test that overrides the value to run fast leaves the default free to drift.
@@ -304,37 +304,37 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `activity-machine` · harmful: 0
 - features: activity-subagent-attribution
 - evidence: M09 M20 M24 M26 M27 src/main/activity-machine.ts:176 (activity-machine)
-- last seen: 2026-09-26T01:32:22Z
+- last seen: 2026-09-26T01:30:53Z
 
 ### L-055 - An edge case phrased 'whatever X is pending' needs a test with X actually pending
 - signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `activity-machine` · harmful: 0
 - features: activity-subagent-attribution
 - evidence: M10 src/main/activity-machine.ts:161 (activity-machine)
-- last seen: 2026-09-26T01:32:23Z
+- last seen: 2026-09-26T01:30:53Z
 
-### L-056 - Budget entry-chunk growth against the unminified renderer build, where eager glue code counts byte for byte
-- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `renderer-build` · harmful: 0
-- features: file-icons
-- evidence: tasks.md T6 SPEC_DEVIATION (entry chunk +4,633 B vs 1 KB) (renderer-build)
-- last seen: 2026-09-26T17:07:36Z
-
-### L-057 - When an AC keeps today's look as a fallback, name the fallback for elements that had nothing before
-- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `renderer-ui` · harmful: 0
-- features: file-icons
-- evidence: FICN-13 (validation.md, FileIcon.tsx:53-62) (renderer-ui)
-- last seen: 2026-09-26T17:07:36Z
-
-### L-058 - Assert a styled state by the value the spec names, such as its colour, not only by whether the style is present
+### L-056 - Assert a styled state by the value the spec names, such as its colour, not only by whether the style is present
 - signal: `ac_gap` · recurrence: 1 feature(s) · scope: `smoke-ui` · harmful: 0
 - features: files-view-polish
 - evidence: FPOL-02 scripts/smoke-files-diff.mjs:322 (smoke-ui)
-- last seen: 2026-09-26T18:10:13Z
+- last seen: 2026-09-26T17:54:24Z
 
-### L-059 - When a change widens a condition to more elements, assert that the elements it still excludes lack the element
+### L-057 - When a change widens a condition to more elements, assert that the elements it still excludes lack the element
 - signal: `ac_gap` · recurrence: 1 feature(s) · scope: `smoke-ui` · harmful: 0
 - features: files-view-polish
 - evidence: FPOL-02 src/renderer/src/components/FileTabs.tsx:241 (smoke-ui)
-- last seen: 2026-09-26T18:10:13Z
+- last seen: 2026-09-26T17:54:24Z
+
+### L-058 - Budget entry-chunk growth against the unminified renderer build, where eager glue code counts byte for byte
+- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `renderer-build` · harmful: 0
+- features: file-icons
+- evidence: tasks.md T6 SPEC_DEVIATION (entry chunk +4,633 B vs 1 KB) (renderer-build)
+- last seen: 2026-09-26T17:05:30Z
+
+### L-059 - When an AC keeps today's look as a fallback, name the fallback for elements that had nothing before
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `renderer-ui` · harmful: 0
+- features: file-icons
+- evidence: FICN-13 (validation.md, FileIcon.tsx:53-62) (renderer-ui)
+- last seen: 2026-09-26T17:05:30Z
 
 ### L-060 - When several sources feed one hover or focus state, read the view after each source's leave before the next source enters, because the next enter overwrites a leave that never fired
 - signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `smoke` · harmful: 0
@@ -521,6 +521,48 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - features: hours-task-assign
 - evidence: HTSK-14
 - last seen: 2026-09-28T00:27:37Z
+
+### L-091 - When a spec states a round-trip property between a renderer and its inverse parser, test it over templates that exercise every structural position of each empty-able placeholder (leading, middle, trailing segment), not only the examples named in the spec
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `shared-tasks` · harmful: 0
+- features: auto-pin-from-worktrees
+- evidence: APIN-04 AC 8; src/shared/tasks.ts:115-119 (shared-tasks)
+- last seen: 2026-09-29T13:32:34Z
+
+### L-092 - Give every spec edge case that crosses two operations (such as undo then redo) its own unit test even when a live check covers it, since only the unit test fails when one side regresses
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `testing` · harmful: 0
+- features: auto-pin-from-worktrees
+- evidence: M18; src/main/task-board.ts unpin; spec Edge Case 5 (testing)
+- last seen: 2026-09-29T13:32:35Z
+
+### L-093 - When a spec requires a template to be parseable back into its values, state which templates are unsupported because adjacent placeholders make the rendered text ambiguous
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `specs` · harmful: 0
+- features: auto-pin-from-worktrees
+- evidence: APIN-04 AC 8 ({usId}{id} -> 94821) (specs)
+- last seen: 2026-09-29T13:32:35Z
+
+### L-094 - When a spec splits one existing list into several views, state which view each existing entry point and highlight lands on for items that moved out of the default view
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `renderer-dialogs` · harmful: 0
+- features: agent-isolation-level
+- evidence: validation.md G1; src/renderer/src/components/NewSessionDialog.tsx:217-220 (renderer-dialogs)
+- last seen: 2026-09-29T20:52:08Z
+
+### L-095 - A PowerShell snippet published for scripts or agents must call Invoke-WebRequest -UseBasicParsing: Windows PowerShell 5.1 otherwise prompts after the response, so a non-interactive caller errors although the request succeeded.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `docs` · harmful: 0
+- features: agent-task-link
+- evidence: validation.md round 1 gap 2; README.md:49 (ATSK-12) (docs)
+- last seen: 2026-09-28T22:09:36Z
+
+### L-096 - When a design changes an element that an earlier feature's spec already constrains, cite that requirement in the design and either amend it or keep it explicitly, so the implementer never has to choose between the two
+- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `design` · harmful: 0
+- features: multi-agent-performance
+- evidence: src/renderer/src/components/AgentsView.tsx:225 SPEC_DEVIATION (PERF-10 pill title vs STRP-05) (design)
+- last seen: 2026-10-01T20:45:03Z
+
+### L-097 - For a queue or scheduler, test that it goes idle when it cannot make progress (no pending deferred turn while at capacity), not only that it never exceeds capacity: a loosened outer guard keeps the cap but spins the event loop
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `testing/schedulers` · harmful: 0
+- features: multi-agent-performance
+- evidence: src/main/spawn-pacer.ts:27 (P8 mutant 2) (testing/schedulers)
+- last seen: 2026-10-01T22:23:16Z
 
 ## Quarantined (failed when applied - ignore)
 

@@ -59,6 +59,26 @@ token, `404` unknown path, `405` not a `POST`, `413` body over 4 KiB. When the v
 the caller is not in a session the app can link: not Claude Code, not spawned by the app, or
 spawned before the app's listener was up.
 
+- Start a session on a **prompt file**: every `~/.playground/prompts/<name>.md` shows up as a
+  prompt in the New Session dialog, for any registry agent (**Open prompts folder** creates and
+  opens the folder). Each `{{name}}` placeholder becomes a required field in a second step;
+  `{{taskId}}`, `{{taskTitle}}`, `{{branch}}` and `{{worktree}}` arrive pre-filled from the
+  dialog's selections and stay editable
+
+```markdown
+<!-- ~/.playground/prompts/implement.md -->
+Implement task #{{taskId}} ({{taskTitle}}) on branch {{branch}} with /tlc-spec-driven.
+
+Focus: {{focus}}
+```
+
+The agent starts interactively on the resolved prompt, passed as its last argument after `--`
+(`claude <args> -- "<prompt>"`), so a prompt that starts with a Markdown `-` still works.
+**Respawn** and **Duplicate** start the agent without it. A resolved prompt over 8000 characters
+blocks Spawn, and a file over 16 KiB is listed as broken. The text arrives verbatim, line breaks
+included, when the agent command is an executable (as `claude.exe` is); an agent launched
+through a `.cmd`/`.bat` shim may receive it cut at the first line break or with `"` removed.
+
 ![Agents view — embedded agent terminals attributed to their worktree and task](docs/screenshots/agents.png)
 
 **Throughout**
@@ -128,6 +148,27 @@ npm run build:win  # production build + Windows installer
 ```
 
 Pre-PR gate: `npm run typecheck && npm run lint && npm test`.
+
+## Diagnostics
+
+When the app slows down, an opt-in log records what main is doing. Set `PLAYGROUND_DEBUG_PERF=1` before
+the app starts; any other value, or none, leaves it off and costs nothing. To turn it on for one launch,
+set the variable in a terminal and start the app from that same terminal:
+
+```powershell
+$env:PLAYGROUND_DEBUG_PERF = '1'
+npm run dev   # or start the installed playground.exe from this terminal
+```
+
+With it on, the app appends one JSON line a minute to `perf-diagnostics.jsonl` in its user data folder,
+next to `config.json`: main's event-loop delay, git processes by subcommand and worktree, terminal output
+and scrollback append time per session, worktree recounts and status events, and session-name listings.
+Worktrees appear by folder name only; no full path, no git argument beyond the subcommand and no
+terminal content is written. The same switch also prints a `[perf] loop` line to the console every 10 s.
+The file grows across launches until you delete it.
+
+For developers, `node scripts/bench-sessions.mjs` runs the built app with N fake sessions and prints
+these figures against the performance targets (`npx electron-vite build` first).
 
 ## Project docs
 

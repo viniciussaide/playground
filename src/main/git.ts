@@ -16,8 +16,8 @@ const MAX_STDOUT_BYTES = 64 * 1024 * 1024
  * ever parses the arguments, a hidden window, `GIT_TERMINAL_PROMPT=0`, and
  * stdin ended (CRTO-06), so nothing git starts can wait on keyboard input.
  * `timeoutMs` maps to `execFile`'s `timeout`: the process is killed once it
- * elapses, and the rejection satisfies `isTimeout` (STBR-24). `input` is
- * written to the child's stdin before it is ended.
+ * elapses, and the rejection satisfies `isTimeout` (STBR-24). `input`, when
+ * given, is written to the child's stdin before it is ended.
  */
 export function git(
   cwd: string,
@@ -47,8 +47,8 @@ export function git(
     })
     // execFile ignores a `stdio` option, so stdin is a pipe; ending it at once
     // gives git end of input instead of a read that waits forever (CRTO-06).
-    // `input`, when given, is written first (FWIG-15's check-ignore).
-    started.child.stdin?.end(opts.input)
+    if (opts.input !== undefined) started.child.stdin?.end(opts.input)
+    else started.child.stdin?.end()
     return started.finally(end)
   })
 }

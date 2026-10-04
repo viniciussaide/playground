@@ -1,6 +1,14 @@
 # Local Build & Install (develop → desktop shortcut)
 
-**Last executed:** 2026-09-17 — develop `7cef47a` (terminal scroll & paste merged, PR #95 open),
+**Last executed:** 2026-10-03 — develop `a4e4f99` (PRs #157-#168 merged upstream), packed
+`1.1.7` over `1.1.6`, backup `playground-backup-1.1.6`. The session doing the build ran inside the
+installed app, so the install was armed to run when the app closed (see
+[When this session runs inside the installed app](#when-this-session-runs-inside-the-installed-app));
+it installed, logged `1.1.7` and reopened the app. Packed `app.asar` verified by markers from the
+day's PRs (`worktrees:create-step`, `the ignore check failed`, `perf-diagnostics.jsonl`,
+`Wait for the create to finish`). Installer 124 MB.
+
+**Previously:** 2026-09-17 — develop `7cef47a` (terminal scroll & paste merged, PR #95 open),
 installed `1.1.2` over `1.1.1`. Gate `npx vitest run --maxWorkers=2` green at **1200 tests / 69
 files**. Packed `app.asar` verified by grepping for the feature's own markers
 (`clipboard:read-paste`, `FILE_DROP_LIST_COMMAND`, `playground.debug.terminalModes`,
@@ -88,16 +96,54 @@ npm run build
 npx electron-builder --win --config.extraMetadata.version=1.1.2
 #    → dist\playground-1.1.2-setup.exe  (~103 MB, x64, one-click NSIS)
 
-# 3. install (silent) and verify the installed version
-Start-Process -FilePath "dist\playground-1.1.2-setup.exe" -ArgumentList "/S" -Wait
-(Get-Item "$env:LOCALAPPDATA\Programs\playground\playground.exe").VersionInfo
-#    FileVersion should read 1.1.2
+# 3. back up the current install (copying only reads, so the app may stay open)
+Copy-Item "$env:LOCALAPPDATA\Programs\playground" "$env:LOCALAPPDATA\Programs\playground-backup-1.1.1" -Recurse
+
+# 4. install: now, or armed for when the app closes if this shell runs inside it
+powershell -NoProfile -File .specs\codebase\install-local-build.ps1 -Setup dist\playground-1.1.2-setup.exe
+#    prints the installed version afterwards; FileVersion should read 1.1.2
 ```
 
 There is **no `npm version` bump and no `git checkout -- package.json`**
 step: `--config.extraMetadata.version` overrides the packaged version without
 writing to the working tree (the previous "temporary bump + restore" dance is
 gone — owner decision 2026-09-10, the release number stays with the owner).
+
+## When this session runs inside the installed app
+
+The agent doing the build often runs in a terminal of the very Playground it is about to replace.
+Installing then closes the app, and with it the session, mid-command: nothing checks the version,
+and the owner loses the agent. Steps 1 to 3 are safe with the app open (they write only `out\`,
+`dist\` and the backup folder); only the install is not.
+
+`install-local-build.ps1` (next to this file) decides from the process tree:
+
+| Situation | What the script does |
+| --- | --- |
+| This shell descends from the installed `playground.exe` | arms the install and exits 0 |
+| The installed app runs, but this shell is outside it | refuses with exit 1: close the app, run it again |
+| The installed app is not running | installs now and prints the installed version |
+
+**Detection** walks this shell's ancestors (`Win32_Process.ParentProcessId`) looking for the
+installed exe's path. `PLAYGROUND_ACTIVITY_TOKEN` is no test: the app sets it only for agents with
+activity hooks, and a dev build sets it too.
+
+**The armed install** is a hidden `powershell` started with `Win32_Process.Create`, so its parent is
+`WmiPrvSE`: same user, same session, outside the app's process tree (a `Start-Process` from the
+session would sit under the app's PTY host). It waits for every `playground` process to exit, runs
+the setup with `/S`, writes the installed FileVersion to
+`%LOCALAPPDATA%\Programs\playground-install.log` and starts the app again.
+
+The agent's part, when the script reports the install as armed:
+
+1. Tell the owner to close Playground, and that it reinstalls and reopens by itself in a few
+   seconds; the current session ends there.
+2. In the next session, read the log and the exe's FileVersion; both must show the new version.
+   If the app did not come back, the previous version is in the backup folder.
+
+`-DryRun` prints the decision and, inside the app, the waiter's command line, and changes nothing.
+The waiter has no timeout: it waits until the app closes. Arm it once; to cancel, stop it with
+`Stop-Process -Id <waiter pid>` (the script prints the pid).
 
 ## What the installed app reads
 

@@ -380,13 +380,13 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] `subjectType: FILE` with `line: 1` → `general` with its path (S4); `isOutdated` with `line: null` → `outdated` on `originalLine` (S5); a one-line thread with `startLine` equal to `line` → one-line `placed`; `isResolved` → `resolution: 'resolved'`; `diffSide LEFT` → left side
-- [ ] `viewerCanReply / Resolve / Unresolve` carried onto `can`; `rootCommentId` is the first comment's `databaseId`
-- [ ] Latest review per reviewer wins; a pending own review is excluded; a requested team with no review appears as `no-vote`
-- [ ] Review bodies and PR comments merge in time order; an empty `COMMENTED` review — the one every comment posted outside a review creates (S2) — adds no entry
-- [ ] `github-pr-model.test.ts` created
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 3089 + 9 = **3098**
+- [x] `subjectType: FILE` with `line: 1` → `general` with its path (S4); `isOutdated` with `line: null` → `outdated` on `originalLine` (S5); a one-line thread with `startLine` equal to `line` → one-line `placed`; `isResolved` → `resolution: 'resolved'`; `diffSide LEFT` → left side
+- [x] `viewerCanReply / Resolve / Unresolve` carried onto `can`; `rootCommentId` is the first comment's `databaseId`
+- [x] Latest review per reviewer wins; a pending own review is excluded; a requested team with no review appears as `no-vote`
+- [x] Review bodies and PR comments merge in time order; an empty `COMMENTED` review — the one every comment posted outside a review creates (S2) — adds no entry
+- [x] `github-pr-model.test.ts` created
+- [x] Gate passes: `npm test`
+- [x] Test count: 3089 + 9 = **3098**
 
 **Tests**: unit
 **Gate**: quick

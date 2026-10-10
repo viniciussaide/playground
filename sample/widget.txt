@@ -2,7 +2,7 @@ line 01 of the widget sample
 line 02 of the widget sample
 line 03 of the widget sample
 line 04 of the widget sample
-line 05 of the widget sample
+line 05 of the widget sample, changed
 line 06 of the widget sample
 line 07 of the widget sample
 line 08 of the widget sample
@@ -27,7 +27,7 @@ line 26 of the widget sample
 line 27 of the widget sample
 line 28 of the widget sample
 line 29 of the widget sample
-line 30 of the widget sample
+line 30 of the widget sample, changed
 line 31 of the widget sample
 line 32 of the widget sample
 line 33 of the widget sample

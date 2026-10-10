@@ -406,12 +406,12 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] Branch tracking `fork` = `contoso/widget` with `origin` = `acme/widget` → source owner `contoso`, targets both remotes
-- [ ] A repository with only an ADO remote yields no GitHub targets
-- [ ] A branch tracking nothing, or tracking an ADO remote, yields no source owner — and so no GitHub search (lesson L-127)
-- [ ] Gate passes: `npm test`
-- [ ] Phase gate passes: `npx electron-vite build`
-- [ ] Test count: 3098 + 3 = **3101**
+- [x] Branch tracking `fork` = `contoso/widget` with `origin` = `acme/widget` → source owner `contoso`, targets both remotes
+- [x] A repository with only an ADO remote yields no GitHub targets
+- [x] A branch tracking nothing, or tracking an ADO remote, yields no source owner — and so no GitHub search (lesson L-127)
+- [x] Gate passes: `npm test`
+- [x] Phase gate passes: `npx electron-vite build`
+- [x] Test count: 3098 + 3 = **3101**
 
 **Tests**: unit
 **Gate**: build

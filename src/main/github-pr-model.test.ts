@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest'
+import type { RemoteRef } from '../shared/files'
 import {
+  githubRemotes,
   reviewerStates,
+  sourceOwner,
   timeline,
   toThreadViews,
+  trackedGitHubRemote,
   type GqlIssueComment,
   type GqlReview,
   type GqlReviewThread
 } from './github-pr-model'
+import { parseRemote } from './remote-url'
 
 // Every name here is fictitious: this repository is public (spec privacy guardrail).
 
@@ -248,5 +253,54 @@ describe('timeline', () => {
         reviewState: 'commented'
       }
     ])
+  })
+})
+
+/** A remote as `locateBranch` lists it: only recognized ones reach the model. */
+function remote(name: string, url: string): { name: string; url: string; ref: RemoteRef } {
+  const ref = parseRemote(url)
+  if (!ref) throw new Error(`unrecognized fixture remote ${url}`)
+  return { name, url, ref }
+}
+
+// FPRG-06: the source owner is the owner of the GitHub remote the branch
+// tracks; every GitHub remote is a target, so a fork's PR on the upstream is found.
+describe('sourceOwner and githubRemotes', () => {
+  it('reads the fork the branch tracks as the source and targets every github remote', () => {
+    const remotes = [
+      remote('origin', 'https://github.com/acme/widget.git'),
+      remote('fork', 'git@github.com:contoso/widget.git'),
+      remote('ado', 'https://dev.azure.com/acme/platform/_git/widget')
+    ]
+
+    expect(sourceOwner(remotes, 'fork')).toBe('contoso')
+    expect(trackedGitHubRemote(remotes, 'fork')).toEqual({
+      name: 'fork',
+      target: { provider: 'github', owner: 'contoso', repo: 'widget' }
+    })
+    expect(githubRemotes(remotes)).toEqual([
+      { name: 'origin', target: { provider: 'github', owner: 'acme', repo: 'widget' } },
+      { name: 'fork', target: { provider: 'github', owner: 'contoso', repo: 'widget' } }
+    ])
+  })
+
+  it('finds no github target in a repository with only an azure devops remote', () => {
+    const remotes = [remote('origin', 'https://dev.azure.com/acme/platform/_git/widget')]
+
+    expect(githubRemotes(remotes)).toEqual([])
+    expect(sourceOwner(remotes, 'origin')).toBeNull()
+  })
+
+  // Lesson L-127: without a source owner the head filter cannot be written,
+  // so no GitHub search happens.
+  it('names no source owner when the branch tracks nothing or an azure devops remote', () => {
+    const remotes = [
+      remote('origin', 'https://github.com/acme/widget.git'),
+      remote('ado', 'https://dev.azure.com/acme/platform/_git/widget')
+    ]
+
+    expect(sourceOwner(remotes, null)).toBeNull()
+    expect(sourceOwner(remotes, 'ado')).toBeNull()
+    expect(trackedGitHubRemote(remotes, 'ado')).toBeNull()
   })
 })

@@ -3,9 +3,11 @@ import type {
   PrThreadPlace,
   PrThreadView,
   PrTimelineEntry,
+  RemoteRef,
   Reviewer,
   ReviewerState
 } from '../shared/files'
+import type { BranchLocation } from './pr-locate'
 
 /**
  * GitHub's GraphQL shapes turned into the app's pull request model (F5).
@@ -189,4 +191,43 @@ export function timeline(reviews: GqlReview[], comments: GqlIssueComment[]): PrT
     entries.push({ author: c.author?.login ?? GHOST, at: Date.parse(c.createdAt), content: c.body })
   }
   return entries.sort((a, b) => a.at - b.at)
+}
+
+/** A remote `locateBranch` recognized, any provider. */
+type LocatedRemote = Extract<BranchLocation, { kind: 'ok' }>['remotes'][number]
+
+/** A GitHub remote, by name, with the repository it points at. */
+export interface GitHubRemote {
+  name: string
+  target: Extract<RemoteRef, { provider: 'github' }>
+}
+
+/**
+ * Every GitHub remote of the repository: each is a target a pull request may
+ * live on, so a fork's PR on its upstream is found (FPRG-06). Empty when there
+ * is none, and then no GitHub request is made.
+ */
+export function githubRemotes(remotes: LocatedRemote[]): GitHubRemote[] {
+  return remotes.flatMap(({ name, ref }) =>
+    ref.provider === 'github' ? [{ name, target: ref }] : []
+  )
+}
+
+/** The GitHub remote the branch tracks — its pull requests' source — or null. */
+export function trackedGitHubRemote(
+  remotes: LocatedRemote[],
+  tracked: string | null
+): GitHubRemote | null {
+  if (tracked === null) return null
+  return githubRemotes(remotes).find((remote) => remote.name === tracked) ?? null
+}
+
+/**
+ * The owner a GitHub search's `head=<owner>:<branch>` names (FPRG-06): the
+ * owner of the GitHub remote the branch tracks. Null when it tracks nothing
+ * or a remote on another provider — the branch is not pushed to GitHub, and
+ * no GitHub repository is searched (lesson L-127).
+ */
+export function sourceOwner(remotes: LocatedRemote[], tracked: string | null): string | null {
+  return trackedGitHubRemote(remotes, tracked)?.target.owner ?? null
 }

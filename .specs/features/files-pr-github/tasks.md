@@ -626,11 +626,11 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] Outdated GitHub threads are listed as outdated
+- [x] Outdated GitHub threads are listed as outdated
 - [ ] An approval with no body shows its state and no empty comment
-- [ ] Timeline entries carry no Reply or Resolve
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: **3122** (unchanged)
+- [x] Timeline entries carry no Reply or Resolve
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: **3122** (unchanged)
 
 **Tests**: none
 **Gate**: full

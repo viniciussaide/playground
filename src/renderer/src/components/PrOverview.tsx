@@ -5,6 +5,7 @@ import type {
   PrProvider,
   PrSearch,
   PrThreadView,
+  PrTimelineEntry,
   ReviewerState
 } from '../../../shared/files'
 import { overviewGroups, prLabel } from '../lib/pr-view'
@@ -55,9 +56,11 @@ interface PrOverviewProps {
  * own line, naming itself (FPRG-07): a detached HEAD (FPRA-08), no remote on
  * the provider (FPRA-06), no sign-in (FPRA-07, the Tasks pane's words), a rate
  * limit (FPRG-26), or no active pull request, with Create PR (FPRA-05). With
- * one, it shows the header, the description, the reviewers and their votes,
- * every thread grouped by where it sits, Activity collapsed, and a composer
- * for a general comment. Everything third parties wrote is rendered inertly.
+ * one, it shows the header, the description, the reviewers and their votes
+ * — GitHub's latest review states and its requested reviewers too (FPRG-09) —
+ * every thread grouped by where it sits, GitHub's review bodies and PR
+ * comments in General (FPRG-10), Activity collapsed, and a composer for a
+ * general comment. Everything third parties wrote is rendered inertly.
  */
 export function PrOverview({ pr, onOpenDiff, onToast }: PrOverviewProps): JSX.Element {
   const now = useSharedNow(DATE_TICK_MS)
@@ -275,7 +278,13 @@ export function PrOverview({ pr, onOpenDiff, onToast }: PrOverviewProps): JSX.El
       {section('Active', groups.active)}
       {section('Resolved', groups.resolved)}
       {section('Outdated', groups.outdated)}
-      {section('General', groups.general)}
+      <GeneralSection
+        threads={groups.general}
+        timeline={detail.timeline ?? []}
+        now={now}
+        threadItem={threadItem}
+        onOpenLink={openLink}
+      />
 
       <section className="pr-overview-section">
         <h3 className="section-label">Comment on the pull request</h3>
@@ -312,6 +321,65 @@ export function PrOverview({ pr, onOpenDiff, onToast }: PrOverviewProps): JSX.El
         )}
       </section>
     </div>
+  )
+}
+
+/**
+ * The General section: threads on the pull request as a whole, then GitHub's
+ * review bodies and PR comments in time order (FPRG-10, D4). A timeline entry
+ * is read, never answered in place, so it carries no Reply or Resolve; it is
+ * answered with the general comment below. A review with no text shows only
+ * its state (edge case). Hidden when it has nothing to list.
+ */
+function GeneralSection({
+  threads,
+  timeline,
+  now,
+  threadItem,
+  onOpenLink
+}: {
+  threads: PrThreadView[]
+  timeline: PrTimelineEntry[]
+  now: number
+  threadItem: (thread: PrThreadView) => JSX.Element
+  onOpenLink: (href: string) => void
+}): JSX.Element | null {
+  const count = threads.length + timeline.length
+  if (count === 0) return null
+  return (
+    <section className="pr-overview-section">
+      <h3 className="section-label">General ({count})</h3>
+      {threads.length > 0 && <div className="pr-overview-threads">{threads.map(threadItem)}</div>}
+      {timeline.length > 0 && (
+        <ul className="pr-overview-timeline">
+          {timeline.map((entry, i) => (
+            <li
+              key={`${entry.at}:${i}`}
+              className="pr-overview-timeline-entry"
+              data-review-state={entry.reviewState}
+            >
+              <div className="pr-overview-timeline-meta">
+                <span className="pr-overview-timeline-author">{entry.author}</span>
+                {entry.reviewState && (
+                  <span className={`pr-overview-timeline-state ${entry.reviewState}`}>
+                    {REVIEWER_STATES[entry.reviewState]}
+                  </span>
+                )}
+                <span
+                  className="pr-overview-timeline-date"
+                  title={new Date(entry.at).toLocaleString()}
+                >
+                  {relativeTime(entry.at, now)}
+                </span>
+              </div>
+              {entry.content.trim() !== '' && (
+                <MarkdownBody source={entry.content} onOpenLink={onOpenLink} />
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }
 

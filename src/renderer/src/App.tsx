@@ -37,6 +37,7 @@ import { worktreeForTurnEnd } from './lib/tree-status'
 import { dropCollapsedId, isCollapsed, toggleCollapsedId } from './lib/workspace-collapse'
 import { filesStateFor } from './lib/files-view'
 import { useFiles } from './lib/use-files'
+import { useGitHubStatus } from './lib/use-github-status'
 import { useSessions } from './lib/use-sessions'
 import { useTime } from './lib/use-time'
 import { useLatestCallback } from './lib/use-latest-callback'
@@ -176,6 +177,8 @@ function App(): JSX.Element {
     () => ({ auth: tasks.auth, lastSyncAt: tasks.lastSyncAt, org: syncOrg }),
     [tasks.auth, tasks.lastSyncAt, syncOrg]
   )
+  // The gh chip's state (FPRG-02, 05): a string, so the memoized TopBar keeps its props.
+  const gh = useGitHubStatus()
 
   // Same reason, and one more: the Files watch follows the direction, so leaving
   // Files has to send `files:watch(null)` instead of racing FilesView's unmount
@@ -478,6 +481,7 @@ function App(): JSX.Element {
         theme={ui.theme}
         direction={ui.direction}
         sync={sync}
+        gh={gh}
         onThemeToggle={toggleTheme}
         onDirectionChange={changeDirection}
         onRefresh={refreshAll}

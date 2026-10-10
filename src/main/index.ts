@@ -33,6 +33,8 @@ import { readForView } from './file-reader'
 import { changedSince, listBases, listDir } from './file-tree'
 import { FileWatcher, type Scheduler } from './file-watcher'
 import { git } from './git'
+import { GitHubGateway } from './github-gateway'
+import { GitHubPrClient } from './github-pr'
 import { GitStateWatcher } from './git-state-watcher'
 import { readCommits, readSyncState, runGitOp } from './git-sync'
 import { runHookShell } from './hook-shell'
@@ -49,6 +51,8 @@ import { PtyHostClient } from './pty-host-client'
 import { forkPtyHost } from './pty-host-fork'
 import { RecountScheduler } from './recount-scheduler'
 import { resolvePostCreateCommand } from './repo-config'
+import { scanRepos } from './repo-scanner'
+import { parseRemote } from './remote-url'
 import { scrubAuthEnv } from './scrub-auth-env'
 import { SessionManager, type ActivityHooks, type EmitFn } from './session-manager'
 import { LinkOpener } from './link-opener'
@@ -108,6 +112,28 @@ async function gitFetch({ cwd, remote, branch }: GitFetchOptions): Promise<void>
  * on a detached HEAD; that, a folder outside git, or git taking over 2 s all
  * mean no branch (NOTF-34).
  */
+/**
+ * Whether any repository in these workspaces has a GitHub remote — the `gh`
+ * chip's condition (FPRG-02). Each repository's `git remote -v` goes through
+ * the paced runner; the first GitHub remote found ends the search. A folder
+ * or repository that cannot be read has no remote to count.
+ */
+async function anyGitHubRemote(workspacePaths: string[]): Promise<boolean> {
+  for (const workspacePath of workspacePaths) {
+    const repos = await scanRepos(workspacePath).catch(() => [])
+    for (const repo of repos) {
+      try {
+        const { stdout } = await git(repo.path, ['remote', '-v'])
+        const urls = stdout.split(/\s+/)
+        if (urls.some((url) => parseRemote(url)?.provider === 'github')) return true
+      } catch {
+        // Not readable by git: nothing to count.
+      }
+    }
+  }
+  return false
+}
+
 async function readBranch(cwd: string): Promise<string | null> {
   try {
     const { stdout } = await git(cwd, ['symbolic-ref', '--short', 'HEAD'], { timeoutMs: 2000 })
@@ -537,15 +563,47 @@ app.whenReady().then(() => {
   handle('ado-pr:status', ({ pr, threadId, status }) => adoPr.setStatus(pr, threadId, status))
   handle('ado-pr:thread', (req) => adoPr.createThread(req))
   handle('ado-pr:comment', ({ pr, content }) => adoPr.generalComment(pr, content))
-  // `shell.openExternal` is reached only through these two, each of which
-  // refuses anything that is not https (FPRA-14/23, AD-044) — never through
-  // `setWindowOpenHandler`.
+  // `shell.openExternal` is reached only through these two (and
+  // `github-pr:open` below), each of which refuses anything that is not https
+  // (FPRA-14/23, AD-044) — never through `setWindowOpenHandler`.
   handle('ado-pr:open', (req) =>
     adoPr.openPage(req.worktreePath, 'pr' in req ? { pr: req.pr } : { create: true }, (url) =>
       shell.openExternal(url)
     )
   )
-  handle('ado-pr:open-link', ({ href }) => openPrLink(href, (url) => shell.openExternal(url)))
+  handle('pr:open-link', ({ href }) => openPrLink(href, (url) => shell.openExternal(url)))
+
+  // GitHub pull requests (F5). The `gh` token lives in the gateway and never
+  // crosses IPC (FPRG-01); git reads go through the paced `git()`. The
+  // renderer sends intent only, and every write below is reached only from a
+  // user's click (FPRG-24, AD-027).
+  const githubGateway = new GitHubGateway()
+  const githubPr = new GitHubPrClient({ gateway: githubGateway })
+  // The chip shows only while a registered repository has a GitHub remote,
+  // which main alone can tell (FPRG-02); `gh` is not started otherwise.
+  handle('github:status', async () =>
+    (await anyGitHubRemote(registry.list().map((ws) => ws.path)))
+      ? githubGateway.ghStatus()
+      : 'no-github-remote'
+  )
+  handle('github-pr:find', ({ worktreePath }) => githubPr.findPrs(worktreePath))
+  handle('github-pr:get', ({ pr }) => githubPr.getPr(pr))
+  handle('github-pr:file-sides', ({ pr, path, oldPath }) => githubPr.fileSides(pr, path, oldPath))
+  handle('github-pr:reply', ({ pr, rootCommentId, content }) =>
+    githubPr.reply(pr, rootCommentId, content)
+  )
+  handle('github-pr:resolve', ({ threadId, resolved }) => githubPr.setResolved(threadId, resolved))
+  handle('github-pr:thread', ({ pr, headSha, selection, content }) =>
+    githubPr.anchoredComment(pr, headSha, selection, content)
+  )
+  handle('github-pr:comment', ({ pr, content }) => githubPr.generalComment(pr, content))
+  // Main builds the PR or compare page and opens it only if it is https
+  // (FPRG-08, AD-044).
+  handle('github-pr:open', (req) =>
+    githubPr.openPage(req.worktreePath, 'pr' in req ? { pr: req.pr } : { create: true }, (url) =>
+      shell.openExternal(url)
+    )
+  )
 
   // Agent sessions (AM2). SessionManager owns every session's lifecycle,
   // persistence, and stream routing; emit is lazily bound to the live window.

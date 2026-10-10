@@ -50,12 +50,17 @@ export interface DiffZone {
   content: ReactNode
 }
 
-/** A selection on the modified side, as Monaco reports it: 1-based lines and columns. */
+/**
+ * A selection on the modified side, as Monaco reports it: 1-based lines and
+ * columns, and the text it covers, read from the model — what a general
+ * comment on GitHub quotes (FPRG-21).
+ */
 export interface ModifiedSelection {
   startLine: number
   startColumn: number
   endLine: number
   endColumn: number
+  text: string
 }
 
 /**
@@ -356,7 +361,12 @@ export function DiffViewer({
                 startLine: selection.startLineNumber,
                 startColumn: selection.startColumn,
                 endLine: selection.endLineNumber,
-                endColumn: selection.endColumn
+                endColumn: selection.endColumn,
+                text:
+                  editor
+                    .getModifiedEditor()
+                    .getModel()
+                    ?.getValueInRange(selection, monaco.editor.EndOfLinePreference.LF) ?? ''
               }
         )
       })
@@ -604,7 +614,8 @@ function placeOverlay(held: MountedZone, editor: monaco.editor.ICodeEditor): voi
  * The overlay follows the gap: Monaco reports the gap's top on every render,
  * scrolling included, and whether it draws the gap at all. A gap it does not
  * draw (scrolled far off, or inside a folded region) hides the overlay, which
- * shows again when the gap does (#130).
+ * shows again when the gap does (#130). A gap under the last line before a
+ * folded region is drawn, as that line is.
  *
  * The gap's height follows the content's: a thread that expands, or a composer
  * that grows, pushes the lines below it down. A hidden overlay keeps its
@@ -628,6 +639,23 @@ function createZone(
     afterLine: want.afterLine,
     zone: {
       afterLineNumber: want.afterLine,
+      // Monaco ties a zone at a line's end to the line after it: under the
+      // last line before a folded unchanged region — a hunk's last context
+      // line — the gap would never be drawn. Anchored at the line's first
+      // column it is drawn exactly while its own line is, and still hides with
+      // a folded line (#130). An empty line has no column past the first, so
+      // its gap is drawn whatever the folding hides.
+      afterColumn: 1,
+      get showInHiddenAreas() {
+        const model = sideEditor(held.side).getModel()
+        const line = held.zone.afterLineNumber
+        return (
+          model !== null &&
+          line >= 1 &&
+          line <= model.getLineCount() &&
+          model.getLineMaxColumn(line) === 1
+        )
+      },
       heightInPx: ZONE_GUESS_PX,
       domNode: space,
       onDomNodeTop: (top) => {

@@ -750,6 +750,30 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: spec Edge Cases: threads paging (spec)
 - last seen: 2026-10-10T14:46:20Z
 
+### L-129 - When a provider model falls back on a null field, give the null its own test case apart from the flag that usually accompanies it.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `src/main` · harmful: 0
+- features: files-pr-github
+- evidence: src/main/github-pr-model.ts:126 (U11) (src/main)
+- last seen: 2026-10-10T20:16:34Z
+
+### L-130 - A de-duplication step needs a fixture that actually contains duplicates, or removing it survives.
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `src/main` · harmful: 0
+- features: files-pr-github
+- evidence: src/main/github-pr.ts:199 (U25) (src/main)
+- last seen: 2026-10-10T20:16:34Z
+
+### L-131 - Put a renderer-only permission or retry gate in a pure helper so a unit test, not code reading, is its evidence.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `src/renderer` · harmful: 0
+- features: files-pr-github
+- evidence: FPRG-18, src/renderer/src/components/PrThread.tsx:135 (src/renderer)
+- last seen: 2026-10-10T20:16:34Z
+
+### L-132 - Before promising one view across two providers, check each provider's search input: a branch tracks one remote, so a per-remote search can never yield both.
+- signal: `spec_deviation` · recurrence: 1 feature(s) · scope: `.specs` · harmful: 0
+- features: files-pr-github
+- evidence: FPRG-07, tasks.md Fixes found during Execute (.specs)
+- last seen: 2026-10-10T20:16:34Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { JSX, KeyboardEvent, MouseEvent } from 'react'
-import type { WriteResult } from '../../../shared/files'
+import type { CommentPlan, WriteResult } from '../../../shared/files'
 import { renderMarkdown } from '../lib/markdown'
 import './CommentComposer.css'
 
@@ -46,6 +46,12 @@ interface CommentComposerProps {
   postLabel?: string
   placeholder?: string
   autoFocus?: boolean
+  /**
+   * How a comment on a selection will post (FPRG-19..22). A `general` plan
+   * shows its banner from the start and posts — and previews — its citation
+   * above the text; absent, or `anchored`, the composer is F4's.
+   */
+  plan?: CommentPlan
 }
 
 /**
@@ -53,6 +59,11 @@ interface CommentComposerProps {
  * whose Preview is the same inert rendering every comment gets. Ctrl+Enter or
  * Post sends it, and nothing else does. A failure keeps the text exactly as
  * typed and shows the provider's message under it; a success clears it.
+ *
+ * When GitHub cannot anchor the selection, the plan is `general`: the banner
+ * says so before the first keystroke (FPRG-20), and what is posted is the
+ * citation, a blank line and the text — the one comment Preview renders
+ * (FPRG-21).
  */
 export function CommentComposer({
   onPost,
@@ -60,18 +71,23 @@ export function CommentComposer({
   onOpenLink,
   postLabel = 'Comment',
   placeholder = 'Write a comment… Markdown is supported.',
-  autoFocus = false
+  autoFocus = false,
+  plan
 }: CommentComposerProps): JSX.Element {
   const [text, setText] = useState('')
   const [tab, setTab] = useState<'write' | 'preview'>('write')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const general = plan?.kind === 'general' ? plan : null
+  // What is posted, and what Preview renders: one and the same text.
+  const body = general ? `${general.citation}\n\n${text}` : text
+
   const post = (): void => {
     if (busy || text.trim() === '') return
     setBusy(true)
     setError(null)
-    void onPost(text).then((result) => {
+    void onPost(body).then((result) => {
       setBusy(false)
       if (result.ok) setText('')
       else setError(result.message)
@@ -86,7 +102,12 @@ export function CommentComposer({
   }
 
   return (
-    <div className="comment-composer">
+    <div className={`comment-composer${general ? ' general' : ''}`}>
+      {general && (
+        <div className="comment-composer-banner" role="note">
+          {general.banner}
+        </div>
+      )}
       <div className="comment-composer-tabs" role="tablist">
         <button
           type="button"
@@ -120,10 +141,10 @@ export function CommentComposer({
           onChange={(event) => setText(event.target.value)}
           onKeyDown={onKeyDown}
         />
-      ) : text.trim() === '' ? (
+      ) : text.trim() === '' && !general ? (
         <div className="comment-composer-empty">Nothing to preview.</div>
       ) : (
-        <MarkdownBody source={text} onOpenLink={onOpenLink} className="comment-composer-preview" />
+        <MarkdownBody source={body} onOpenLink={onOpenLink} className="comment-composer-preview" />
       )}
       {error && (
         <div className="comment-composer-error" role="alert">

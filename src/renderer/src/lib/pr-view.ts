@@ -1,10 +1,39 @@
-import type { AdoThreadStatus, PrThreadView } from '../../../shared/files'
+import type {
+  AdoThreadStatus,
+  CommentPlan,
+  GitHubPrFile,
+  PrFile,
+  PrRef,
+  PrThreadView
+} from '../../../shared/files'
+import { citation, endsInDiff } from '../../../shared/pr-diff-rules'
 
 /**
  * Pure decisions behind the Pull request mode's views (F4): which Overview
  * group a thread is listed in, how a thread status reads, where a thread is
- * drawn in a diff, and when a newer iteration deserves a banner.
+ * drawn in a diff, and when a newer revision deserves a banner.
  */
+
+/**
+ * What identifies one pull request in the renderer — the picker's options,
+ * the hook's caches, a PR diff tab — with its provider in it, so an Azure
+ * DevOps `!7` and a GitHub `#7` never share one (FPRG-07, edge case).
+ * Repository names compare without case, as both providers treat them.
+ */
+export function prKey(ref: PrRef): string {
+  const target = ref.target
+  const repository =
+    target.provider === 'azure-devops'
+      ? [target.org, target.project, target.repo]
+      : [target.owner, target.repo]
+  const path = repository.map((part) => encodeURIComponent(part.toLowerCase())).join('/')
+  return `${target.provider}:${path}/${ref.id}`
+}
+
+/** How a pull request's number reads: `!7` on Azure DevOps, `#7` on GitHub, as each spells it. */
+export function prLabel(ref: PrRef): string {
+  return `${ref.target.provider === 'github' ? '#' : '!'}${ref.id}`
+}
 
 /** The Overview's thread groups (FPRA-11, 13, 19, 20). */
 export interface OverviewGroups {
@@ -111,10 +140,41 @@ export function zonesForFile(
 }
 
 /**
- * Whether a reload found an iteration newer than the one the open diffs show,
- * so the view offers to reload them (FPRA-34). Nothing on screen yet is no
- * reason for a banner.
+ * Whether a reload found a revision other than the one the open diffs show,
+ * so the view offers to reload them (FPRA-34, FPRG-25). Revisions are opaque
+ * — an Azure DevOps iteration as text, a GitHub head commit — so only a
+ * difference counts; iterations only grow, so on Azure DevOps a different one
+ * is F4's newer one. Nothing on screen yet is no reason for a banner.
  */
-export function newIterationBanner(onScreen: number | null, latest: number): boolean {
-  return onScreen !== null && latest > onScreen
+export function revisionBanner(onScreen: string | null, latest: string): boolean {
+  return onScreen !== null && latest !== onScreen
+}
+
+/**
+ * How a comment on a modified-side selection will post (FPRG-19..22; design
+ * D2, D3) — the one place the diff rule meets the UI. Azure DevOps anchors
+ * any selection, as F4 does. GitHub anchors one only when its first and last
+ * lines each lie in a hunk of the file's patch; any other selection, and any
+ * selection in a file GitHub sent no patch for, becomes a general comment:
+ * the banner says so before posting, and the citation quotes the lines.
+ */
+export function commentPlan(
+  pr: PrRef,
+  file: PrFile | GitHubPrFile,
+  selection: { startLine: number; endLine: number; text: string }
+): CommentPlan {
+  const startLine = Math.min(selection.startLine, selection.endLine)
+  const endLine = Math.max(selection.startLine, selection.endLine)
+  const hunks = 'hunks' in file ? file.hunks : null
+  if (pr.target.provider === 'azure-devops' || endsInDiff(startLine, endLine, hunks)) {
+    return { kind: 'anchored', anchor: { path: file.path, startLine, endLine } }
+  }
+  const lines = startLine === endLine ? `L${startLine}` : `L${startLine}–L${endLine}`
+  return {
+    kind: 'general',
+    banner:
+      'GitHub only anchors comments to diff lines. This one will be posted as a general ' +
+      `comment citing ${file.path}:${lines}.`,
+    citation: citation(file.path, startLine, endLine, selection.text)
+  }
 }

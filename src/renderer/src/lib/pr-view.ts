@@ -1,4 +1,12 @@
-import type { AdoThreadStatus, PrRef, PrThreadView } from '../../../shared/files'
+import type {
+  AdoThreadStatus,
+  CommentPlan,
+  GitHubPrFile,
+  PrFile,
+  PrRef,
+  PrThreadView
+} from '../../../shared/files'
+import { citation, endsInDiff } from '../../../shared/pr-diff-rules'
 
 /**
  * Pure decisions behind the Pull request mode's views (F4): which Overview
@@ -140,4 +148,33 @@ export function zonesForFile(
  */
 export function revisionBanner(onScreen: string | null, latest: string): boolean {
   return onScreen !== null && latest !== onScreen
+}
+
+/**
+ * How a comment on a modified-side selection will post (FPRG-19..22; design
+ * D2, D3) — the one place the diff rule meets the UI. Azure DevOps anchors
+ * any selection, as F4 does. GitHub anchors one only when its first and last
+ * lines each lie in a hunk of the file's patch; any other selection, and any
+ * selection in a file GitHub sent no patch for, becomes a general comment:
+ * the banner says so before posting, and the citation quotes the lines.
+ */
+export function commentPlan(
+  pr: PrRef,
+  file: PrFile | GitHubPrFile,
+  selection: { startLine: number; endLine: number; text: string }
+): CommentPlan {
+  const startLine = Math.min(selection.startLine, selection.endLine)
+  const endLine = Math.max(selection.startLine, selection.endLine)
+  const hunks = 'hunks' in file ? file.hunks : null
+  if (pr.target.provider === 'azure-devops' || endsInDiff(startLine, endLine, hunks)) {
+    return { kind: 'anchored', anchor: { path: file.path, startLine, endLine } }
+  }
+  const lines = startLine === endLine ? `L${startLine}` : `L${startLine}–L${endLine}`
+  return {
+    kind: 'general',
+    banner:
+      'GitHub only anchors comments to diff lines. This one will be posted as a general ' +
+      `comment citing ${file.path}:${lines}.`,
+    citation: citation(file.path, startLine, endLine, selection.text)
+  }
 }

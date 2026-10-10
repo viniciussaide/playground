@@ -508,13 +508,13 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] An ADO PR is always `anchored` — F4's behaviour unchanged
-- [ ] GitHub with both ends in a hunk, the same or two different → `anchored`; an end outside every hunk, or no patch → `general`
-- [ ] The banner names `path:Lstart–Lend` and says GitHub only anchors comments to diff lines
-- [ ] The citation of a selection containing ` ``` ` renders through `renderMarkdown` as one code block and no live content
-- [ ] Gate passes: `npm test`
-- [ ] Phase gate passes: `npx electron-vite build`
-- [ ] Test count: 3116 + 6 = **3122**
+- [x] An ADO PR is always `anchored` — F4's behaviour unchanged
+- [x] GitHub with both ends in a hunk, the same or two different → `anchored`; an end outside every hunk, or no patch → `general`
+- [x] The banner names `path:Lstart–Lend` and says GitHub only anchors comments to diff lines
+- [x] The citation of a selection containing ` ``` ` renders through `renderMarkdown` as one code block and no live content
+- [x] Gate passes: `npm test`
+- [x] Phase gate passes: `npx electron-vite build`
+- [x] Test count: 3116 + 6 = **3122**
 
 **Tests**: unit
 **Gate**: build

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ChangedPath, FileStat } from '../../../shared/files'
+import type { ChangedPath, FileStat, PrRef } from '../../../shared/files'
 import {
   ALL_CHANGES_KEY,
   choicePlan,
@@ -459,13 +459,21 @@ describe('tabKeyOf for commit tabs', () => {
   })
 })
 
+/** Pull requests of one fictitious Azure DevOps repository. */
+function adoPr(id: number): PrRef {
+  return {
+    target: { provider: 'azure-devops', org: 'acme', project: 'platform', repo: 'widget' },
+    id
+  }
+}
+
 describe('tabKeyOf for pull request tabs', () => {
   const SHA = '0f2b9c1d4e6a8b3c5d7e9f0a1b2c3d4e5f6a7b8c'
 
   it('gives the Overview and a PR diff keys no file, diff, commit or All changes tab can produce (FPRA-09/16)', () => {
     const pr = [
       tabKeyOf({ kind: 'pr-overview' }),
-      tabKeyOf({ kind: 'pr-diff', id: 42, path: 'src/app.ts' })
+      tabKeyOf({ kind: 'pr-diff', pr: adoPr(42), path: 'src/app.ts' })
     ]
 
     const others = [
@@ -481,18 +489,21 @@ describe('tabKeyOf for pull request tabs', () => {
   })
 
   it('is one Overview, and one PR diff tab per pull request and path (FPRA-16)', () => {
-    const app = { kind: 'pr-diff', id: 42, path: 'src/app.ts' } as const
+    const app = { kind: 'pr-diff', pr: adoPr(42), path: 'src/app.ts' } as const
 
     expect(isSameTab({ kind: 'pr-overview' }, { kind: 'pr-overview' })).toBe(true)
-    expect(isSameTab(app, { kind: 'pr-diff', id: 42, path: 'src/app.ts' })).toBe(true)
-    expect(isSameTab(app, { kind: 'pr-diff', id: 7, path: 'src/app.ts' })).toBe(false)
-    expect(isSameTab(app, { kind: 'pr-diff', id: 42, path: 'src/other.ts' })).toBe(false)
+    expect(isSameTab(app, { kind: 'pr-diff', pr: adoPr(42), path: 'src/app.ts' })).toBe(true)
+    expect(isSameTab(app, { kind: 'pr-diff', pr: adoPr(7), path: 'src/app.ts' })).toBe(false)
+    expect(isSameTab(app, { kind: 'pr-diff', pr: adoPr(42), path: 'src/other.ts' })).toBe(false)
   })
 })
 
 describe('tabsWithAllChanges in Pull request mode', () => {
   it('puts the Overview first, once, and no All changes (FPRA-09)', () => {
-    const open = [fileTab('src/app.ts'), { kind: 'pr-diff', id: 42, path: 'src/app.ts' } as const]
+    const open = [
+      fileTab('src/app.ts'),
+      { kind: 'pr-diff', pr: adoPr(42), path: 'src/app.ts' } as const
+    ]
 
     const strip = tabsWithAllChanges(
       [{ kind: 'pr-overview' }, { kind: 'all-changes' }, ...open],
@@ -502,7 +513,7 @@ describe('tabsWithAllChanges in Pull request mode', () => {
     expect(strip.map((tab) => tabKeyOf(tab))).toEqual([
       PR_OVERVIEW_KEY,
       tabKeyOf(fileTab('src/app.ts')),
-      'pr:42:src/app.ts'
+      'pr:azure-devops:acme/platform/widget/42:src/app.ts'
     ])
   })
 

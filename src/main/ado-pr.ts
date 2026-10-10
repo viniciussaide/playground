@@ -1,4 +1,5 @@
 import type {
+  AdoTarget,
   AdoThreadStatus,
   DiffSide,
   DiffSides,
@@ -9,7 +10,6 @@ import type {
   PrSelection,
   PrStatus,
   PrSummary,
-  PrTarget,
   PrThreadView,
   WriteResult
 } from '../shared/files'
@@ -32,6 +32,7 @@ import { fetchWithTimeout } from './ado-gateway'
 import { lineEndingChanges } from './file-diff'
 import { MAX_VIEW_BYTES } from './file-reader'
 import { git, type GitRunner } from './git'
+import { locateBranch } from './pr-locate'
 import { createPrUrl, prUrl } from './remote-url'
 import { isHttpsUrl } from './url-policy'
 
@@ -176,8 +177,10 @@ export class AdoPrClient {
    * the list truncates the description to 400 characters (FPRA-10).
    */
   async getPr(pr: PrRef): Promise<PrDetailResult> {
+    const target = adoTarget(pr)
+    if (target === null) return notAdo()
     const read = await this.getJson<AdoPullRequest>(
-      `${apiBase(pr.target)}/pullrequests/${pr.id}?${API_VERSION}`
+      `${apiBase(target)}/pullrequests/${pr.id}?${API_VERSION}`
     )
     if (read.kind !== 'ok') return read
     const iteration = await this.latestIteration(pr)
@@ -191,7 +194,7 @@ export class AdoPrClient {
     return {
       kind: 'ok',
       detail: {
-        ...summaryOf(pr.target, body),
+        ...summaryOf(target, body),
         status: prStatusOf(body.status),
         author: body.createdBy.displayName,
         description: body.description ?? '',
@@ -203,7 +206,8 @@ export class AdoPrClient {
           isGroup: reviewer.isContainer === true,
           isRequired: reviewer.isRequired === true
         })),
-        iteration: iteration.value.id,
+        revision: String(iteration.value.id),
+        ado: { iteration: iteration.value.id },
         files: files.value,
         threads: threads.value
       }
@@ -212,13 +216,15 @@ export class AdoPrClient {
 
   /** The latest iteration, with the commits both diff sides are read at (FPRA-16, 34; T1, S2). */
   async latestIteration(pr: PrRef): Promise<AdoRead<LatestIteration>> {
+    const target = adoTarget(pr)
+    if (target === null) return notAdo()
     const read = await this.getJson<{
       value?: {
         id: number
         sourceRefCommit: { commitId: string }
         commonRefCommit: { commitId: string }
       }[]
-    }>(`${apiBase(pr.target)}/pullRequests/${pr.id}/iterations?${API_VERSION}`)
+    }>(`${apiBase(target)}/pullRequests/${pr.id}/iterations?${API_VERSION}`)
     if (read.kind !== 'ok') return read
     const iterations = read.value.value ?? []
     const latest = iterations.reduce<(typeof iterations)[number] | null>(
@@ -242,7 +248,9 @@ export class AdoPrClient {
    * `nextTop` name one, and a last page carries neither (T1, S7).
    */
   async changedFiles(pr: PrRef, iteration: number): Promise<AdoRead<PrFile[]>> {
-    const base = `${apiBase(pr.target)}/pullRequests/${pr.id}/iterations/${iteration}/changes`
+    const target = adoTarget(pr)
+    if (target === null) return notAdo()
+    const base = `${apiBase(target)}/pullRequests/${pr.id}/iterations/${iteration}/changes`
     const entries: AdoChange[] = []
     let skip = 0
     let top = 2000
@@ -272,8 +280,10 @@ export class AdoPrClient {
    * (T1, S3). Deleted threads come back classified as such for the view to drop.
    */
   async threads(pr: PrRef, iteration: number): Promise<AdoRead<PrThreadView[]>> {
+    const target = adoTarget(pr)
+    if (target === null) return notAdo()
     const read = await this.getJson<{ value?: AdoThread[] }>(
-      `${apiBase(pr.target)}/pullRequests/${pr.id}/threads` +
+      `${apiBase(target)}/pullRequests/${pr.id}/threads` +
         `?$iteration=${iteration}&$baseIteration=0&${API_VERSION}`
     )
     if (read.kind !== 'ok') return read
@@ -309,7 +319,9 @@ export class AdoPrClient {
    * modified side of a deleted one — is a 404, and an absent side.
    */
   async fileSide(pr: PrRef, path: string, commit: string): Promise<DiffSide> {
-    const base = apiBase(pr.target)
+    const target = adoTarget(pr)
+    if (target === null) return notAdo()
+    const base = apiBase(target)
     const query = new URLSearchParams({
       path: `/${path}`,
       'versionDescriptor.version': commit,
@@ -358,7 +370,9 @@ export class AdoPrClient {
   ): Promise<LaunchResult> {
     let url: string
     if ('pr' in req) {
-      url = prUrl(req.pr.target, req.pr.id)
+      const target = adoTarget(req.pr)
+      if (target === null) return { ok: false, error: NOT_ADO }
+      url = prUrl(target, req.pr.id)
     } else {
       const located = await this.locate(worktreePath)
       if (located.kind !== 'ok' || located.source === null) {
@@ -371,9 +385,11 @@ export class AdoPrClient {
 
   /** A reply, appended to the thread under its root comment (FPRA-25). */
   reply(pr: PrRef, threadId: number, rootCommentId: number, content: string): Promise<WriteResult> {
+    const target = adoTarget(pr)
+    if (target === null) return Promise.resolve(notAdoWrite())
     return this.send(
       'POST',
-      `${apiBase(pr.target)}/pullRequests/${pr.id}/threads/${threadId}/comments?${API_VERSION}`,
+      `${apiBase(target)}/pullRequests/${pr.id}/threads/${threadId}/comments?${API_VERSION}`,
       { content, parentCommentId: rootCommentId, commentType: TEXT_COMMENT }
     )
   }
@@ -384,9 +400,11 @@ export class AdoPrClient {
     threadId: number,
     status: Exclude<AdoThreadStatus, 'unknown'>
   ): Promise<WriteResult> {
+    const target = adoTarget(pr)
+    if (target === null) return Promise.resolve(notAdoWrite())
     return this.send(
       'PATCH',
-      `${apiBase(pr.target)}/pullRequests/${pr.id}/threads/${threadId}?${API_VERSION}`,
+      `${apiBase(target)}/pullRequests/${pr.id}/threads/${threadId}?${API_VERSION}`,
       { status: STATUS_CODES[status] }
     )
   }
@@ -404,10 +422,12 @@ export class AdoPrClient {
     selection: PrSelection
     content: string
   }): Promise<WriteResult> {
+    const target = adoTarget(req.pr)
+    if (target === null) return Promise.resolve(notAdoWrite())
     const anchor = anchorFromSelection(req.selection)
     return this.send(
       'POST',
-      `${apiBase(req.pr.target)}/pullRequests/${req.pr.id}/threads?${API_VERSION}`,
+      `${apiBase(target)}/pullRequests/${req.pr.id}/threads?${API_VERSION}`,
       {
         comments: [{ parentCommentId: 0, content: req.content, commentType: TEXT_COMMENT }],
         status: STATUS_CODES.active,
@@ -427,7 +447,9 @@ export class AdoPrClient {
 
   /** A comment on the pull request as a whole: a thread with no file context (FPRA-29). */
   generalComment(pr: PrRef, content: string): Promise<WriteResult> {
-    return this.send('POST', `${apiBase(pr.target)}/pullRequests/${pr.id}/threads?${API_VERSION}`, {
+    const target = adoTarget(pr)
+    if (target === null) return Promise.resolve(notAdoWrite())
+    return this.send('POST', `${apiBase(target)}/pullRequests/${pr.id}/threads?${API_VERSION}`, {
       comments: [{ parentCommentId: 0, content, commentType: TEXT_COMMENT }],
       status: STATUS_CODES.active,
       properties: SUPPORTS_MARKDOWN
@@ -465,41 +487,23 @@ export class AdoPrClient {
 
   /**
    * The worktree's branch, its Azure DevOps remotes and the one it is pushed
-   * to — every git read through the paced runner. A detached HEAD and a
-   * repository with no Azure DevOps remote are answers, not failures.
+   * to, kept from `locateBranch` — every git read through the paced runner.
+   * A detached HEAD and a repository with no Azure DevOps remote are answers,
+   * not failures.
    */
   private async locate(
     worktreePath: string
   ): Promise<
     | { kind: 'ok'; branch: string; repos: AdoRemote[]; source: AdoRemote | null }
     | { kind: 'detached' }
-    | { kind: 'no-ado-remote' }
+    | { kind: 'no-remote' }
     | { kind: 'error'; message: string }
   > {
-    let branch: string
-    let remotes: { name: string; url: string }[]
-    try {
-      const { stdout: head } = await this.run(worktreePath, ['rev-parse', '--abbrev-ref', 'HEAD'])
-      branch = head.trim()
-      if (branch === '' || branch === 'HEAD') return { kind: 'detached' }
-      remotes = parseRemoteUrls((await this.run(worktreePath, ['remote', '-v'])).stdout)
-    } catch (err) {
-      return { kind: 'error', message: messageOf(err) }
-    }
-    const repos = pickRemoteRepos(remotes)
-    if (repos.length === 0) return { kind: 'no-ado-remote' }
-    let upstream: string | null
-    try {
-      const { stdout } = await this.run(worktreePath, [
-        'config',
-        '--get',
-        `branch.${branch}.remote`
-      ])
-      upstream = stdout.trim() === '' ? null : stdout.trim()
-    } catch {
-      // `git config --get` exits 1 when the key is unset: the branch tracks nothing.
-      upstream = null
-    }
+    const located = await locateBranch(this.run, worktreePath)
+    if (located.kind !== 'ok') return located
+    const { branch, tracked: upstream } = located
+    const repos = pickRemoteRepos(located.remotes)
+    if (repos.length === 0) return { kind: 'no-remote' }
     return { kind: 'ok', branch, repos, source: sourceRemote(upstream, repos) }
   }
 
@@ -577,8 +581,26 @@ async function openHttps(
   return { ok: true }
 }
 
+const NOT_ADO = 'This pull request is not on Azure DevOps.'
+
+/**
+ * The Azure DevOps repository a pull request names. Another provider's pull
+ * request is the caller's mistake: it reads as an error and nothing is sent.
+ */
+function adoTarget(pr: PrRef): AdoTarget | null {
+  return pr.target.provider === 'azure-devops' ? pr.target : null
+}
+
+function notAdo(): { kind: 'error'; message: string } {
+  return { kind: 'error', message: NOT_ADO }
+}
+
+function notAdoWrite(): WriteResult {
+  return { ok: false, message: NOT_ADO }
+}
+
 /** The REST root of one repository, every segment encoded. */
-function apiBase(target: PrTarget): string {
+function apiBase(target: AdoTarget): string {
   const part = (value: string): string => encodeURIComponent(value)
   return (
     `https://dev.azure.com/${part(target.org)}/${part(target.project)}` +
@@ -586,19 +608,9 @@ function apiBase(target: PrTarget): string {
   )
 }
 
-/** `git remote -v` as name and fetch URL pairs, once per remote. */
-function parseRemoteUrls(stdout: string): { name: string; url: string }[] {
-  const remotes = new Map<string, string>()
-  for (const line of stdout.split(/\r?\n/)) {
-    const match = /^(\S+)\s+(\S+)\s+\(fetch\)$/.exec(line.trim())
-    if (match && !remotes.has(match[1])) remotes.set(match[1], match[2])
-  }
-  return [...remotes].map(([name, url]) => ({ name, url }))
-}
-
 /** Two remotes naming the same repository are searched once. */
-function uniqueTargets(repos: AdoRemote[]): PrTarget[] {
-  const seen = new Map<string, PrTarget>()
+function uniqueTargets(repos: AdoRemote[]): AdoTarget[] {
+  const seen = new Map<string, AdoTarget>()
   for (const { target } of repos) {
     const key = [target.org, target.project, target.repo].map((s) => s.toLowerCase()).join('/')
     if (!seen.has(key)) seen.set(key, target)
@@ -606,9 +618,8 @@ function uniqueTargets(repos: AdoRemote[]): PrTarget[] {
   return [...seen.values()]
 }
 
-function summaryOf(target: PrTarget, pr: AdoPullRequest): PrSummary {
+function summaryOf(target: AdoTarget, pr: AdoPullRequest): PrSummary {
   return {
-    provider: 'azure-devops',
     target,
     id: pr.pullRequestId,
     title: pr.title,

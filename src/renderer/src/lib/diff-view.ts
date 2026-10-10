@@ -4,8 +4,10 @@ import type {
   DiffRequest,
   Eol,
   FileStat,
-  FilesMode
+  FilesMode,
+  PrRef
 } from '../../../shared/files'
+import { prKey } from './pr-view'
 
 /**
  * The two lenses that open a diff (FDIF-01/02). Full-folder mode is not one of
@@ -87,7 +89,7 @@ export type TabRef =
   | { kind: 'all-changes' }
   | { kind: 'commit'; sha: string }
   | { kind: 'pr-overview' }
-  | { kind: 'pr-diff'; id: number; path: string }
+  | { kind: 'pr-diff'; pr: PrRef; path: string }
 
 /** The key of the fixed first tab of both diff modes (FDIF-17). */
 export const ALL_CHANGES_KEY = 'all-changes'
@@ -107,14 +109,15 @@ const PR_OVERVIEW_TAB: TabRef = { kind: 'pr-overview' }
  * the kind and, for a diff, the mode are part of the key, not just the path. A
  * commit tab is keyed by its sha, so the same commit opens once however many
  * times it is clicked, and an amend — a new sha — is a different tab. A PR
- * diff is keyed by its pull request and path (FPRA-16): it reads both sides
- * from the provider, so it is never the local diff of that same path.
+ * diff is keyed by its pull request — provider included, so `!7` and `#7`
+ * are two tabs (FPRG-07) — and path (FPRA-16): it reads both sides from the
+ * provider, so it is never the local diff of that same path.
  */
 export function tabKeyOf(tab: TabRef): string {
   if (tab.kind === 'all-changes') return ALL_CHANGES_KEY
   if (tab.kind === 'commit') return `commit:${tab.sha}`
   if (tab.kind === 'pr-overview') return PR_OVERVIEW_KEY
-  if (tab.kind === 'pr-diff') return `pr:${tab.id}:${tab.path}`
+  if (tab.kind === 'pr-diff') return `pr:${prKey(tab.pr)}:${tab.path}`
   return tab.kind === 'file' ? `file:${tab.path}` : `diff:${tab.mode}:${tab.path}`
 }
 

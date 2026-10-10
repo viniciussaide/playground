@@ -1,15 +1,14 @@
 import type { JSX } from 'react'
-import type { PrRef, PrSummary } from '../../../shared/files'
+import type { PrSummary } from '../../../shared/files'
+import { prKey, prLabel } from '../lib/pr-view'
+import { providerName } from '../lib/use-pull-request'
 import './PrPicker.css'
-
-/** One option's value: the pull request's repository and number, which name it. */
-function keyOf(pr: PrRef): string {
-  return [pr.target.org, pr.target.project, pr.target.repo, pr.id].join('/')
-}
 
 /**
  * Which of several active pull requests the mode shows (FPRA-04): each named
- * by its number, title and target branch. The choice is the hook's, kept per
+ * by its provider, number, title and target branch — the provider first, so
+ * an Azure DevOps and a GitHub pull request of one branch tell apart at a
+ * glance even with equal numbers (FPRG-07). The choice is the hook's, kept per
  * worktree while the app runs, so leaving the worktree and coming back finds
  * the same pull request. The caller shows it only when there is more than one.
  */
@@ -27,9 +26,9 @@ export function PrPicker({
       <span className="pr-picker-label">Pull request</span>
       <select
         className="pr-picker-select"
-        value={current ? keyOf(current) : ''}
+        value={current ? prKey(current) : ''}
         onChange={(event) => {
-          const picked = prs.find((pr) => keyOf(pr) === event.target.value)
+          const picked = prs.find((pr) => prKey(pr) === event.target.value)
           if (picked) onChoose(picked)
         }}
       >
@@ -39,8 +38,8 @@ export function PrPicker({
           </option>
         )}
         {prs.map((pr) => (
-          <option key={keyOf(pr)} value={keyOf(pr)}>
-            !{pr.id} {pr.title} → {pr.targetBranch}
+          <option key={prKey(pr)} value={prKey(pr)} data-provider={pr.target.provider}>
+            {providerName(pr.target.provider)} · {prLabel(pr)} {pr.title} → {pr.targetBranch}
           </option>
         ))}
       </select>

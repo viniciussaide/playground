@@ -1,18 +1,24 @@
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
-import type { PrSelection } from '../../../shared/files'
+import type { CommentPlan, PrSelection } from '../../../shared/files'
 import { tabKeyOf } from '../lib/diff-view'
-import { zonesForFile } from '../lib/pr-view'
+import { commentPlan, prKey, zonesForFile } from '../lib/pr-view'
 import type { PrDiffTab as PrDiffTabState, UseFiles } from '../lib/use-files'
+import type { SidesRevision } from '../lib/use-pull-request'
 import { CommentComposer } from './CommentComposer'
 import { DiffViewer, type DiffHandle, type DiffZone, type ModifiedSelection } from './DiffViewer'
 import { PrThread } from './PrThread'
 import './PrDiffTab.css'
 
-/** A new thread being written: the selection it is anchored to, and the iteration it was made on. */
+/**
+ * A new comment being written: the selection it is about, the revision it was
+ * made on, and how it will post — anchored, or on GitHub as a general comment
+ * citing the lines (FPRG-19..22).
+ */
 interface Draft {
   selection: PrSelection
-  iteration: number
+  at: SidesRevision
+  plan: CommentPlan
 }
 
 /**
@@ -27,7 +33,11 @@ interface Draft {
  * A selection on the modified side offers Comment, which opens a composer
  * under the selection anchored to its lines and columns at the iteration on
  * screen (FPRA-27). The viewer reports no selection of the original side, so
- * there is never a Comment there (FPRA-28).
+ * there is never a Comment there (FPRA-28). On GitHub, `commentPlan` decides
+ * first: a selection whose ends are not both in the file's hunks — one in an
+ * expanded unchanged region, or any in a file GitHub sent no patch for —
+ * opens the composer with the general-comment banner, and posts as a general
+ * comment citing the lines (FPRG-19..22).
  */
 export function PrDiffTab({
   files,
@@ -46,7 +56,7 @@ export function PrDiffTab({
   const [selection, setSelection] = useState<ModifiedSelection | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
 
-  // Read once per iteration: the banner's reload drops the entry, and the
+  // Read once per revision: the banner's reload drops the entry, and the
   // tab reads again.
   const { readSides } = pr
   useEffect(() => {
@@ -56,7 +66,7 @@ export function PrDiffTab({
   // Threads and writes belong to the pull request shown; a tab left open on
   // another one keeps its sides and shows no threads it cannot answer.
   const detail = pr.detail
-  const ours = detail !== null && detail.id === tab.id && detail.status === 'active'
+  const ours = detail !== null && prKey(detail) === prKey(tab.pr) && detail.status === 'active'
 
   const openLink = (href: string): void => {
     void pr
@@ -66,6 +76,11 @@ export function PrDiffTab({
       })
       .catch((err: unknown) => onToast(err instanceof Error ? err.message : String(err)))
   }
+
+  // The file as the pull request on screen lists it, so a GitHub file carries
+  // the hunks its plan is decided by (FPRG-22).
+  const file =
+    (ours ? detail.files.find((shown) => shown.path === tab.path) : undefined) ?? tab.file
 
   const placed = zonesForFile(ours ? detail.threads : [], tab.path)
   const zones: DiffZone[] = [
@@ -86,9 +101,9 @@ export function PrDiffTab({
     content: (
       <PrThread
         thread={thread}
-        provider={detail?.provider ?? 'azure-devops'}
+        provider={tab.pr.target.provider}
         onReply={(content) => pr.reply(thread.id, thread.rootCommentId, content)}
-        onSetStatus={(status) => pr.setStatus(thread.id, status)}
+        onSetState={(intent) => pr.setThreadState(thread, intent)}
         onOpenLink={openLink}
       />
     )
@@ -101,8 +116,12 @@ export function PrDiffTab({
       content: (
         <CommentComposer
           autoFocus
+          plan={draft.plan}
           onPost={(content) =>
-            pr.startThread(tab.file, draft.selection, draft.iteration, content).then((result) => {
+            (draft.plan.kind === 'general'
+              ? pr.comment(content)
+              : pr.startThread(file, draft.selection, draft.at, content)
+            ).then((result) => {
               if (result.ok) setDraft(null)
               return result
             })
@@ -116,7 +135,14 @@ export function PrDiffTab({
 
   const comment = (): void => {
     if (!selection || !entry) return
-    setDraft({ selection: { path: tab.path, ...selection }, iteration: entry.iteration })
+    const at: SidesRevision = { revision: entry.revision }
+    if (entry.ado) at.ado = entry.ado
+    const { text, ...lines } = selection
+    setDraft({
+      selection: { path: tab.path, ...lines },
+      at,
+      plan: commentPlan(tab.pr, file, { startLine: lines.startLine, endLine: lines.endLine, text })
+    })
   }
 
   if (!entry?.sides) return <div className="file-tabs-note">Loading…</div>

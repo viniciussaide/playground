@@ -222,12 +222,15 @@ export type RemoteRef =
 /** The provider a pull request lives on. F4 ships Azure DevOps; F5 adds GitHub to this same model. */
 export type PrProvider = 'azure-devops' | 'github'
 
-/** The repository a pull request targets, as `parseRemote` reduced its remote (FPRA-02). */
-export interface PrTarget {
-  org: string
-  project: string
-  repo: string
-}
+/**
+ * The repository a pull request targets, as `parseRemote` reduced its remote
+ * (FPRA-02). Its `provider` is the one place a pull request's provider is
+ * read from (FPRG-07).
+ */
+export type PrTarget = RemoteRef
+
+/** An Azure DevOps repository a pull request targets. */
+export type AdoTarget = Extract<PrTarget, { provider: 'azure-devops' }>
 
 /**
  * Names one pull request. The renderer only ever sends this back as intent:
@@ -241,27 +244,33 @@ export interface PrRef {
 
 /** One pull request the search found: what the picker names (FPRA-04). */
 export interface PrSummary extends PrRef {
-  provider: PrProvider
   title: string
   /** Without `refs/heads/`. */
   targetBranch: string
   isDraft: boolean
 }
 
-/** What searching for the branch's pull requests found, or why there is nothing to show (FPRA-02..08). */
+/**
+ * What searching one provider for the branch's pull requests found, or why
+ * there is nothing to show (FPRA-02..08, FPRG-04, 06, 26).
+ */
 export type PrSearch =
   | { kind: 'found'; prs: PrSummary[] }
-  /** No active pull request; `createUrlAvailable` says whether Create PR can be offered (FPRA-05). */
+  /** No open pull request; `createUrlAvailable` says whether Create PR can be offered (FPRA-05). */
   | { kind: 'none'; createUrlAvailable: boolean }
-  | { kind: 'no-ado-remote' }
+  /** The repository has no remote on this provider (FPRA-06). */
+  | { kind: 'no-remote' }
   | { kind: 'auth' }
   | { kind: 'detached' }
+  /** The provider refuses requests until `resetAt`, epoch milliseconds; nothing retries before it (FPRG-26). */
+  | { kind: 'rate-limited'; resetAt: number }
   | { kind: 'error'; message: string }
 
 /**
  * A reviewer's verdict in provider-neutral terms. Azure DevOps' five votes map
  * onto it one to one (10, 5, 0, -5, -10), and GitHub's review states map onto
- * the same union, so the Overview draws one shape for both.
+ * the same union, so the Overview draws one shape for both (FPRG-09): GitHub
+ * adds its own three, and a reviewer requested without a review is `no-vote`.
  */
 export type ReviewerState =
   | 'approved'
@@ -269,6 +278,9 @@ export type ReviewerState =
   | 'no-vote'
   | 'waiting-for-author'
   | 'rejected'
+  | 'changes-requested'
+  | 'commented'
+  | 'dismissed'
 
 /** One reviewer and their vote; a group is listed like a person (FPRA-09, edge case). */
 export interface Reviewer {
@@ -287,6 +299,14 @@ export type AdoThreadStatus =
   | 'byDesign'
   | 'pending'
   | 'unknown'
+
+/**
+ * What a thread's state control asks for, in its own provider's terms: one of
+ * Azure DevOps' statuses (FPRA-26), or GitHub's resolved or not (FPRG-17).
+ */
+export type ThreadStateIntent =
+  | { provider: 'azure-devops'; status: Exclude<AdoThreadStatus, 'unknown'> }
+  | { provider: 'github'; resolved: boolean }
 
 /** One visible comment of a thread; deleted comments never get this far (FPRA-21). */
 export interface PrComment {
@@ -319,7 +339,8 @@ export type PrThreadPlace =
  * provider that has none.
  */
 export interface PrThreadView {
-  id: number
+  /** Azure DevOps numbers its threads; GitHub names one by a node id (FPRG-17). */
+  id: number | string
   /**
    * The comment a reply answers (FPRA-25): the thread's first comment, read
    * before deleted comments are dropped, so it holds even when that comment
@@ -328,13 +349,21 @@ export interface PrThreadView {
   rootCommentId: number
   resolution: 'active' | 'resolved'
   providerStatus?: AdoThreadStatus
+  /**
+   * What the viewer may do on this thread, as the provider reports it
+   * (FPRG-18). Absent means everything is allowed, which is Azure DevOps.
+   */
+  can?: { reply: boolean; resolve: boolean; reopen: boolean }
   comments: PrComment[]
   place: PrThreadPlace
 }
 
-/** One changed file of a pull request, with the id a new thread on it must carry (FPRA-15/27). */
+/**
+ * One changed file of a pull request (FPRA-15). On Azure DevOps it carries the
+ * id a new thread on it must be anchored with (FPRA-27).
+ */
 export interface PrFile extends ChangedPath {
-  changeTrackingId: number
+  changeTrackingId?: number
 }
 
 /** A pull request's lifecycle; anything but `active` is no longer the branch's PR (edge case). */
@@ -351,16 +380,77 @@ export interface PrDetail extends PrSummary {
   /** Without `refs/heads/`. */
   sourceBranch: string
   reviewers: Reviewer[]
-  /** The latest iteration, which every thread position and new anchor refers to (FPRA-16/18). */
-  iteration: number
+  /**
+   * The pull request's latest revision, opaque and only ever compared for
+   * equality: Azure DevOps' latest iteration as text, GitHub's head commit
+   * (FPRA-34, FPRG-25).
+   */
+  revision: string
+  /** Azure DevOps' own: the latest iteration, which every thread position and new anchor refers to (FPRA-16/18). */
+  ado?: { iteration: number }
+  /** GitHub's own: what its diff sides and new anchors are read against (FPRG-11, 12, 19). */
+  github?: {
+    headSha: string
+    baseSha: string
+    /** The repository the head branch lives in; null when the fork is gone (edge case). */
+    headRepo: { owner: string; repo: string } | null
+    /** GitHub stopped listing files at its 3000-file ceiling (edge case). */
+    filesIncomplete: boolean
+  }
+  /** On GitHub each file is a `GitHubPrFile`, carrying its hunks. */
   files: PrFile[]
   threads: PrThreadView[]
+  /** GitHub's review bodies and PR comments, in time order (FPRG-10, D4). */
+  timeline?: PrTimelineEntry[]
 }
+
+/** A review body or a PR comment (FPRG-10, D4): read, never answered in place. */
+export interface PrTimelineEntry {
+  author: string
+  /** Epoch milliseconds. */
+  at: number
+  /** Markdown, rendered inertly. */
+  content: string
+  /** Present when the entry is a review. */
+  reviewState?: ReviewerState
+}
+
+/**
+ * The `gh` CLI's state for the TopBar chip (FPRG-01..04). `no-github-remote`
+ * is decided in main, which holds the remote URLs: no chip at all (FPRG-02).
+ */
+export type GhStatus = 'ok' | 'not-installed' | 'not-signed-in' | 'no-github-remote'
+
+/**
+ * A hunk's new-side lines, 1-based and inclusive; `newEnd < newStart` when the
+ * hunk has no new-side lines (FPRG-19, 22).
+ */
+export interface Hunk {
+  newStart: number
+  newEnd: number
+}
+
+/** A GitHub PR file with its diff hunks (FPRG-19, 22). */
+export interface GitHubPrFile extends PrFile {
+  /** Parsed from GitHub's patch; null when GitHub omitted it (large or binary, S7). */
+  hunks: Hunk[] | null
+}
+
+/**
+ * How a comment on a selection will post (FPRG-19..22): anchored to its lines,
+ * or as a general comment carrying the banner the composer shows and the
+ * citation it prepends.
+ */
+export type CommentPlan =
+  | { kind: 'anchored'; anchor: { path: string; startLine: number; endLine: number } }
+  | { kind: 'general'; banner: string; citation: string }
 
 /** One pull request read in full, or why it could not be (FPRA-07). Never thrown. */
 export type PrDetailResult =
   | { kind: 'ok'; detail: PrDetail }
   | { kind: 'auth' }
+  /** As in `PrSearch` (FPRG-26). */
+  | { kind: 'rate-limited'; resetAt: number }
   | { kind: 'error'; message: string }
 
 /**

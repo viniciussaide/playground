@@ -675,9 +675,9 @@ T25 → T26 → T27
 
 - [ ] The banner is visible before the first keystroke, not only after posting
 - [ ] Preview shows citation + text as one rendered comment
-- [ ] Anchored plans look exactly as in F4
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: **3122** (unchanged)
+- [x] Anchored plans look exactly as in F4
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: **3122** (unchanged)
 
 **Tests**: none
 **Gate**: full

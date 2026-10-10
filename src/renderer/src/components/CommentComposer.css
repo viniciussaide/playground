@@ -100,6 +100,18 @@
   background: var(--panel);
 }
 
+/* A selection GitHub cannot anchor posts as a general comment (FPRG-20): said before typing. */
+.comment-composer-banner {
+  padding: 5px 8px;
+  border: 1px solid color-mix(in oklab, var(--amber) 45%, transparent);
+  border-radius: 7px;
+  background: color-mix(in oklab, var(--amber) 12%, transparent);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
 .comment-composer-tabs {
   display: flex;
   gap: 2px;

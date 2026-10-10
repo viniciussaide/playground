@@ -8,26 +8,41 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 
 ---
 
-**Design**: inline. Two pure functions decide everything the bar shows — `reviewMark(reviewers)` and `prChip(results)`, which turns both providers' search results and details into one of `one`, `many`, `create`, `unknown`, `hidden` — so rendering is a switch. The lookup is F4's `use-pull-request` (as amended by F5): T3 reads it as built and either lifts its per-worktree search-and-cache into a shared hook mounted by App, or, if it already lives above the direction switch, uses it as is. T3 records which.
-**Status**: Draft — awaiting owner approval (planned 2026-09-22)
+**Design**: inline. Two pure functions decide everything the bar shows — `reviewMark(reviewers)` and `prChip(lookup)`, which turns both providers' search results and details into one of `one`, `many`, `create`, `unknown`, `hidden` — so rendering is a switch. The lookup is lifted out of F4/F5's `usePullRequest` into a shared hook App mounts (T3, T4); see the reconciliation below for why it cannot be used as is.
+**Status**: Reconciled against the executed F4/F5 code 2026-10-10 — awaiting owner approval (planned 2026-09-22)
 
-**Branch**: `feature/status-pr-link` off `feature/files-pr-github` `5010b69`. **Executes only after F5** (and therefore F1–F4) is executed: rebase onto the executed `feature/files-pr-github` first. Names below (`PrSearch`, `PrDetail`, reviewer `state`, `ado-pr:*`, `github-pr:*`, `use-pull-request`) are F4/F5's planned names; re-read them from the executed code at Execute and adjust this file before T1.
+**Branch**: `feature/status-pr-link`, rebased 2026-10-10 `--onto feature/files-pr-github 5010b69` (F5 as shipped in its PR, stacked on F4's PR; backup `backup/status-pr-link-prerebase`). When F4 and F5 merge upstream, rebase onto `origin/main` the same way.
 
-**Test baseline**: **re-measure** with `npx vitest run` as the first act of Execute (after the rebase); record the lint warning count at the same time.
+**Test baseline**: 3122 tests in 141 files (`npx vitest run`), lint 18 warnings, measured 2026-10-10 after the rebase.
+
+### Reconciliation with the executed F4/F5 code (2026-10-10)
+
+| Planned | As built | Effect on the plan |
+| ------- | -------- | ------------------ |
+| `PrSearch` kinds `found`, `none`, `no-ado-remote`, `auth`, `detached`, `error` | `src/shared/files.ts`: `found`, `none { createUrlAvailable }`, `no-remote`, `auth`, `detached`, `rate-limited { resetAt }`, `error`; `PrDetailResult` adds `rate-limited` too | T2: `rate-limited` with nothing found is `unknown`, its reason the reset time; `no-remote` and `detached` hide the chip |
+| F4's reviewer states | `ReviewerState`: `approved`, `approved-with-suggestions`, `no-vote`, `waiting-for-author`, `rejected`, `changes-requested`, `commented`, `dismissed` | T1: ✕ `rejected`; ⏸ `waiting-for-author`, `changes-requested`; ✓ `approved`, `approved-with-suggestions`; no mark for `no-vote`, `commented`, `dismissed` |
+| Both providers may list PRs for one branch | FPRG-07 as amended in F5: a branch lists only the PRs of the provider whose remote it tracks; the other provider answers `none` with `createUrlAvailable: false` or `no-remote` | `many` comes from one provider with several target branches; SPRL-19 still holds when the other provider fails (`auth`, `error`, `rate-limited`) |
+| `use-pull-request` may already live above the direction switch | It does — `useFiles` calls it and App always mounts `useFiles` — but it searches only while the Files direction is in Pull request mode, and reads the detail of **one** PR (the only one, or the one picked) | Not usable as is: the bar needs a search on selection in every direction and every found PR's reviewers. T3 extracts the rules, T4 lifts search, details, the pick and the rate-limit memory into `usePrLookup`, which App mounts and both `usePullRequest` and the bar read |
+| FPRG-26 | A provider that answered `rate-limited` is not asked again by a reload that happens on its own (focus, after a write), only by one the user asked for | The bar's focus lookups obey the same memory — it lives in the shared hook |
+| Openers `ado-pr:open`, `github-pr:open` | As planned: `{ worktreePath, pr }` or `{ worktreePath, create: true }`; main builds the URL | T6 calls them; the failure reason text is F5's `failureText`, exported from the shared rules |
+| Bar target | `barTargetFor` in `status-bar.ts`: the tree selection, or in Agents the selected session's worktree; picking a session also picks its worktree in App | The lookup is keyed by worktree path and the bar paints the entry of its own target |
+| T7 stub "wrap `window.api.invoke`" | `window.api` is exposed through `contextBridge`, whose copy the page cannot change; the preload's `api.invoke` calls `ipcRenderer.invoke` at call time | T8 stubs `ipcRenderer.invoke` in the preload's isolated world over CDP, for the four lookup channels only; it proves the stub first and stops if it cannot be installed |
 
 ---
 
 ## Test Coverage Matrix
 
-> Generated from codebase, project guidelines, and spec — confirm before Execute. Guidelines found: `.specs/codebase/TESTING.md`, `vitest.config.ts`, `package.json` scripts; style sampled from `src/renderer/src/lib/status-bar.test.ts`.
+> Generated from codebase, project guidelines, and spec — confirm before Execute. Guidelines found: `.specs/codebase/TESTING.md`, `vitest.config.ts`, `package.json` scripts; style sampled from `src/renderer/src/lib/status-bar.test.ts` and `pr-view.test.ts`. The repository tests no hook directly; hook decisions live in pure modules that are tested.
 
 | Code Layer | Required Test Type | Coverage Expectation | Location Pattern | Run Command |
 | ---------- | ------------------ | -------------------- | ---------------- | ----------- |
 | Pure chip logic (`pr-status.ts`) | unit | 1:1 to SPRL-03..08, 12, 15–19 and the failed-`get` edge case, for both providers' reviewer states | `src/renderer/src/lib/pr-status.test.ts` | `npm test` |
+| Pure lookup rules (`pr-lookup.ts`) | unit | Which providers are asked (FPRG-26 memory), which PRs are read, how an answer lands in the per-worktree entry (stale ticket dropped, other worktree cached), the failure text | `src/renderer/src/lib/pr-lookup.test.ts` | `npm test` |
 | Lookup hook and App wiring | none (smoke) | SPRL-01, 02, 09, the stale-answer and shared-lookup edge cases | — | smoke |
 | `StatusBar` component and CSS | none (CDP smoke) | SPRL-10–14 | — | smoke |
 | End to end, stubbed providers | manual CDP smoke | Every chip kind, rendered from stubbed `find`/`get` answers | `scripts/smoke-status-bar.mjs` | live dev app |
-| End to end, real PR | manual, owner-driven | SPRL-10, 11, 15 against the sandbox PRs F4/F5 used | — | live dev app |
+| Pull request mode, regression | manual CDP smoke | F4/F5's read-only sections unchanged after T4 | `scripts/smoke-files-pr-ado.mjs`, `scripts/smoke-files-pr-github.mjs` (read-only) | live dev app |
+| End to end, real PR | manual, owner-driven | SPRL-01, 10, 11, 15 against PRs the owner names | — | live dev app |
 
 ## Gate Check Commands
 
@@ -36,9 +51,9 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 | Quick | After a task whose only tests are unit tests | `npm test` |
 | Full | After a code task | `npm run typecheck && npm run lint && npm test` |
 | Build | Wiring tasks and phase ends | `npx electron-vite build` |
-| Manual | T7, T8 | smoke / owner check |
+| Manual | T8, T9 | smoke / owner check |
 
-**Lint is judged by exit code AND by warning count** — record the count at T1 and diff it at every gate.
+**Lint is judged by exit code AND by warning count** — the count above, diffed at every gate.
 
 ---
 
@@ -47,25 +62,25 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 ### Phase 1: Rules
 
 ```
-T1 → T2
+T1 → T2 → T3
 ```
 
 ### Phase 2: Lookup and opening
 
 ```
-T2 → T3 → T4
+T3 → T4 → T5
 ```
 
 ### Phase 3: The chip
 
 ```
-T4 → T5 → T6
+T5 → T6 → T7
 ```
 
 ### Phase 4: Prove
 
 ```
-T6 → T7 → T8
+T7 → T8 → T9
 ```
 
 ---
@@ -74,10 +89,10 @@ T6 → T7 → T8
 
 ### T1: `reviewMark` and the tooltip lines
 
-**What**: `reviewMark(reviewers)` → `'rejected' | 'changes' | 'approved' | null`, the worst mark winning, over F4's provider-neutral reviewer states; `reviewLines(reviewers)` → one `"<name>: <state label>"` line per reviewer.
+**What**: `reviewMark(reviewers)` → `'rejected' | 'changes' | 'approved' | null`, the worst mark winning, over `ReviewerState`: `rejected` → `rejected`; `waiting-for-author`, `changes-requested` → `changes`; `approved`, `approved-with-suggestions` → `approved`; `no-vote`, `commented`, `dismissed` add nothing. `reviewLines(reviewers)` → one `"<name>: <state label>"` line per reviewer.
 **Where**: `src/renderer/src/lib/pr-status.ts` (new) and its test
 **Depends on**: None
-**Reuses**: F4's `Reviewer` type as amended by F5
+**Reuses**: `Reviewer`, `ReviewerState` (`src/shared/files.ts`)
 **Requirement**: SPRL-04, SPRL-05, SPRL-06, SPRL-07, SPRL-08
 
 **Tools**:
@@ -87,7 +102,7 @@ T6 → T7 → T8
 
 **Done when**:
 
-- [ ] Tests for each mark from ADO-shaped and GitHub-shaped reviewers; rejected beats changes beats approved; approved-with-suggestions counts as approved; no votes → `null`; groups and required flags do not change the mark
+- [ ] Tests for each mark from Azure DevOps-shaped reviewers (votes, groups, required) and GitHub-shaped ones (`changes-requested`, `commented`, `dismissed`); rejected beats changes beats approved; approved-with-suggestions counts as approved; no votes → `null`; groups and required flags do not change the mark
 - [ ] Gate check passes: `npm test`
 - [ ] Test count: baseline + the new tests
 
@@ -100,10 +115,10 @@ T6 → T7 → T8
 
 ### T2: `prChip`
 
-**What**: `prChip({ ado, github, details })` → `{ kind: 'one', pr, mark, draft } | { kind: 'many', prs, notes } | { kind: 'create', provider } | { kind: 'unknown', reason } | { kind: 'hidden' }`.
+**What**: `prChip({ searches, details })` — `searches` as `PrSearches`, `details` by `prKey` — → `{ kind: 'one', pr, mark, draft, reviewers } | { kind: 'many', prs, notes } | { kind: 'create', provider } | { kind: 'unknown', reason } | { kind: 'hidden' }`. Reasons and notes use F5's `failureText` (moved to `pr-lookup.ts` by T3, so T2 imports it from `use-pull-request.ts` and T3 moves the import).
 **Where**: `src/renderer/src/lib/pr-status.ts`
 **Depends on**: T1
-**Reuses**: F4's `PrSearch`, `PrDetail`
+**Reuses**: `PrSearch`, `PrDetailResult`, `prKey` (`pr-view.ts`)
 **Requirement**: SPRL-03, SPRL-12, SPRL-15, SPRL-16, SPRL-17, SPRL-18, SPRL-19
 
 **Tools**:
@@ -113,7 +128,7 @@ T6 → T7 → T8
 
 **Done when**:
 
-- [ ] Tests: one PR from either provider; one from each → `many`; one provider failing while the other found → the found PRs with a note; both `none` with creation available → `create`, without → `hidden`; `auth` or `error` with nothing found → `unknown` carrying the reason; no remote or detached on both → `hidden`; a PR whose detail failed → no mark
+- [ ] Tests: one PR from either provider; several from one provider → `many`; one provider failing (`auth`, `error`, `rate-limited`) while the other found → the found PRs with a note; `none` with creation available on one provider → `create` naming it, without on both → `hidden`; `auth`, `error` or `rate-limited` with nothing found → `unknown` carrying the reason; `no-remote` or `detached` on both → `hidden`; nothing searched yet → `hidden`; a PR whose detail failed or is not read yet → no mark and reviewers unknown
 - [ ] Gate check passes: `npm test`
 - [ ] Test count: T1 count + the new tests
 
@@ -124,13 +139,13 @@ T6 → T7 → T8
 
 ---
 
-### T3: One lookup for the bar and the Pull request mode
+### T3: The lookup's rules, pure
 
-**What**: Make the per-worktree PR search, detail fetch and cache available above the direction switch — by lifting it out of F4's `use-pull-request` into a shared hook App mounts, or by using it as is if it already lives there — triggered on selection, focus (5 s) and Refresh, dropping answers for a worktree no longer selected from the painted chip while still caching them.
-**Where**: `src/renderer/src/lib/use-pull-request.ts`
+**What**: `src/renderer/src/lib/pr-lookup.ts`: the per-worktree entry (`searches`, the last good detail and the last failure per PR by `prKey`, the pick, the rate-limited providers, a load ticket) and the pure steps over it — which providers a reload asks (FPRG-26: a reload that happens on its own skips a provider that answered `rate-limited`), which PRs it reads (every found PR, plus the one on screen when the search no longer lists it), and how an answer lands (an older ticket is dropped; an answer always lands in its own worktree's entry). `failureText` moves here from `use-pull-request.ts`.
+**Where**: `src/renderer/src/lib/pr-lookup.ts` (new) and its test; `use-pull-request.ts` imports `failureText`
 **Depends on**: T2
-**Reuses**: F4's hook
-**Requirement**: SPRL-01, SPRL-02, SPRL-09
+**Reuses**: `load`'s rules in `use-pull-request.ts`, which they replace in T4
+**Requirement**: SPRL-01, SPRL-09, the stale-answer edge case
 
 **Tools**:
 
@@ -139,23 +154,48 @@ T6 → T7 → T8
 
 **Done when**:
 
-- [ ] The Pull request mode's own behaviour unchanged: F4/F5 smokes still pass on their seeds
-- [ ] Which option was taken, and why, recorded in this task
+- [ ] Tests: a focus reload skips a rate-limited provider and keeps its answer, a user reload asks it again; every found PR is read, plus an on-screen PR no longer listed; an answer with an older ticket changes nothing; an answer for worktree A lands in A's entry while B is selected; a failed read keeps the last good detail beside the failure
 - [ ] Gate check passes: `npm run typecheck && npm run lint && npm test`
 
-**Tests**: none
+**Tests**: unit
 **Gate**: full
+
+**Commit**: `refactor(files): state the pull request lookup's rules as pure functions`
+
+---
+
+### T4: One lookup for the bar and the Pull request mode
+
+**What**: `usePrLookup` (new hook, mounted by App above the direction switch) holds the entries of T3 and runs a lookup — both providers' `find` in parallel, then `get` for every PR to read — on: the bar target changing, window focus (5 s debounce, `FOCUS_RELOAD_MS`), the TopBar Refresh, and on behalf of the Pull request mode (entering it, a pick, its refresh, after a write — `search: false`, the shown PR only). `usePullRequest` drops its own search, detail fetch, pick and rate-limit memory and reads them from `usePrLookup`; it keeps its notice, sides, revision banner and writes. Nothing polls.
+**Where**: `src/renderer/src/lib/use-pr-lookup.ts` (new), `use-pull-request.ts`, `use-files.ts`, `App.tsx`
+**Depends on**: T3
+**Reuses**: `usePullRequest`'s `load`, `findOn`, `getOn`
+**Requirement**: SPRL-01, SPRL-02, SPRL-09, the stale-answer and shared-lookup edge cases
+
+**Tools**:
+
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+
+- [ ] The Pull request mode's own behaviour unchanged: the read-only sections of `smoke-files-pr-ado.mjs` and `smoke-files-pr-github.mjs` pass against the PRs the owner names (T9)
+- [ ] With the Files direction in Pull request mode on the bar's worktree, one selection runs one `find` per provider, not two
+- [ ] Gate check passes: `npm run typecheck && npm run lint && npm test` and `npx electron-vite build`
+
+**Tests**: none
+**Gate**: build
 
 **Commit**: `refactor(files): share the pull request lookup above the directions`
 
 ---
 
-### T4: Open a PR in the Files direction from outside it
+### T5: Open a PR in the Files direction from outside it
 
-**What**: `openPullRequest(worktreePath, prRef)` in App: switch the direction to Files, the mode to Pull request, and select that PR in F4's picker state.
+**What**: `openPullRequest(worktreeId, pr)` in App: select the worktree, switch to the Files direction with that worktree's mode set to `pull-request` in one config patch (as `openChangedFiles` does), and set the pick in `usePrLookup` for that worktree.
 **Where**: `src/renderer/src/App.tsx`
-**Depends on**: T3
-**Reuses**: `openChangedFiles`, which already switches to Files for the status bar
+**Depends on**: T4
+**Reuses**: `openChangedFiles`
 **Requirement**: SPRL-10, SPRL-13
 
 **Tools**:
@@ -174,12 +214,12 @@ T6 → T7 → T8
 
 ---
 
-### T5: The chip and its menu
+### T6: The chip and its menu
 
-**What**: `StatusBar` renders `prChip`'s answer: `PR #<n> · Draft <mark>` with a tooltip and a ↗; `<n> PRs` with a menu (each item opens in the app and has its ↗; provider notes in the footer; Escape or outside click closes); a muted `Create PR`; a muted `PR ?` with its reason; nothing for `hidden`. Openers call `ado-pr:open` / `github-pr:open`.
+**What**: `StatusBar` renders `prChip`'s answer for its target: `PR #<n> · Draft <mark>` with a tooltip (reviewer lines, or that they could not be read) and a ↗; `<n> PRs` with a menu (each item: number, title, target branch, provider, mark; opens in the app; its own ↗; provider notes in the footer; Escape or outside click closes); a muted `Create PR`; a muted `PR ?` with its reason; nothing for `hidden`. ↗ and Create PR call `ado-pr:open` / `github-pr:open`.
 **Where**: `src/renderer/src/components/StatusBar.tsx`
-**Depends on**: T4
-**Reuses**: the bar's existing popover dismissal (`SyncPopover`)
+**Depends on**: T5
+**Reuses**: the bar's popover dismissal (`SyncPopover`)
 **Requirement**: SPRL-03, SPRL-08, SPRL-10..18
 
 **Tools**:
@@ -198,11 +238,11 @@ T6 → T7 → T8
 
 ---
 
-### T6: Chip styles
+### T7: Chip styles
 
 **What**: The chip, its marks (✕ ⏸ ✓ with text labels for screen readers, never colour alone), the muted variants and the menu, in both themes, fitting the bar at its minimum width.
 **Where**: `src/renderer/src/components/StatusBar.css`
-**Depends on**: T5
+**Depends on**: T6
 **Reuses**: the bar's section and popover styles
 **Requirement**: SPRL-03..07, SPRL-15, SPRL-17
 
@@ -223,13 +263,13 @@ T6 → T7 → T8
 
 ---
 
-### T7: Smoke — every chip kind, stubbed
+### T8: Smoke — every chip kind, stubbed
 
-**What**: A section in `smoke-status-bar.mjs` that replaces `find`/`get` answers in the page (wrapping `window.api.invoke` for those channels only) and walks `one` with each mark and draft, `many` with its menu and a provider note, `create`, `unknown`, `hidden`, a stale answer after switching worktree, and the in-app open landing in Pull request mode.
+**What**: A section in `smoke-status-bar.mjs` that stubs `ipcRenderer.invoke` in the preload's isolated world over CDP for `ado-pr:find`, `ado-pr:get`, `github-pr:find`, `github-pr:get` only, and walks `one` with each mark and draft, `many` with its menu and a provider note, `create`, `unknown` (including `rate-limited`), `hidden`, a stale answer after switching worktree, a focus inside 5 s asking nothing, and the in-app open landing in Pull request mode.
 **Where**: `scripts/smoke-status-bar.mjs`
-**Depends on**: T6
+**Depends on**: T7
 **Reuses**: the script's temp workspace and restore-in-`finally`
-**Requirement**: SPRL-03..18, stale-answer edge case
+**Requirement**: SPRL-01..18, stale-answer edge case
 
 **Tools**:
 
@@ -238,7 +278,8 @@ T6 → T7 → T8
 
 **Done when**:
 
-- [ ] Each check seen failing with its rule broken (mark order inverted; `create` shown without `createUrlAvailable`), then passing
+- [ ] The stub is proved installed (a stubbed `find` answer reaches the bar) before any check; the section stops if it cannot be
+- [ ] Each check seen failing with its rule broken (mark order inverted; `create` shown without `createUrlAvailable`; stale answer painted), then passing
 - [ ] The stub is removed in `finally`; no real provider call is made by this section
 - [ ] Gate check passes: `npm run lint` (warning count unchanged)
 
@@ -249,12 +290,12 @@ T6 → T7 → T8
 
 ---
 
-### T8: Owner check against a real PR
+### T9: Owner check against a real PR
 
-**What**: With the sandbox PRs F4/F5 used, the owner selects their worktree: the chip shows the PR and its mark; the chip opens Pull request mode; ↗ opens the browser; a branch without a PR shows `Create PR` and it opens the creation page.
+**What**: With the PRs the owner names at this task, the owner selects their worktree: the chip shows the PR and its mark; the chip opens Pull request mode; ↗ opens the browser; a branch without a PR shows `Create PR` and it opens the creation page. The read-only sections of the F4/F5 smokes run against the same PRs (T4's regression check).
 **Where**: `.specs/features/status-pr-link/tasks.md` (result)
-**Depends on**: T7
-**Reuses**: F4 T1 / F5 T1 sandbox PRs — **never** a real team PR, never `obogoni/playground`
+**Depends on**: T8
+**Reuses**: the F4/F5 smokes' read-only sections
 **Requirement**: SPRL-01, SPRL-10, SPRL-11, SPRL-15
 
 **Tools**:
@@ -279,13 +320,13 @@ T6 → T7 → T8
 ```
 Phase 1 → Phase 2 → Phase 3 → Phase 4
 
-Phase 1:  T1 ------→ T2
-Phase 2:  T2 ------→ T3 ------→ T4
-Phase 3:  T4 ------→ T5 ------→ T6
-Phase 4:  T6 ------→ T7 ------→ T8
+Phase 1:  T1 ------→ T2 ------→ T3
+Phase 2:  T3 ------→ T4 ------→ T5
+Phase 3:  T5 ------→ T6 ------→ T7
+Phase 4:  T7 ------→ T8 ------→ T9
 ```
 
-Eight tasks: a single batch, executed inline. The Verifier runs after T8.
+Nine tasks: one batch over the ~7-task budget, so the sub-agent offer applies (Phases 1–2 and Phases 3–4 as two batches) — or inline. The Verifier runs after T9.
 
 ---
 
@@ -295,12 +336,13 @@ Eight tasks: a single batch, executed inline. The Verifier runs after T8.
 | ---- | ----- | ------ |
 | T1: marks | 2 pure functions, 1 file | ⚠️ Cohesive |
 | T2: chip | 1 pure function | ✅ Granular |
-| T3: shared lookup | 1 hook | ✅ Granular |
-| T4: opener | 1 App callback | ✅ Granular |
-| T5: chip | 1 component | ✅ Granular |
-| T6: styles | 1 stylesheet | ✅ Granular |
-| T7: smoke | 1 section | ✅ Granular |
-| T8: owner check | 1 manual check | ✅ Granular |
+| T3: lookup rules | 1 pure module | ✅ Granular |
+| T4: shared lookup | 1 hook, its two consumers rewired | ⚠️ Cohesive (the lift is one move) |
+| T5: opener | 1 App callback | ✅ Granular |
+| T6: chip | 1 component | ✅ Granular |
+| T7: styles | 1 stylesheet | ✅ Granular |
+| T8: smoke | 1 section | ✅ Granular |
+| T9: owner check | 1 manual check | ✅ Granular |
 
 ## Diagram-Definition Cross-Check
 
@@ -314,6 +356,7 @@ Eight tasks: a single batch, executed inline. The Verifier runs after T8.
 | T6 | T5 | T5 → T6 | ✅ Match |
 | T7 | T6 | T6 → T7 | ✅ Match |
 | T8 | T7 | T7 → T8 | ✅ Match |
+| T9 | T8 | T8 → T9 | ✅ Match |
 
 ## Test Co-location Validation
 
@@ -321,9 +364,10 @@ Eight tasks: a single batch, executed inline. The Verifier runs after T8.
 | ---- | --------------------------- | --------------- | --------- | ------ |
 | T1 | pure chip logic | unit | unit | ✅ OK |
 | T2 | pure chip logic | unit | unit | ✅ OK |
-| T3 | lookup hook | none | none | ✅ OK |
-| T4 | App wiring | none | none | ✅ OK |
-| T5 | component | none | none | ✅ OK |
-| T6 | CSS | none | none | ✅ OK |
-| T7 | end to end, stubbed | manual | manual | ✅ OK |
-| T8 | spec docs | none (manual) | none | ✅ OK |
+| T3 | pure lookup rules | unit | unit | ✅ OK |
+| T4 | lookup hook, App wiring | none | none | ✅ OK |
+| T5 | App wiring | none | none | ✅ OK |
+| T6 | component | none | none | ✅ OK |
+| T7 | CSS | none | none | ✅ OK |
+| T8 | end to end, stubbed | manual | manual | ✅ OK |
+| T9 | spec docs | none (manual) | none | ✅ OK |

@@ -34,10 +34,10 @@ repository, branch, changes and sync state; the PR is the missing piece of that 
 | Several PRs | Chip `<n> PRs` opening a menu; each item shows number, title, target branch, provider and its mark, opens in the app, and has its own ↗ | Owner decision (grill Q4) | y |
 | Review mark | From F4's provider-neutral reviewer states: ✕ if any reviewer rejected; else ⏸ if any is waiting for the author / requested changes; else ✓ if any approved (with or without suggestions); else none. The tooltip lists each reviewer and their state | Owner decisions (grill Q6, Q8): the worst mark wins | y |
 | No PR | A muted `Create PR` chip when the search says creation is available (`createUrlAvailable`), opening the provider's creation page through its main-side opener; nothing otherwise | Owner decision (grill Q3) | y |
-| Failure | A muted `PR ?` chip whose tooltip is the reason (sign-in needed, the error's message) for `auth` and `error`; nothing for `no-ado-remote` / no GitHub remote and `detached` | Owner decision (grill Q5) | y |
+| Failure | A muted `PR ?` chip whose tooltip is the reason (sign-in needed, the error's message) for `auth`, `error` and `rate-limited` (until when); nothing for `no-remote` and `detached` | Owner decision (grill Q5) | y |
 | While loading | The previous cached chip stays; with no cache, nothing shows until the lookup answers | No flicker on focus refresh; no placeholder that could read as "no PR" | y |
 | Two providers disagree | Each provider's PRs count; one provider failing with the other finding PRs shows the found PRs, and the failure only in the menu's footer | F5 (FPRG-07): a failing provider never hides the other's PRs | y |
-| Base branch | `feature/status-pr-link` off `feature/files-pr-github` `5010b69` (F5, stacked on F4 → F3 → F2 → F1 → status-bar) | Owner decision (grill Q7). Executes only after F5 | y |
+| Base branch | `feature/status-pr-link` rebased 2026-10-10 onto the executed `feature/files-pr-github` (F5, stacked on F4; both in review upstream) | Owner decision (grill Q7). Executes only after F5 | y |
 
 **Open questions:** none — all resolved or logged above.
 
@@ -95,7 +95,7 @@ repository, branch, changes and sync state; the PR is the missing piece of that 
 
 15. WHEN the lookup finds no PR and creation is available THEN the status bar SHALL show a muted `Create PR` chip that opens the provider's creation page through main
 16. WHEN the lookup finds no PR and creation is not available THEN the status bar SHALL show no PR chip
-17. IF a provider reports `auth` or `error` and no provider found a PR THEN the status bar SHALL show a muted `PR ?` chip whose tooltip gives the reason
+17. IF a provider reports `auth`, `error` or `rate-limited` and no provider found a PR THEN the status bar SHALL show a muted `PR ?` chip whose tooltip gives the reason
 18. WHEN no remote is recognised or HEAD is detached THEN the status bar SHALL show no PR chip
 19. IF one provider fails and the other finds PRs THEN the chip SHALL reflect the found PRs, and the failure SHALL appear only as a note in the menu
 

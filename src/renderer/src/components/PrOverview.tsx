@@ -31,7 +31,10 @@ const REVIEWER_STATES: Record<ReviewerState, string> = {
   'approved-with-suggestions': 'Approved with suggestions',
   'no-vote': 'No vote',
   'waiting-for-author': 'Waiting for author',
-  rejected: 'Rejected'
+  rejected: 'Rejected',
+  'changes-requested': 'Changes requested',
+  commented: 'Commented',
+  dismissed: 'Dismissed'
 }
 
 interface PrOverviewProps {

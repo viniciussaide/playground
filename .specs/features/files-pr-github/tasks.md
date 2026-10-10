@@ -256,10 +256,10 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] No channel carries a token or a URL; writes carry intent only
-- [ ] `ReviewerState` is one union for both providers; no second review-state type exists
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: **3065** (unchanged)
+- [x] No channel carries a token or a URL; writes carry intent only
+- [x] `ReviewerState` is one union for both providers; no second review-state type exists
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: **3065** (unchanged)
 
 **Tests**: none
 **Gate**: full

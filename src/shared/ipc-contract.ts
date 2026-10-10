@@ -21,6 +21,7 @@ import type {
   FileStat,
   FilesChanged,
   FilesMode,
+  GhStatus,
   PrDetailResult,
   PrRef,
   PrSearch,
@@ -297,6 +298,53 @@ export interface IpcContract {
   'ado-pr:comment': { req: { pr: PrRef; content: string }; res: WriteResult }
   /** Open the pull request's page, or the create page for the branch, in the browser; main builds the URL (FPRA-05/14). */
   'ado-pr:open': {
+    req: { worktreePath: string; pr: PrRef } | { worktreePath: string; create: true }
+    res: LaunchResult
+  }
+  /**
+   * The `gh` CLI's state for the TopBar chip; `no-github-remote` when no
+   * registered repository has a GitHub remote, decided in main (FPRG-01..05).
+   * The token stays in main.
+   */
+  'github:status': { req: void; res: GhStatus }
+  /** Open pull requests whose head is the branch on the GitHub remote it tracks, across every GitHub remote (FPRG-06, 07). */
+  'github-pr:find': { req: { worktreePath: string }; res: PrSearch }
+  /** One GitHub pull request in full: header, reviews, timeline, files with hunks, threads (FPRG-09..14). */
+  'github-pr:get': { req: { worktreePath: string; pr: PrRef }; res: PrDetailResult }
+  /** Base side at the merge base from the base repository, head side at the head commit from the head repository (FPRG-12). */
+  'github-pr:file-sides': {
+    req: { worktreePath: string; pr: PrRef; path: string; oldPath?: string }
+    res: DiffSides
+  }
+  /**
+   * The four writes (FPRG-16/17/19/21/23), each sent only on a user's click
+   * (FPRG-24), mirroring F4's: intent only — ids, resolved or not, a
+   * selection, the text. Main builds the URL and the body; no URL or token
+   * crosses IPC.
+   */
+  'github-pr:reply': {
+    req: { pr: PrRef; rootCommentId: number; content: string }
+    res: WriteResult
+  }
+  'github-pr:resolve': {
+    req: { pr: PrRef; threadId: string; resolved: boolean }
+    res: WriteResult
+  }
+  /** An anchored thread: both ends of the selection lie in the file's hunks (FPRG-19). */
+  'github-pr:thread': {
+    req: {
+      pr: PrRef
+      /** The head commit on screen, which the selection was made against. */
+      headSha: string
+      selection: PrSelection
+      content: string
+    }
+    res: WriteResult
+  }
+  /** A general PR comment; a selection outside the diff arrives here with its citation in `content` (FPRG-21, 23). */
+  'github-pr:comment': { req: { pr: PrRef; content: string }; res: WriteResult }
+  /** Open the pull request's page, or the compare page for the branch, in the browser; main builds the URL (FPRG-08). */
+  'github-pr:open': {
     req: { worktreePath: string; pr: PrRef } | { worktreePath: string; create: true }
     res: LaunchResult
   }

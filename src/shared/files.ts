@@ -269,7 +269,8 @@ export type PrSearch =
 /**
  * A reviewer's verdict in provider-neutral terms. Azure DevOps' five votes map
  * onto it one to one (10, 5, 0, -5, -10), and GitHub's review states map onto
- * the same union, so the Overview draws one shape for both.
+ * the same union, so the Overview draws one shape for both (FPRG-09): GitHub
+ * adds its own three, and a reviewer requested without a review is `no-vote`.
  */
 export type ReviewerState =
   | 'approved'
@@ -277,6 +278,9 @@ export type ReviewerState =
   | 'no-vote'
   | 'waiting-for-author'
   | 'rejected'
+  | 'changes-requested'
+  | 'commented'
+  | 'dismissed'
 
 /** One reviewer and their vote; a group is listed like a person (FPRA-09, edge case). */
 export interface Reviewer {
@@ -384,9 +388,62 @@ export interface PrDetail extends PrSummary {
   revision: string
   /** Azure DevOps' own: the latest iteration, which every thread position and new anchor refers to (FPRA-16/18). */
   ado?: { iteration: number }
+  /** GitHub's own: what its diff sides and new anchors are read against (FPRG-11, 12, 19). */
+  github?: {
+    headSha: string
+    baseSha: string
+    /** The repository the head branch lives in; null when the fork is gone (edge case). */
+    headRepo: { owner: string; repo: string } | null
+    /** GitHub stopped listing files at its 3000-file ceiling (edge case). */
+    filesIncomplete: boolean
+  }
+  /** On GitHub each file is a `GitHubPrFile`, carrying its hunks. */
   files: PrFile[]
   threads: PrThreadView[]
+  /** GitHub's review bodies and PR comments, in time order (FPRG-10, D4). */
+  timeline?: PrTimelineEntry[]
 }
+
+/** A review body or a PR comment (FPRG-10, D4): read, never answered in place. */
+export interface PrTimelineEntry {
+  author: string
+  /** Epoch milliseconds. */
+  at: number
+  /** Markdown, rendered inertly. */
+  content: string
+  /** Present when the entry is a review. */
+  reviewState?: ReviewerState
+}
+
+/**
+ * The `gh` CLI's state for the TopBar chip (FPRG-01..04). `no-github-remote`
+ * is decided in main, which holds the remote URLs: no chip at all (FPRG-02).
+ */
+export type GhStatus = 'ok' | 'not-installed' | 'not-signed-in' | 'no-github-remote'
+
+/**
+ * A hunk's new-side lines, 1-based and inclusive; `newEnd < newStart` when the
+ * hunk has no new-side lines (FPRG-19, 22).
+ */
+export interface Hunk {
+  newStart: number
+  newEnd: number
+}
+
+/** A GitHub PR file with its diff hunks (FPRG-19, 22). */
+export interface GitHubPrFile extends PrFile {
+  /** Parsed from GitHub's patch; null when GitHub omitted it (large or binary, S7). */
+  hunks: Hunk[] | null
+}
+
+/**
+ * How a comment on a selection will post (FPRG-19..22): anchored to its lines,
+ * or as a general comment carrying the banner the composer shows and the
+ * citation it prepends.
+ */
+export type CommentPlan =
+  | { kind: 'anchored'; anchor: { path: string; startLine: number; endLine: number } }
+  | { kind: 'general'; banner: string; citation: string }
 
 /** One pull request read in full, or why it could not be (FPRA-07). Never thrown. */
 export type PrDetailResult =

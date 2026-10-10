@@ -473,7 +473,7 @@ function PullRequestFiles({
   if (detail.files.length === 0) {
     return <div className="file-tree-note">This pull request changes no files.</div>
   }
-  return (
+  const rows = (
     <ChangedRows
       nodes={buildTree(detail.files)}
       depth={0}
@@ -481,6 +481,18 @@ function PullRequestFiles({
       onFolder={files.selectFolder}
     />
   )
+  // GitHub lists at most 3000 files of a pull request (edge case).
+  if (detail.github?.filesIncomplete) {
+    return (
+      <>
+        <div className="file-tree-note pr-files-incomplete">
+          List incomplete: GitHub returns at most 3000 files of a pull request.
+        </div>
+        {rows}
+      </>
+    )
+  }
+  return rows
 }
 
 /**

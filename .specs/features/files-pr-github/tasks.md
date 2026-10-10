@@ -888,3 +888,9 @@ Strictly sequential. **T1 runs inline with the owner**, before any batch. **Pack
 | FPRG-26 | T5, T8, T20 |
 
 All 26 mapped; none unmapped.
+
+---
+
+## Fixes found during Execute
+
+- **3000-file ceiling not shown** (found in batch 4's report, 2026-10-10): main set `PrDetail.github.filesIncomplete`, but no task drew it, so the spec's edge case "the tree SHALL say the list is incomplete" had no reader. `PullRequestFiles` (`FileTree.tsx`) now shows "List incomplete: GitHub returns at most 3000 files of a pull request." above the rows (`.pr-files-incomplete`). Renderer only, no unit test per the matrix; T27 checks it is absent on a normal PR.

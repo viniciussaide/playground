@@ -1,5 +1,4 @@
 import type {
-  PrDetail,
   PrProvider,
   PrSearch,
   PrSummary,
@@ -7,7 +6,7 @@ import type {
   ReviewerState
 } from '../../../shared/files'
 import { prKey } from './pr-view'
-import { failureText, providerName, type PrFailure, type PrSearches } from './use-pull-request'
+import { PROVIDERS, failureText, providerName, type PrRead, type PrSearches } from './pr-lookup'
 
 /**
  * Pure decisions behind the status bar's pull request chip (F6): the review
@@ -59,12 +58,6 @@ export function reviewLines(reviewers: Reviewer[]): string[] {
   return reviewers.map((reviewer) => `${reviewer.name}: ${REVIEWER_STATES[reviewer.state]}`)
 }
 
-/** How one pull request's detail read went: the last good detail, and the failure of the latest read, if any. */
-export interface PrRead {
-  detail: PrDetail | null
-  failure: PrFailure | null
-}
-
 /** What the chip can say about one pull request's reviews. */
 export type PrReview =
   | { kind: 'read'; mark: ReviewMark | null; lines: string[] }
@@ -86,9 +79,6 @@ export type PrChip =
   | { kind: 'create'; provider: PrProvider }
   | { kind: 'unknown'; reason: string }
   | { kind: 'hidden' }
-
-/** The providers in the order their pull requests are listed, as the Pull request mode lists them. */
-const PROVIDERS: readonly PrProvider[] = ['azure-devops', 'github']
 
 /**
  * What the chip shows, from each provider's search and the reads of the pull

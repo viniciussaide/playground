@@ -8,7 +8,8 @@ import type {
   ReviewerState
 } from '../../../shared/files'
 import { prKey } from './pr-view'
-import { prChip, reviewLines, reviewMark, type PrRead } from './pr-status'
+import type { PrRead } from './pr-lookup'
+import { prChip, reviewLines, reviewMark } from './pr-status'
 
 function reviewer(
   name: string,

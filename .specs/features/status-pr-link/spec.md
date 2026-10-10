@@ -113,7 +113,7 @@ repository, branch, changes and sync state; the PR is the missing piece of that 
 
 | Requirement ID | Story | Phase | Status |
 | -------------- | ----- | ----- | ------ |
-| SPRL-01 | P1: see — AC 1 | Tasks | In Tasks |
+| SPRL-01 | P1: see — AC 1 | T3 | Implemented |
 | SPRL-02 | P1: see — AC 2 | Tasks | In Tasks |
 | SPRL-03 | P1: see — AC 3 | T2 | Implemented |
 | SPRL-04 | P1: see — AC 4 | T1 | Implemented |
@@ -121,7 +121,7 @@ repository, branch, changes and sync state; the PR is the missing piece of that 
 | SPRL-06 | P1: see — AC 6 | T1 | Implemented |
 | SPRL-07 | P1: see — AC 7 | T1 | Implemented |
 | SPRL-08 | P1: see — AC 8 | T1 | Implemented |
-| SPRL-09 | P1: see — AC 9 | Tasks | In Tasks |
+| SPRL-09 | P1: see — AC 9 | T3 | Implemented |
 | SPRL-10 | P1: reach — AC 10 | Tasks | In Tasks |
 | SPRL-11 | P1: reach — AC 11 | Tasks | In Tasks |
 | SPRL-12 | P1: reach — AC 12 | T2 | Implemented |

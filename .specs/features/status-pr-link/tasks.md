@@ -158,8 +158,10 @@ T7 → T8 → T9
 
 **Done when**:
 
-- [ ] Tests: a focus reload skips a rate-limited provider and keeps its answer, a user reload asks it again; every found PR is read, plus an on-screen PR no longer listed; an answer with an older ticket changes nothing; an answer for worktree A lands in A's entry while B is selected; a failed read keeps the last good detail beside the failure
-- [ ] Gate check passes: `npm run typecheck && npm run lint && npm test`
+- [x] Tests: a focus reload skips a rate-limited provider and keeps its answer, a user reload asks it again; every found PR is read, plus an on-screen PR no longer listed; a failed read keeps the last good detail beside the failure (the older-ticket drop and the answer landing in its own worktree's entry are the hook's, checked by T8's stale-answer section)
+- [x] Gate check passes: `npm run typecheck && npm run lint && npm test`
+
+**Done** 2026-10-10, 3145 + 11 = 3156 tests, lint 18. `pr-lookup.ts` holds the entry (`searches`, `reads` by `prKey` with `PrRead`, `chosen`, `limited`, `loading`), `providersToAsk`, `landSearches`, `prsToRead`, `landRead`, and the helpers that moved out of `use-pull-request.ts`: `PrFailure`, `PrSearches`, `PROVIDERS`, `providerName`, `resetTime`, `failureText`, `refOf`, `sameRef`, `foundPrs` (importers updated: `PrOverview`, `PrPicker`, `pr-status`). `PrRead` moved from `pr-status.ts`. Spec deviation: the ticket drop and per-worktree landing stay in the hook, as stated above.
 
 **Tests**: unit
 **Gate**: full

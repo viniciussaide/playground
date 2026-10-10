@@ -17,6 +17,15 @@ import type {
 import type { LaunchResult } from '../../../shared/shortcuts'
 import { api } from './api'
 import { tabKeyOf } from './diff-view'
+import {
+  PROVIDERS,
+  failureText,
+  foundPrs,
+  refOf,
+  sameRef,
+  type PrFailure,
+  type PrSearches
+} from './pr-lookup'
 import { prKey, revisionBanner } from './pr-view'
 import { useLatestCallback } from './use-latest-callback'
 
@@ -37,34 +46,6 @@ export interface SidesRevision {
 export interface PrSidesEntry extends SidesRevision {
   /** null while the read is in flight. */
   sides: DiffSides | null
-}
-
-/**
- * Why a pull request could not be read, and on which provider: its sign-in
- * ("run `az login`", FPRA-07), its rate limit (FPRG-26), or an error.
- */
-export type PrFailure = { provider: PrProvider } & (
-  | { kind: 'auth' }
-  | { kind: 'rate-limited'; resetAt: number }
-  | { kind: 'error'; message: string }
-)
-
-/** What each provider's search found, by provider; a provider not searched yet is absent. */
-export type PrSearches = Partial<Record<PrProvider, PrSearch>>
-
-const PROVIDER_NAMES: Record<PrProvider, string> = {
-  'azure-devops': 'Azure DevOps',
-  github: 'GitHub'
-}
-
-/** How a provider is named in the mode's messages (FPRG-04, 06). */
-export function providerName(provider: PrProvider): string {
-  return PROVIDER_NAMES[provider]
-}
-
-/** The reset time of a rate limit, as the mode says it (FPRG-26). */
-export function resetTime(resetAt: number): string {
-  return new Date(resetAt).toLocaleTimeString()
 }
 
 /**
@@ -618,9 +599,6 @@ interface LoadHow {
   chosen?: PrRef
 }
 
-/** The providers searched, in the order their pull requests are listed (FPRG-07). */
-const PROVIDERS: readonly PrProvider[] = ['azure-devops', 'github']
-
 /** One provider's search for the worktree's branch (FPRA-02, FPRG-06). */
 function findOn(provider: PrProvider, worktreePath: string): Promise<PrSearch> {
   return provider === 'github'
@@ -635,11 +613,6 @@ function getOn(worktreePath: string, pr: PrRef): Promise<PrDetailResult> {
     : api.invoke('ado-pr:get', { worktreePath, pr })
 }
 
-/** Every pull request the providers' searches found, in the providers' order (FPRG-07). */
-function foundPrs(searches: PrSearches): PrSummary[] {
-  return Object.values(searches).flatMap((search) => (search?.kind === 'found' ? search.prs : []))
-}
-
 /** The pull request the searches point at: the only one found, or the one picked among several. */
 function currentSummary(prs: PrSummary[], chosen: PrRef | null): PrSummary | null {
   if (prs.length === 1) return prs[0]
@@ -649,29 +622,6 @@ function currentSummary(prs: PrSummary[], chosen: PrRef | null): PrSummary | nul
 function currentOf(prs: PrSummary[], chosen: PrRef | null): PrRef | null {
   const summary = currentSummary(prs, chosen)
   return summary ? refOf(summary) : null
-}
-
-/** A failure in words, naming its provider and the fix for a sign-in (FPRA-07, FPRG-04, 26). */
-export function failureText(failure: PrFailure): string {
-  switch (failure.kind) {
-    case 'auth':
-      return failure.provider === 'github'
-        ? 'GitHub sign-in failed — run gh auth login'
-        : 'Azure DevOps sign-in failed — run az login'
-    case 'rate-limited':
-      return `${providerName(failure.provider)} refuses requests until ${resetTime(failure.resetAt)}`
-    case 'error':
-      return failure.message
-  }
-}
-
-function refOf(pr: PrRef): PrRef {
-  return { target: pr.target, id: pr.id }
-}
-
-/** One pull request, by `prKey`: its provider, repository — without case — and number. */
-function sameRef(a: PrRef, b: PrRef): boolean {
-  return prKey(a) === prKey(b)
 }
 
 /**

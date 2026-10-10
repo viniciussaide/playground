@@ -27,7 +27,7 @@ line 26: fictitious text for the smoke
 line 27: fictitious text for the smoke
 line 28: fictitious text for the smoke
 line 29: fictitious text for the smoke
-line 30: changed by the head commit
+line 30: changed again by a second commit
 line 31: fictitious text for the smoke
 line 32: fictitious text for the smoke
 line 33: fictitious text for the smoke

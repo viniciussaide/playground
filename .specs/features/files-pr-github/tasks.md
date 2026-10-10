@@ -208,10 +208,10 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] With only ADO remotes, every message reads as F4's, now naming Azure DevOps
-- [ ] The picker lists the union of `found` results (one provider for now)
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: **3061** (unchanged)
+- [x] With only ADO remotes, every message reads as F4's, now naming Azure DevOps
+- [x] The picker lists the union of `found` results (one provider for now)
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: **3061** (unchanged)
 
 **Tests**: none
 **Gate**: full

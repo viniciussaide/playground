@@ -185,7 +185,7 @@ describe('AdoPrClient.findPrs (FPRA-02..08)', () => {
       })
     )
 
-    expect(await ado.findPrs('/repo')).toEqual({ kind: 'no-ado-remote' })
+    expect(await ado.findPrs('/repo')).toEqual({ kind: 'no-remote' })
     expect(readRequests).toEqual([])
   })
 

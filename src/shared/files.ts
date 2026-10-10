@@ -250,14 +250,20 @@ export interface PrSummary extends PrRef {
   isDraft: boolean
 }
 
-/** What searching for the branch's pull requests found, or why there is nothing to show (FPRA-02..08). */
+/**
+ * What searching one provider for the branch's pull requests found, or why
+ * there is nothing to show (FPRA-02..08, FPRG-04, 06, 26).
+ */
 export type PrSearch =
   | { kind: 'found'; prs: PrSummary[] }
-  /** No active pull request; `createUrlAvailable` says whether Create PR can be offered (FPRA-05). */
+  /** No open pull request; `createUrlAvailable` says whether Create PR can be offered (FPRA-05). */
   | { kind: 'none'; createUrlAvailable: boolean }
-  | { kind: 'no-ado-remote' }
+  /** The repository has no remote on this provider (FPRA-06). */
+  | { kind: 'no-remote' }
   | { kind: 'auth' }
   | { kind: 'detached' }
+  /** The provider refuses requests until `resetAt`, epoch milliseconds; nothing retries before it (FPRG-26). */
+  | { kind: 'rate-limited'; resetAt: number }
   | { kind: 'error'; message: string }
 
 /**
@@ -386,6 +392,8 @@ export interface PrDetail extends PrSummary {
 export type PrDetailResult =
   | { kind: 'ok'; detail: PrDetail }
   | { kind: 'auth' }
+  /** As in `PrSearch` (FPRG-26). */
+  | { kind: 'rate-limited'; resetAt: number }
   | { kind: 'error'; message: string }
 
 /**

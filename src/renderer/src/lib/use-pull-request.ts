@@ -5,6 +5,7 @@ import type {
   PrDetail,
   PrDetailResult,
   PrFile,
+  PrProvider,
   PrRef,
   PrSearch,
   PrSelection,
@@ -38,8 +39,33 @@ export interface PrSidesEntry extends SidesRevision {
   sides: DiffSides | null
 }
 
-/** Why a pull request could not be read: the "run `az login`" state, or an error. */
-export type PrFailure = { kind: 'auth' } | { kind: 'error'; message: string }
+/**
+ * Why a pull request could not be read, and on which provider: its sign-in
+ * ("run `az login`", FPRA-07), its rate limit (FPRG-26), or an error.
+ */
+export type PrFailure = { provider: PrProvider } & (
+  | { kind: 'auth' }
+  | { kind: 'rate-limited'; resetAt: number }
+  | { kind: 'error'; message: string }
+)
+
+/** What each provider's search found, by provider; a provider not searched yet is absent. */
+export type PrSearches = Partial<Record<PrProvider, PrSearch>>
+
+const PROVIDER_NAMES: Record<PrProvider, string> = {
+  'azure-devops': 'Azure DevOps',
+  github: 'GitHub'
+}
+
+/** How a provider is named in the mode's messages (FPRG-04, 06). */
+export function providerName(provider: PrProvider): string {
+  return PROVIDER_NAMES[provider]
+}
+
+/** The reset time of a rate limit, as the mode says it (FPRG-26). */
+export function resetTime(resetAt: number): string {
+  return new Date(resetAt).toLocaleTimeString()
+}
 
 /**
  * Everything the Pull request mode holds for one worktree, in memory while the
@@ -47,7 +73,8 @@ export type PrFailure = { kind: 'auth' } | { kind: 'error'; message: string }
  * among several pull requests does not outlive the session (FPRA-04).
  */
 interface WorktreePr {
-  search: PrSearch | null
+  /** Each provider's own search, kept apart so one failing hides none of the other's (FPRG-07). */
+  searches: PrSearches
   /** The pull request picked among several (FPRA-04). */
   chosen: PrRef | null
   detail: PrDetail | null
@@ -63,7 +90,7 @@ interface WorktreePr {
 }
 
 const EMPTY: WorktreePr = {
-  search: null,
+  searches: {},
   chosen: null,
   detail: null,
   failure: null,
@@ -74,8 +101,10 @@ const EMPTY: WorktreePr = {
 }
 
 export interface UsePullRequest {
-  /** What the search found, or why there is nothing; null before the first search ends. */
-  search: PrSearch | null
+  /** What each provider's search found, or why it has nothing; empty before the first search ends. */
+  searches: PrSearches
+  /** Every pull request any provider found, for the picker (FPRA-04, FPRG-07). */
+  prs: PrSummary[]
   /** The pull request shown: the only one found, or the one picked among several. */
   current: PrSummary | null
   detail: PrDetail | null
@@ -111,8 +140,8 @@ export interface UsePullRequest {
   comment: (content: string) => Promise<WriteResult>
   /** Opens the pull request's page in the browser; main builds the URL (FPRA-14). */
   openInBrowser: () => Promise<LaunchResult>
-  /** Opens the provider's create page for the branch (FPRA-05). */
-  createPr: () => Promise<LaunchResult>
+  /** Opens one provider's create page for the branch (FPRA-05). */
+  createPr: (provider: PrProvider) => Promise<LaunchResult>
   /** Opens a rendered markdown link; main refuses anything but https (FPRA-23). */
   openLink: (href: string) => Promise<LaunchResult>
 }
@@ -173,17 +202,19 @@ export function usePullRequest({
       const before = live.current.byWorktree[wt] ?? EMPTY
       patch(wt, () => ({ loading: true }))
 
-      let search = before.search
+      let searches = before.searches
       if (withSearch) {
-        search = await api
+        const ado = await api
           .invoke('ado-pr:find', { worktreePath: wt })
           .catch((err: unknown): PrSearch => ({ kind: 'error', message: messageOf(err) }))
         if (stale()) return
-        patch(wt, () => ({ search }))
+        searches = { 'azure-devops': ado }
+        patch(wt, () => ({ searches }))
       }
 
       const shown = before.detail
-      const pr = currentOf(search, chosen ?? before.chosen) ?? (shown ? refOf(shown) : null)
+      const pr =
+        currentOf(foundPrs(searches), chosen ?? before.chosen) ?? (shown ? refOf(shown) : null)
       if (pr === null) {
         patch(wt, () => ({ detail: null, failure: null, notice: null, loading: false }))
         return
@@ -214,14 +245,12 @@ export function usePullRequest({
         return
       }
 
-      const failure: PrFailure =
-        result.kind === 'auth' ? { kind: 'auth' } : { kind: 'error', message: result.message }
+      const failure: PrFailure = { ...result, provider: pr.target.provider }
       patch(wt, (state) => {
         // What is on screen stays, with a notice, rather than being replaced
         // by an error about a refresh (edge case).
         if (state.detail !== null && sameRef(refOf(state.detail), pr)) {
-          const why =
-            failure.kind === 'auth' ? 'Azure DevOps sign-in failed — run az login' : failure.message
+          const why = failureText(failure)
           return {
             loading: false,
             notice: `${afterWrite ? 'Posted, but the' : 'The'} pull request could not be refreshed: ${why}`
@@ -447,10 +476,17 @@ export function usePullRequest({
     return api.invoke('ado-pr:open', { worktreePath, pr: refOf(detail) })
   }, [worktreePath, detail])
 
-  const createPr = useCallback((): Promise<LaunchResult> => {
-    if (!worktreePath) return Promise.resolve({ ok: false, error: 'No worktree is selected.' })
-    return api.invoke('ado-pr:open', { worktreePath, create: true })
-  }, [worktreePath])
+  const createPr = useCallback(
+    (provider: PrProvider): Promise<LaunchResult> => {
+      if (!worktreePath) return Promise.resolve({ ok: false, error: 'No worktree is selected.' })
+      // Only Azure DevOps' create page is opened yet; GitHub's comes with its client.
+      if (provider !== 'azure-devops') {
+        return Promise.resolve({ ok: false, error: `${providerName(provider)} is not wired yet.` })
+      }
+      return api.invoke('ado-pr:open', { worktreePath, create: true })
+    },
+    [worktreePath]
+  )
 
   const openLink = useCallback(
     (href: string): Promise<LaunchResult> => api.invoke('pr:open-link', { href }),
@@ -459,9 +495,12 @@ export function usePullRequest({
 
   const sidesFor = useCallback((key: string) => here.sides[key], [here.sides])
 
+  const prs = foundPrs(here.searches)
+
   return {
-    search: here.search,
-    current: currentSummary(here.search, here.chosen) ?? detail,
+    searches: here.searches,
+    prs,
+    current: currentSummary(prs, here.chosen) ?? detail,
     detail,
     failure: here.failure,
     notice: here.notice,
@@ -482,16 +521,34 @@ export function usePullRequest({
   }
 }
 
-/** The pull request a search points at: the only one, or the one picked among several. */
-function currentSummary(search: PrSearch | null, chosen: PrRef | null): PrSummary | null {
-  if (search?.kind !== 'found') return null
-  if (search.prs.length === 1) return search.prs[0]
-  return chosen ? (search.prs.find((pr) => sameRef(pr, chosen)) ?? null) : null
+/** Every pull request the providers' searches found, in the providers' order (FPRG-07). */
+function foundPrs(searches: PrSearches): PrSummary[] {
+  return Object.values(searches).flatMap((search) => (search?.kind === 'found' ? search.prs : []))
 }
 
-function currentOf(search: PrSearch | null, chosen: PrRef | null): PrRef | null {
-  const summary = currentSummary(search, chosen)
+/** The pull request the searches point at: the only one found, or the one picked among several. */
+function currentSummary(prs: PrSummary[], chosen: PrRef | null): PrSummary | null {
+  if (prs.length === 1) return prs[0]
+  return chosen ? (prs.find((pr) => sameRef(pr, chosen)) ?? null) : null
+}
+
+function currentOf(prs: PrSummary[], chosen: PrRef | null): PrRef | null {
+  const summary = currentSummary(prs, chosen)
   return summary ? refOf(summary) : null
+}
+
+/** A failure in words, naming its provider and the fix for a sign-in (FPRA-07, FPRG-04, 26). */
+function failureText(failure: PrFailure): string {
+  switch (failure.kind) {
+    case 'auth':
+      return failure.provider === 'github'
+        ? 'GitHub sign-in failed — run gh auth login'
+        : 'Azure DevOps sign-in failed — run az login'
+    case 'rate-limited':
+      return `${providerName(failure.provider)} refuses requests until ${resetTime(failure.resetAt)}`
+    case 'error':
+      return failure.message
+  }
 }
 
 function refOf(pr: PrRef): PrRef {

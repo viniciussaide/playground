@@ -460,9 +460,11 @@ function PullRequestFiles({
   files: UseFiles
   onFile: (path: string, status: ChangeStatus) => void
 }): JSX.Element {
-  const { detail, search } = files.pr
+  const { detail, searches } = files.pr
   if (!detail) {
-    if (search === null) return <div className="file-tree-note">Looking for the pull request…</div>
+    if (Object.keys(searches).length === 0) {
+      return <div className="file-tree-note">Looking for the pull request…</div>
+    }
     return <div className="file-tree-note">No pull request to list. The Overview says why.</div>
   }
   if (detail.status !== 'active') {

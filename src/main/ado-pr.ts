@@ -494,7 +494,7 @@ export class AdoPrClient {
   ): Promise<
     | { kind: 'ok'; branch: string; repos: AdoRemote[]; source: AdoRemote | null }
     | { kind: 'detached' }
-    | { kind: 'no-ado-remote' }
+    | { kind: 'no-remote' }
     | { kind: 'error'; message: string }
   > {
     let branch: string
@@ -508,7 +508,7 @@ export class AdoPrClient {
       return { kind: 'error', message: messageOf(err) }
     }
     const repos = pickRemoteRepos(remotes)
-    if (repos.length === 0) return { kind: 'no-ado-remote' }
+    if (repos.length === 0) return { kind: 'no-remote' }
     let upstream: string | null
     try {
       const { stdout } = await this.run(worktreePath, [

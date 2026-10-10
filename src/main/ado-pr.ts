@@ -32,6 +32,7 @@ import { fetchWithTimeout } from './ado-gateway'
 import { lineEndingChanges } from './file-diff'
 import { MAX_VIEW_BYTES } from './file-reader'
 import { git, type GitRunner } from './git'
+import { locateBranch } from './pr-locate'
 import { createPrUrl, prUrl } from './remote-url'
 import { isHttpsUrl } from './url-policy'
 
@@ -486,8 +487,9 @@ export class AdoPrClient {
 
   /**
    * The worktree's branch, its Azure DevOps remotes and the one it is pushed
-   * to — every git read through the paced runner. A detached HEAD and a
-   * repository with no Azure DevOps remote are answers, not failures.
+   * to, kept from `locateBranch` — every git read through the paced runner.
+   * A detached HEAD and a repository with no Azure DevOps remote are answers,
+   * not failures.
    */
   private async locate(
     worktreePath: string
@@ -497,30 +499,11 @@ export class AdoPrClient {
     | { kind: 'no-remote' }
     | { kind: 'error'; message: string }
   > {
-    let branch: string
-    let remotes: { name: string; url: string }[]
-    try {
-      const { stdout: head } = await this.run(worktreePath, ['rev-parse', '--abbrev-ref', 'HEAD'])
-      branch = head.trim()
-      if (branch === '' || branch === 'HEAD') return { kind: 'detached' }
-      remotes = parseRemoteUrls((await this.run(worktreePath, ['remote', '-v'])).stdout)
-    } catch (err) {
-      return { kind: 'error', message: messageOf(err) }
-    }
-    const repos = pickRemoteRepos(remotes)
+    const located = await locateBranch(this.run, worktreePath)
+    if (located.kind !== 'ok') return located
+    const { branch, tracked: upstream } = located
+    const repos = pickRemoteRepos(located.remotes)
     if (repos.length === 0) return { kind: 'no-remote' }
-    let upstream: string | null
-    try {
-      const { stdout } = await this.run(worktreePath, [
-        'config',
-        '--get',
-        `branch.${branch}.remote`
-      ])
-      upstream = stdout.trim() === '' ? null : stdout.trim()
-    } catch {
-      // `git config --get` exits 1 when the key is unset: the branch tracks nothing.
-      upstream = null
-    }
     return { kind: 'ok', branch, repos, source: sourceRemote(upstream, repos) }
   }
 
@@ -623,16 +606,6 @@ function apiBase(target: AdoTarget): string {
     `https://dev.azure.com/${part(target.org)}/${part(target.project)}` +
     `/_apis/git/repositories/${part(target.repo)}`
   )
-}
-
-/** `git remote -v` as name and fetch URL pairs, once per remote. */
-function parseRemoteUrls(stdout: string): { name: string; url: string }[] {
-  const remotes = new Map<string, string>()
-  for (const line of stdout.split(/\r?\n/)) {
-    const match = /^(\S+)\s+(\S+)\s+\(fetch\)$/.exec(line.trim())
-    if (match && !remotes.has(match[1])) remotes.set(match[1], match[2])
-  }
-  return [...remotes].map(([name, url]) => ({ name, url }))
 }
 
 /** Two remotes naming the same repository are searched once. */

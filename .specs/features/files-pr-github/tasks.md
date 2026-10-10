@@ -231,12 +231,12 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] Detached HEAD, no tracked remote (`git config` exit 1), a GitHub and an ADO remote side by side, and an unrecognized remote each give the expected result
-- [ ] `ado-pr.test.ts` passes unedited
-- [ ] `pr-locate.test.ts` created
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Phase gate passes: `npx electron-vite build`
-- [ ] Test count: 3061 + 4 = **3065**
+- [x] Detached HEAD, no tracked remote (`git config` exit 1), a GitHub and an ADO remote side by side, and an unrecognized remote each give the expected result
+- [x] `ado-pr.test.ts` passes unedited
+- [x] `pr-locate.test.ts` created
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Phase gate passes: `npx electron-vite build`
+- [x] Test count: 3061 + 4 = **3065**
 
 **Tests**: unit
 **Gate**: build

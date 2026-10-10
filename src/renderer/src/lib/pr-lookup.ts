@@ -44,6 +44,12 @@ export interface PrLookupEntry {
   /** The pull request picked among several (FPRA-04). */
   chosen: PrRef | null
   /**
+   * The pull request the searches last pointed at — the only one, or the one
+   * picked — read again even when they stop listing it, so one completed or
+   * abandoned elsewhere says so in the Pull request mode (edge case).
+   */
+  shown: PrRef | null
+  /**
    * Providers that answered "rate limited" since the last reload the user
    * asked for; no reload that happens on its own asks them again (FPRG-26).
    */
@@ -55,6 +61,7 @@ export const EMPTY_LOOKUP: PrLookupEntry = {
   searches: {},
   reads: {},
   chosen: null,
+  shown: null,
   limited: [],
   loading: false
 }
@@ -108,6 +115,12 @@ export function foundPrs(searches: PrSearches): PrSummary[] {
   })
 }
 
+/** The pull request the searches point at: the only one found, or the one picked among several. */
+export function currentSummary(prs: PrSummary[], chosen: PrRef | null): PrSummary | null {
+  if (prs.length === 1) return prs[0]
+  return chosen ? (prs.find((pr) => sameRef(pr, chosen)) ?? null) : null
+}
+
 /**
  * The providers one reload asks, and the rate-limit memory it starts from. A
  * reload the user asked for — a selection, entering the mode, a pick, Refresh
@@ -125,7 +138,8 @@ export function providersToAsk(
 /**
  * The searches' answers in the entry: each asked provider's answer replaces
  * its last one, a provider not asked keeps its own, and a provider that
- * answered "rate limited" joins the memory (FPRG-26).
+ * answered "rate limited" joins the memory (FPRG-26). The pull request they
+ * point at becomes the one shown; when they point at none, the last one stays.
  */
 export function landSearches(
   entry: PrLookupEntry,
@@ -136,7 +150,14 @@ export function landSearches(
   for (const provider of PROVIDERS) {
     if (answers[provider]?.kind === 'rate-limited') next.add(provider)
   }
-  return { ...entry, searches: { ...entry.searches, ...answers }, limited: [...next] }
+  const searches = { ...entry.searches, ...answers }
+  const shown = currentSummary(foundPrs(searches), entry.chosen)
+  return {
+    ...entry,
+    searches,
+    limited: [...next],
+    shown: shown ? refOf(shown) : entry.shown
+  }
 }
 
 /**

@@ -67,6 +67,29 @@ describe('landSearches', () => {
     expect(after.limited).toEqual(['github'])
   })
 
+  it('shows the only PR found, or the one picked among several (FPRA-04)', () => {
+    const a = summary(GH, 12)
+    const b = summary(GH, 13)
+    expect(landSearches(EMPTY_LOOKUP, { github: found(a) }, []).shown).toEqual({
+      target: GH,
+      id: 12
+    })
+    expect(
+      landSearches(entry({ chosen: { target: GH, id: 13 } }), { github: found(a, b) }, []).shown
+    ).toEqual({ target: GH, id: 13 })
+    expect(landSearches(EMPTY_LOOKUP, { github: found(a, b) }, []).shown).toBeNull()
+  })
+
+  it('keeps showing the last PR when the search stops listing it (edge case)', () => {
+    const shown = { target: GH, id: 12 }
+    const after = landSearches(
+      entry({ shown }),
+      { github: { kind: 'none', createUrlAvailable: true } },
+      []
+    )
+    expect(after.shown).toBe(shown)
+  })
+
   it('keeps the reads of the PRs already read, so a refresh does not drop their marks (SPRL-09)', () => {
     const pr = summary(GH, 12)
     const reads = { [prKey(pr)]: { detail: detail(pr, 'a1'), failure: null } }

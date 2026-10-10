@@ -185,9 +185,11 @@ T7 → T8 → T9
 
 **Done when**:
 
-- [ ] The Pull request mode's own behaviour unchanged: the read-only sections of `smoke-files-pr-ado.mjs` and `smoke-files-pr-github.mjs` pass against the PRs the owner names (T9)
-- [ ] With the Files direction in Pull request mode on the bar's worktree, one selection runs one `find` per provider, not two
-- [ ] Gate check passes: `npm run typecheck && npm run lint && npm test` and `npx electron-vite build`
+- [ ] The Pull request mode's own behaviour unchanged: the read-only sections of `smoke-files-pr-ado.mjs` and `smoke-files-pr-github.mjs` pass against the PRs the owner names — **checked at T9**
+- [ ] With the Files direction in Pull request mode on the bar's worktree, one selection runs one `find` per provider, not two — **checked at T8** (the stub counts calls)
+- [x] Gate check passes: `npm run typecheck && npm run lint && npm test` and `npx electron-vite build`
+
+**Done** 2026-10-10, 3156 + 2 = 3158 tests, lint 18, build green. `usePrLookup` (`use-pr-lookup.ts`) holds the entries and owns `FOCUS_RELOAD_MS` (`use-github-status.ts` repointed); App mounts it above `useFiles`, following `barTargetFor`'s worktree, and the TopBar Refresh calls its `refresh`. A search asked while an equal one runs for the same worktree joins it, so the bar's selection lookup and the mode's entering lookup make one call per provider. Two changes the lint rule `react-hooks/set-state-in-effect` forced, both derivations now: the PR on screen is `shown` in the lookup entry, set by `landSearches` and kept when the search stops listing it; the revision banner is derived from the open diffs' own revisions (`behind`), so the mode's `onScreen` is gone.
 
 **Tests**: none
 **Gate**: build

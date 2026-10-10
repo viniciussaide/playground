@@ -431,16 +431,16 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] `findPrs` queries **each** GitHub target with `head=contoso:feature/x&state=open`; no request when the branch tracks no GitHub remote
-- [ ] `createTarget` returns the parent for a fork, the source otherwise, with its default branch
-- [ ] `getPr` pages every GraphQL connection to `hasNextPage: false` — a 150-thread fake yields 150 threads (lesson L-128)
-- [ ] `files` pages to the end, keeps `patch` as parsed hunks, and flags the 3000-file ceiling
-- [ ] `mergeBase` uses the form T1 confirmed
-- [ ] `fileSide` reads the head side from the **head** repository, then from the base repository at the same commit when the fork is gone (S6), and returns unavailable only when both fail; it strips the base64 line breaks (S7), rejects a folder's array, and never decodes content above 1 MB or for a binary
-- [ ] **No read method issues POST, PATCH, PUT or DELETE, and no GraphQL mutation** — asserted over every read test
-- [ ] `github-pr.test.ts` created
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: 3101 + 10 = **3111**
+- [x] `findPrs` queries **each** GitHub target with `head=contoso:feature/x&state=open`; no request when the branch tracks no GitHub remote
+- [x] `createTarget` returns the parent for a fork, the source otherwise, with its default branch
+- [x] `getPr` pages every GraphQL connection to `hasNextPage: false` — a 150-thread fake yields 150 threads (lesson L-128)
+- [x] `files` pages to the end, keeps `patch` as parsed hunks, and flags the 3000-file ceiling
+- [x] `mergeBase` uses the form T1 confirmed
+- [x] `fileSide` reads the head side from the **head** repository, then from the base repository at the same commit when the fork is gone (S6), and returns unavailable only when both fail; it strips the base64 line breaks (S7), rejects a folder's array, and never decodes content above 1 MB or for a binary
+- [x] **No read method issues POST, PATCH, PUT or DELETE, and no GraphQL mutation** — asserted over every read test
+- [x] `github-pr.test.ts` created
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: 3101 + 10 = **3111**
 
 **Tests**: unit
 **Gate**: full

@@ -722,10 +722,10 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] README names both providers and exactly the four writes
-- [ ] `.specs/STATE.md` gains **no new AD**; AD-027 is amended in place only if what shipped differs from it
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: **3122** (unchanged)
+- [x] README names both providers and exactly the four writes
+- [x] `.specs/STATE.md` gains **no new AD**; AD-027 is amended in place only if what shipped differs from it
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: **3122** (unchanged)
 
 **Tests**: none
 **Gate**: full

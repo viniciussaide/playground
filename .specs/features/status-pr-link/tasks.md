@@ -130,9 +130,11 @@ T7 → T8 → T9
 
 **Done when**:
 
-- [ ] Tests: one PR from either provider; several from one provider → `many`; one provider failing (`auth`, `error`, `rate-limited`) while the other found → the found PRs with a note; `none` with creation available on one provider → `create` naming it, without on both → `hidden`; `auth`, `error` or `rate-limited` with nothing found → `unknown` carrying the reason; `no-remote` or `detached` on both → `hidden`; nothing searched yet → `hidden`; a PR whose detail failed or is not read yet → no mark and reviewers unknown
-- [ ] Gate check passes: `npm test`
-- [ ] Test count: T1 count + the new tests
+- [x] Tests: one PR from either provider; several from one provider → `many`; one provider failing (`auth`, `error`, `rate-limited`) while the other found → the found PRs with a note; `none` with creation available on one provider → `create` naming it, without on both → `hidden`; `auth`, `error` or `rate-limited` with nothing found → `unknown` carrying the reason; `no-remote` or `detached` on both → `hidden`; nothing searched yet → `hidden`; a PR whose detail failed or is not read yet → no mark and reviewers unknown
+- [x] Gate check passes: `npm test`
+- [x] Test count: T1 count + the new tests
+
+**Done** 2026-10-10, 3131 + 14 = 3145 tests, lint 18. Shape as built: `prChip(searches, reads)`, items carry `{ pr, review }` with `review` `read` / `failed` / `pending` (draft is `pr.isDraft`). A single PR keeps the other provider's failure in `notes` too, for its tooltip, since one PR has no menu. `failureText` is exported from `use-pull-request.ts` until T3 moves it.
 
 **Tests**: unit
 **Gate**: quick

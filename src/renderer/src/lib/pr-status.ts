@@ -1,4 +1,13 @@
-import type { Reviewer, ReviewerState } from '../../../shared/files'
+import type {
+  PrDetail,
+  PrProvider,
+  PrSearch,
+  PrSummary,
+  Reviewer,
+  ReviewerState
+} from '../../../shared/files'
+import { prKey } from './pr-view'
+import { failureText, providerName, type PrFailure, type PrSearches } from './use-pull-request'
 
 /**
  * Pure decisions behind the status bar's pull request chip (F6): the review
@@ -48,4 +57,89 @@ export function reviewMark(reviewers: Reviewer[]): ReviewMark | null {
 /** One tooltip line per reviewer, in the provider's order (SPRL-08). */
 export function reviewLines(reviewers: Reviewer[]): string[] {
   return reviewers.map((reviewer) => `${reviewer.name}: ${REVIEWER_STATES[reviewer.state]}`)
+}
+
+/** How one pull request's detail read went: the last good detail, and the failure of the latest read, if any. */
+export interface PrRead {
+  detail: PrDetail | null
+  failure: PrFailure | null
+}
+
+/** What the chip can say about one pull request's reviews. */
+export type PrReview =
+  | { kind: 'read'; mark: ReviewMark | null; lines: string[] }
+  /** The search found it, its detail did not come (edge case). */
+  | { kind: 'failed'; reason: string }
+  /** Not read yet: the chip says nothing about reviews. */
+  | { kind: 'pending' }
+
+export interface PrChipItem {
+  pr: PrSummary
+  review: PrReview
+}
+
+/** Everything the status bar shows for a worktree's pull requests (SPRL-03, 12, 15..19). */
+export type PrChip =
+  /** `notes`: another provider's failure, said only beside the PR (SPRL-19). */
+  | { kind: 'one'; item: PrChipItem; notes: string[] }
+  | { kind: 'many'; items: PrChipItem[]; notes: string[] }
+  | { kind: 'create'; provider: PrProvider }
+  | { kind: 'unknown'; reason: string }
+  | { kind: 'hidden' }
+
+/** The providers in the order their pull requests are listed, as the Pull request mode lists them. */
+const PROVIDERS: readonly PrProvider[] = ['azure-devops', 'github']
+
+/**
+ * What the chip shows, from each provider's search and the reads of the pull
+ * requests it found. A found pull request wins over any failure (SPRL-19); a
+ * failure with nothing found wins over Create PR (SPRL-17); a search that has
+ * not answered yet shows nothing, never a "no PR" (SPRL-09).
+ */
+export function prChip(searches: PrSearches, reads: Record<string, PrRead>): PrChip {
+  const items: PrChipItem[] = []
+  const notes: string[] = []
+  let create: PrProvider | null = null
+  for (const provider of PROVIDERS) {
+    const search = searches[provider]
+    if (search === undefined) continue
+    if (search.kind === 'found') {
+      for (const pr of search.prs) items.push({ pr, review: reviewOf(reads[prKey(pr)]) })
+    }
+    const note = noteOf(provider, search)
+    if (note !== null) notes.push(note)
+    if (search.kind === 'none' && search.createUrlAvailable && create === null) create = provider
+  }
+  if (items.length === 1) return { kind: 'one', item: items[0], notes }
+  if (items.length > 1) return { kind: 'many', items, notes }
+  if (notes.length > 0) return { kind: 'unknown', reason: notes.join('\n') }
+  if (create !== null) return { kind: 'create', provider: create }
+  return { kind: 'hidden' }
+}
+
+function reviewOf(read: PrRead | undefined): PrReview {
+  if (read?.failure) {
+    return {
+      kind: 'failed',
+      reason: `The reviewers could not be read: ${failureText(read.failure)}`
+    }
+  }
+  if (read?.detail) {
+    const reviewers = read.detail.reviewers
+    return { kind: 'read', mark: reviewMark(reviewers), lines: reviewLines(reviewers) }
+  }
+  return { kind: 'pending' }
+}
+
+/** A provider's failure in words, naming the provider; null when the search did not fail. */
+function noteOf(provider: PrProvider, search: PrSearch): string | null {
+  switch (search.kind) {
+    case 'auth':
+    case 'rate-limited':
+      return failureText({ ...search, provider })
+    case 'error':
+      return `${providerName(provider)}: ${search.message}`
+    default:
+      return null
+  }
 }

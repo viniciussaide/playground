@@ -652,7 +652,7 @@ function currentOf(prs: PrSummary[], chosen: PrRef | null): PrRef | null {
 }
 
 /** A failure in words, naming its provider and the fix for a sign-in (FPRA-07, FPRG-04, 26). */
-function failureText(failure: PrFailure): string {
+export function failureText(failure: PrFailure): string {
   switch (failure.kind) {
     case 'auth':
       return failure.provider === 'github'

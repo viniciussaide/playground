@@ -662,6 +662,9 @@ function App(): JSX.Element {
           onToast={setToast}
           onOpenChanges={openChangedFiles}
           onOpenPullRequest={openPullRequest}
+          prEntry={prLookup.entryFor(
+            barTarget.kind === 'worktree' ? barTarget.selected.worktree.path : null
+          )}
           onRefreshTree={refreshTree}
         />
       </PerfProfiler>

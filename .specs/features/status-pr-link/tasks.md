@@ -239,7 +239,9 @@ T7 → T8 → T9
 
 **Done when**:
 
-- [ ] Gate check passes: `npm run typecheck && npm run lint && npm test`
+- [x] Gate check passes: `npm run typecheck && npm run lint && npm test`
+
+**Done** 2026-10-10, 3158 tests, lint 18, build green. `PrSection`, `PrMenu`, `BrowseButton` and `ReviewMarkGlyph` in `StatusBar.tsx`, after the spacer and before the sync section, hidden for a deleted folder like the counter. App passes `prEntry` (the lookup entry of the bar's own worktree). The number reads `#<n>` on both providers, as the spec writes it (the Overview keeps `!<n>` for Azure DevOps). Marks carry `role="img"` and an `aria-label`. A single PR's tooltip: title, target and provider, reviewer lines (or why they could not be read), then any other provider's note. Browser and create go through `ado-pr:open` / `github-pr:open`; a failure is a toast, as in the Overview.
 
 **Tests**: none
 **Gate**: full

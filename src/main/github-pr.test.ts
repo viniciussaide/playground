@@ -784,3 +784,175 @@ describe('GitHubPrClient.fileSide (FPRG-12; T1, S7)', () => {
     expect(await github.fileSide(repo, 'src/gone.ts', 'head1')).toEqual({ kind: 'absent' })
   })
 })
+
+describe('GitHubPrClient writes (FPRG-16, 17, 19, 21, 23, 24)', () => {
+  interface Written {
+    method: string
+    path: string
+    body: unknown
+  }
+
+  /** A stand-in that records each write's method, path and parsed body. */
+  function writer(answer: () => Response = () => json({ id: 1 })): {
+    github: GitHubPrClient
+    written: Written[]
+  } {
+    const written: Written[] = []
+    const fetchFn: typeof fetch = async (input, init) => {
+      written.push({
+        method: init?.method ?? 'GET',
+        path: new URL(String(input)).pathname,
+        body: init?.body ? JSON.parse(String(init.body)) : undefined
+      })
+      return answer()
+    }
+    return {
+      github: new GitHubPrClient({ gateway: new GitHubGateway({ runner: signedIn, fetchFn }) }),
+      written
+    }
+  }
+
+  it('posts a reply under the thread root comment', async () => {
+    const { github, written } = writer()
+
+    expect(await github.reply(PR, 501, 'Renamed it.')).toEqual({ ok: true })
+    expect(written).toEqual([
+      {
+        method: 'POST',
+        path: '/repos/acme/widget/pulls/7/comments/501/replies',
+        body: { body: 'Renamed it.' }
+      }
+    ])
+  })
+
+  it("resolves and reopens a thread by its node id, through graphql's two mutations", async () => {
+    const { github, written } = writer(() => json({ data: { thread: { id: 'PRRT_1' } } }))
+
+    expect(await github.setResolved('PRRT_1', true)).toEqual({ ok: true })
+    expect(await github.setResolved('PRRT_1', false)).toEqual({ ok: true })
+    expect(written.map((w) => [w.method, w.path])).toEqual([
+      ['POST', '/graphql'],
+      ['POST', '/graphql']
+    ])
+    const [resolve, reopen] = written.map((w) => w.body as Sent['gql'])
+    expect(resolve?.query).toMatch(
+      /^mutation\b.*\bresolveReviewThread\(input: \{ threadId: \$id \}\)/
+    )
+    expect(reopen?.query).toMatch(
+      /^mutation\b.*\bunresolveReviewThread\(input: \{ threadId: \$id \}\)/
+    )
+    expect(resolve?.variables).toEqual({ id: 'PRRT_1' })
+    expect(reopen?.variables).toEqual({ id: 'PRRT_1' })
+  })
+
+  it('anchors a comment to the head commit on the right side, with a start line only for a range, never a position', async () => {
+    const { github, written } = writer()
+
+    expect(
+      await github.anchoredComment(
+        PR,
+        'head1',
+        { path: 'src/app.ts', startLine: 30, endLine: 5 },
+        'Both of these?'
+      )
+    ).toEqual({ ok: true })
+    expect(
+      await github.anchoredComment(
+        PR,
+        'head1',
+        { path: 'src/app.ts', startLine: 12, endLine: 12 },
+        'This one.'
+      )
+    ).toEqual({ ok: true })
+    expect(written).toEqual([
+      {
+        method: 'POST',
+        path: '/repos/acme/widget/pulls/7/comments',
+        body: {
+          body: 'Both of these?',
+          commit_id: 'head1',
+          path: 'src/app.ts',
+          line: 30,
+          side: 'RIGHT',
+          start_line: 5,
+          start_side: 'RIGHT'
+        }
+      },
+      {
+        method: 'POST',
+        path: '/repos/acme/widget/pulls/7/comments',
+        body: { body: 'This one.', commit_id: 'head1', path: 'src/app.ts', line: 12, side: 'RIGHT' }
+      }
+    ])
+  })
+
+  it('posts a general comment on the pull request as an issue comment', async () => {
+    const { github, written } = writer()
+    const content = '`src/app.ts:L18–L20`\n\n```\nconst a = 1\n```\n\nWhy here?'
+
+    expect(await github.generalComment(PR, content)).toEqual({ ok: true })
+    expect(written).toEqual([
+      { method: 'POST', path: '/repos/acme/widget/issues/7/comments', body: { body: content } }
+    ])
+  })
+
+  it("sends one request per write and only when called, and returns github's message when it refuses", async () => {
+    const { github, written } = writer()
+    expect(written).toHaveLength(0)
+    await github.reply(PR, 501, 'a')
+    expect(written).toHaveLength(1)
+    await github.setResolved('PRRT_1', true)
+    expect(written).toHaveLength(2)
+    await github.anchoredComment(PR, 'head1', { path: 'a.ts', startLine: 1, endLine: 1 }, 'b')
+    expect(written).toHaveLength(3)
+    await github.generalComment(PR, 'c')
+    expect(written).toHaveLength(4)
+
+    // Another provider's pull request is refused unsent.
+    const adoPr: PrRef = {
+      target: { provider: 'azure-devops', org: 'acme', project: 'platform', repo: 'widget' },
+      id: 7
+    }
+    expect(await github.generalComment(adoPr, 'd')).toEqual({
+      ok: false,
+      message: 'This pull request is not on GitHub.'
+    })
+    expect(written).toHaveLength(4)
+
+    // What T1 measured for an end outside every hunk (S1).
+    const unresolvable = writer(() =>
+      json(
+        {
+          message: 'Validation Failed',
+          errors: [
+            {
+              resource: 'PullRequestReviewComment',
+              code: 'custom',
+              field: 'pull_request_review_thread.line',
+              message: 'could not be resolved'
+            }
+          ]
+        },
+        422
+      )
+    )
+    expect(
+      await unresolvable.github.anchoredComment(
+        PR,
+        'head1',
+        { path: 'src/app.ts', startLine: 18, endLine: 18 },
+        'x'
+      )
+    ).toEqual({
+      ok: false,
+      message: 'Validation Failed: pull_request_review_thread.line could not be resolved'
+    })
+    const forbidden = writer(() => json({ message: 'Resource not accessible by integration' }, 403))
+    expect(await forbidden.github.reply(PR, 501, 'x')).toEqual({
+      ok: false,
+      message: 'Resource not accessible by integration'
+    })
+    expect(unresolvable.written).toHaveLength(1)
+    expect(forbidden.written).toHaveLength(1)
+  })
+})

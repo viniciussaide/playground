@@ -7,7 +7,8 @@ import type {
   PrSearch,
   PrStatus,
   PrSummary,
-  RemoteRef
+  RemoteRef,
+  WriteResult
 } from '../shared/files'
 import { parsePatchHunks } from '../shared/pr-diff-rules'
 import type { LaunchResult } from '../shared/shortcuts'
@@ -36,7 +37,10 @@ import { githubCompareUrl, githubPrUrl } from './remote-url'
  * requests goes through here, built from intent the renderer sends — a
  * `PrRef`, a path — never from a URL it holds (FPRG-24, as FPRA-32).
  *
- * Reads send GETs and GraphQL queries only, never a mutation. Every method
+ * Reads send GETs and GraphQL queries only, never a mutation. The four writes
+ * — a reply, resolve or reopen, an anchored comment, a general comment — each
+ * send exactly one request, only when called, which the IPC layer does only on
+ * a user's click (FPRG-24, AD-027). Every method
  * returns a result and never throws: a missing or signed-out `gh` is the
  * "run `gh auth login`" result (FPRG-04), a rate limit carries its reset time
  * (FPRG-26), anything else an error the view can show.
@@ -156,6 +160,11 @@ function connectionQuery(name: ConnectionName): string {
     `${connectionPage(name, true)} } } }`
   )
 }
+
+const RESOLVE =
+  'mutation($id: ID!) { resolveReviewThread(input: { threadId: $id }) { thread { id isResolved } } }'
+const UNRESOLVE =
+  'mutation($id: ID!) { unresolveReviewThread(input: { threadId: $id }) { thread { id isResolved } } }'
 
 /** One further page of one thread's comments. */
 const THREAD_COMMENTS_QUERY =
@@ -451,6 +460,72 @@ export class GitHubPrClient {
     )
   }
 
+  /** A reply under the thread's first comment, posted at once — never into a pending review (FPRG-16, S2). */
+  reply(pr: PrRef, rootCommentId: number, content: string): Promise<WriteResult> {
+    const target = githubTarget(pr)
+    if (target === null) return Promise.resolve(notGitHubWrite())
+    return this.post(`${repoPath(target)}/pulls/${pr.id}/comments/${rootCommentId}/replies`, {
+      body: content
+    })
+  }
+
+  /**
+   * Resolves or reopens a review thread by its node id (FPRG-17). Only GraphQL
+   * can: REST has no way to resolve a thread (design D1).
+   */
+  async setResolved(threadId: string, resolved: boolean): Promise<WriteResult> {
+    const result = await this.gateway.graphql<unknown>(resolved ? RESOLVE : UNRESOLVE, {
+      id: threadId
+    })
+    return writeResult(result)
+  }
+
+  /**
+   * A thread anchored to modified-side lines at the head commit on screen
+   * (FPRG-19), posted at once (S2). GitHub's `line` is the range's last line;
+   * a range adds its first as `start_line`. Both on the RIGHT side; the
+   * deprecated `position` is never sent. The selection may run bottom-up.
+   */
+  anchoredComment(
+    pr: PrRef,
+    headSha: string,
+    selection: { path: string; startLine: number; endLine: number },
+    content: string
+  ): Promise<WriteResult> {
+    const target = githubTarget(pr)
+    if (target === null) return Promise.resolve(notGitHubWrite())
+    const first = Math.min(selection.startLine, selection.endLine)
+    const last = Math.max(selection.startLine, selection.endLine)
+    const body: Record<string, unknown> = {
+      body: content,
+      commit_id: headSha,
+      path: selection.path,
+      line: last,
+      side: 'RIGHT'
+    }
+    if (first < last) {
+      body.start_line = first
+      body.start_side = 'RIGHT'
+    }
+    return this.post(`${repoPath(target)}/pulls/${pr.id}/comments`, body)
+  }
+
+  /**
+   * A comment on the pull request as a whole (FPRG-21, 23). A selection
+   * outside the diff arrives here with its citation already in `content`.
+   * GitHub accepts it with the repository's Issues turned off (S8).
+   */
+  generalComment(pr: PrRef, content: string): Promise<WriteResult> {
+    const target = githubTarget(pr)
+    if (target === null) return Promise.resolve(notGitHubWrite())
+    return this.post(`${repoPath(target)}/issues/${pr.id}/comments`, { body: content })
+  }
+
+  /** The one request a REST write makes; a refusal carries GitHub's own message (FPRG-24). */
+  private async post(path: string, body: unknown): Promise<WriteResult> {
+    return writeResult(await this.gateway.rest<unknown>('POST', path, body))
+  }
+
   /** Every node of a connection, following `endCursor` while GitHub says there is more. */
   private async pageAll<T>(
     first: Connection<T>,
@@ -493,6 +568,11 @@ function toRead<T>(result: GhResult<T>): GhRead<T> {
   }
 }
 
+function writeResult(result: GhResult<unknown>): WriteResult {
+  const read = toRead(result)
+  return read.kind === 'ok' ? { ok: true } : { ok: false, message: failureText(read) }
+}
+
 function failureText(read: Exclude<GhRead<unknown>, { kind: 'ok' }>): string {
   switch (read.kind) {
     case 'auth':
@@ -514,6 +594,10 @@ function githubTarget(pr: PrRef): GitHubTarget | null {
 
 function notGitHub(): { kind: 'error'; message: string } {
   return { kind: 'error', message: NOT_GITHUB }
+}
+
+function notGitHubWrite(): WriteResult {
+  return { ok: false, message: NOT_GITHUB }
 }
 
 function bothSides(side: DiffSide): DiffSides {

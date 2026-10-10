@@ -460,13 +460,13 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] `reply` posts to `…/pulls/{n}/comments/{rootId}/replies`
-- [ ] `setResolved` sends `resolveReviewThread` or `unresolveReviewThread` with the thread's node id
-- [ ] `anchoredComment` sends `commit_id` (the head sha), `path`, `line`, `side: RIGHT`, and `start_line` / `start_side` for a range — never `position`
-- [ ] `generalComment` posts to `…/issues/{n}/comments`
-- [ ] Each write issues exactly one request, only when called; a 422 or 403 returns GitHub's message
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: 3111 + 5 = **3116**
+- [x] `reply` posts to `…/pulls/{n}/comments/{rootId}/replies`
+- [x] `setResolved` sends `resolveReviewThread` or `unresolveReviewThread` with the thread's node id
+- [x] `anchoredComment` sends `commit_id` (the head sha), `path`, `line`, `side: RIGHT`, and `start_line` / `start_side` for a range — never `position`
+- [x] `generalComment` posts to `…/issues/{n}/comments`
+- [x] Each write issues exactly one request, only when called; a 422 or 403 returns GitHub's message
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: 3111 + 5 = **3116**
 
 **Tests**: unit
 **Gate**: full

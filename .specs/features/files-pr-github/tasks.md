@@ -330,13 +330,13 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] `@@ -10,4 +12,6 @@` → new-side 12–17; `@@ -1 +1 @@` (counts omitted) → 1–1; `@@ -5,3 +4,0 @@` → no new-side lines
-- [ ] A patch with three hunks yields three ranges in order
-- [ ] Both ends in one hunk → true; ends in two different hunks (5–30 over hunks 2–8 and 27–33) → true; the line after a hunk (9) → false; one end outside (5–18, 18–30) → false; both ends outside → false
-- [ ] `null` hunks (no patch) → always false
-- [ ] `pr-diff-rules.test.ts` created
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 3078 + 8 = **3086**
+- [x] `@@ -10,4 +12,6 @@` → new-side 12–17; `@@ -1 +1 @@` (counts omitted) → 1–1; `@@ -5,3 +4,0 @@` → no new-side lines
+- [x] A patch with three hunks yields three ranges in order
+- [x] Both ends in one hunk → true; ends in two different hunks (5–30 over hunks 2–8 and 27–33) → true; the line after a hunk (9) → false; one end outside (5–18, 18–30) → false; both ends outside → false
+- [x] `null` hunks (no patch) → always false
+- [x] `pr-diff-rules.test.ts` created
+- [x] Gate passes: `npm test`
+- [x] Test count: 3078 + 8 = **3086**
 
 **Tests**: unit
 **Gate**: quick

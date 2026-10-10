@@ -186,7 +186,7 @@ T7 → T8 → T9
 **Done when**:
 
 - [ ] The Pull request mode's own behaviour unchanged: the read-only sections of `smoke-files-pr-ado.mjs` and `smoke-files-pr-github.mjs` pass against the PRs the owner names — **checked at T9**
-- [ ] With the Files direction in Pull request mode on the bar's worktree, one selection runs one `find` per provider, not two — **checked at T8** (the stub counts calls)
+- [x] With the Files direction in Pull request mode on the bar's worktree, one selection runs one `find` per provider, not two — **checked at T8**: the decision is `joinsRunning` (`pr-lookup.ts`), unit-tested; the smoke counts one `find` per provider on entering the mode from the chip. Selection and entering coincide only at app start in the UI (the Tree sidebar is the only selector), which a page reload would hide from the stub
 - [x] Gate check passes: `npm run typecheck && npm run lint && npm test` and `npx electron-vite build`
 
 **Done** 2026-10-10, 3156 + 2 = 3158 tests, lint 18, build green. `usePrLookup` (`use-pr-lookup.ts`) holds the entries and owns `FOCUS_RELOAD_MS` (`use-github-status.ts` repointed); App mounts it above `useFiles`, following `barTargetFor`'s worktree, and the TopBar Refresh calls its `refresh`. A search asked while an equal one runs for the same worktree joins it, so the bar's selection lookup and the mode's entering lookup make one call per provider. Two changes the lint rule `react-hooks/set-state-in-effect` forced, both derivations now: the PR on screen is `shown` in the lookup entry, set by `landSearches` and kept when the search stops listing it; the revision banner is derived from the open diffs' own revisions (`behind`), so the mode's `onScreen` is gone.
@@ -265,7 +265,7 @@ T7 → T8 → T9
 
 **Done when**:
 
-- [ ] At 1100 px wide the bar does not wrap with a long branch and a `2 PRs` chip — **checked at T8** (needs the live app)
+- [x] At 1100 px wide the bar does not wrap with a long branch and a `2 PRs` chip — **checked at T8**: 0 px overflow, chip inside the bar, bar 26 px tall
 - [x] Gate check passes: `npm run lint` and `npx electron-vite build`
 
 **Done** 2026-10-10, lint 18, build green. The chip copies the sync trigger's metrics and never shrinks (the branch gives way first); marks are coloured with `--red`, `--amber`, `--green` on top of their glyph and label; the menu reuses the sync popover's surface, anchored right, 440 px wide, title and target branch truncating.
@@ -292,10 +292,12 @@ T7 → T8 → T9
 
 **Done when**:
 
-- [ ] The stub is proved installed (a stubbed `find` answer reaches the bar) before any check; the section stops if it cannot be
-- [ ] Each check seen failing with its rule broken (mark order inverted; `create` shown without `createUrlAvailable`; stale answer painted), then passing
-- [ ] The stub is removed in `finally`; no real provider call is made by this section
-- [ ] Gate check passes: `npm run lint` (warning count unchanged)
+- [x] The stub is proved installed (a stubbed `find` answer reaches the bar) before any check; the section stops if it cannot be
+- [x] Each check seen failing with its rule broken (mark order inverted; `create` shown without `createUrlAvailable`; stale answer painted), then passing
+- [x] The stub is removed in `finally`; no real provider call is made by this section
+- [x] Gate check passes: `npm run lint` (warning count unchanged)
+
+**Done** 2026-10-10. `SMOKE_ONLY=pr` 37/37, full run 90/90, unit 3162 (3158 + 4 for `joinsRunning`), lint 18. Spec deviation from the plan: the stub wraps `invoke` on the renderer's own `api` module, imported by the page from Vite (`/src/lib/api.ts`), not `ipcRenderer.invoke` in the preload's isolated world — no isolated-world globals to rely on, same guarantee: the six channels `ado-pr:{find,get,open}`, `github-pr:{find,get,open}` never reach main, every other channel passes through. The open channels are stubbed too, so ↗ and Create PR open no page. Mutants, each seen failing then passing: mark order inverted (checks 4, 6), Create PR without `createUrlAvailable` (24, 25), searches landing in the bar's worktree instead of their own (30, 31). The first full run failed the two `PR ?` checks: an earlier section deletes the gone worktree's folder, and the chip rightly hides for a missing folder; the checks moved to `main`. Screenshots (light, dark) in `%TEMP%\status-bar-smoke\pr-chip-*.png`, never the repo.
 
 **Tests**: manual
 **Gate**: manual

@@ -3,6 +3,7 @@ import type { PrDetail, PrDetailResult, PrProvider, PrRef, PrSearch } from '../.
 import { api } from './api'
 import {
   EMPTY_LOOKUP,
+  joinsRunning,
   landRead,
   landSearches,
   providersToAsk,
@@ -125,11 +126,10 @@ export function usePrLookup({ target }: { target: string | null }): UsePrLookup 
 
   const load = useCallback(
     (wt: string, how: LookupHow): Promise<void> => {
-      const joinable = how.search && !how.only
       const current = running.current.get(wt)
-      if (joinable && current && (current.userDriven || !how.userDriven)) return current.promise
+      if (current && joinsRunning(current, how)) return current.promise
       const promise = run(wt, how)
-      if (joinable) {
+      if (how.search && !how.only) {
         running.current.set(wt, { promise, userDriven: how.userDriven })
         void promise.finally(() => {
           if (running.current.get(wt)?.promise === promise) running.current.delete(wt)

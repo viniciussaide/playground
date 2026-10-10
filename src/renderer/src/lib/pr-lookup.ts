@@ -205,3 +205,18 @@ export function landRead(
       : entry.limited
   return { ...entry, reads: { ...entry.reads, [key]: read }, limited }
 }
+
+/**
+ * Whether a lookup joins the one already running for its worktree instead of
+ * asking again: both search every provider, and the running one forgets the
+ * rate-limit memory whenever the new one would (FPRG-26). This is how the
+ * bar's lookup for a selection and the Pull request mode's lookup for the same
+ * worktree make one call per provider (edge case: one lookup serves both).
+ */
+export function joinsRunning(
+  running: { userDriven: boolean } | undefined,
+  how: { search: boolean; userDriven: boolean; only?: unknown[] }
+): boolean {
+  if (!how.search || how.only || running === undefined) return false
+  return running.userDriven || !how.userDriven
+}

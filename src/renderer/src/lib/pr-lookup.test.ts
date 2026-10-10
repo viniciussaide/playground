@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { PrDetail, PrSearch, PrSummary, PrTarget } from '../../../shared/files'
 import {
   EMPTY_LOOKUP,
+  joinsRunning,
   landRead,
   landSearches,
   providersToAsk,
@@ -158,5 +159,29 @@ describe('landRead', () => {
       detail: null,
       failure: { provider: 'github', kind: 'rate-limited', resetAt: 1000 }
     })
+  })
+})
+
+describe('joinsRunning', () => {
+  const user = { search: true, userDriven: true }
+  const focus = { search: true, userDriven: false }
+
+  it("joins the bar's selection lookup when the mode asks for the same worktree (edge case)", () => {
+    expect(joinsRunning({ userDriven: true }, user)).toBe(true)
+    expect(joinsRunning({ userDriven: true }, focus)).toBe(true)
+  })
+
+  it('asks again when nothing runs for the worktree (SPRL-01)', () => {
+    expect(joinsRunning(undefined, user)).toBe(false)
+  })
+
+  it('asks again when the running one keeps the rate-limit memory the new one forgets (FPRG-26)', () => {
+    expect(joinsRunning({ userDriven: false }, user)).toBe(false)
+    expect(joinsRunning({ userDriven: false }, focus)).toBe(true)
+  })
+
+  it('never joins a pick or a write, which read one PR without searching', () => {
+    expect(joinsRunning({ userDriven: true }, { search: false, userDriven: true })).toBe(false)
+    expect(joinsRunning({ userDriven: true }, { ...user, only: [{}] })).toBe(false)
   })
 })

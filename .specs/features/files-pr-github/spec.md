@@ -59,7 +59,7 @@ for GitHub, with the same surfaces and the same guarantees, adjusted to how GitH
 | Which PRs | For each GitHub remote as target: open PRs whose head is `<source owner>:<branch>`, the source owner being the owner of the GitHub remote the branch tracks (`branch.<name>.remote`, as F4 reads it) | Epic Q14; finds this repository's own fork-flow PRs (`<fork owner>:feature/x` → the upstream's `main`) | y |
 | A branch tracking no GitHub remote | No GitHub search; the mode says the branch is not pushed to GitHub, and Create PR is not offered for GitHub | Without a source owner the `head` filter cannot be written (lesson L-127) | y |
 | Both providers | One search across Azure DevOps and GitHub, one picker, each PR marked with its provider | Owner decision (F5-Q5): no priority rule may hide a real PR | y |
-| PR diff sides | Base side = the file at the merge base of the PR's base and head, read from the **base** repository; head side = the file at the PR's head commit, read from the **head** repository — the fork, for a fork PR | For a fork PR the head commit may exist only in the fork | y |
+| PR diff sides | Base side = the file at the merge base of the PR's base and head, read from the **base** repository; head side = the file at the PR's head commit, read from the **head** repository — the fork, for a fork PR — and, when the fork is gone, from the base repository at the same commit | For a fork PR the head commit may exist only in the fork. T1 measured that the base repository serves a fork-only commit too (a fork shares its network's objects); the owner chose the fallback (2026-10-10) | y |
 | Files | The PR's file list, every page | GitHub pages it (at most 100 per page) | y |
 | Threads | GitHub's review threads: path, line, start line, side, `isResolved`, `isOutdated`, and the viewer's permissions to reply, resolve and unresolve | Verified in GitHub's GraphQL schema by introspection. **The REST API has no way to resolve or unresolve a thread** (checked in GitHub's REST reference) | y |
 | Outdated | `isOutdated` threads are listed in the Overview as outdated and not drawn, matching FPRA-19 | GitHub reports it directly; nothing to infer | y |
@@ -68,7 +68,7 @@ for GitHub, with the same surfaces and the same guarantees, adjusted to how GitH
 | Reviews in the Overview | Each reviewer's latest review state (approved, changes requested, commented, dismissed) plus requested reviewers and teams who have not reviewed; F4's `ReviewerState` is extended with GitHub's states, not duplicated | Owner decision (F5-Q3); the GitHub equivalent of F4's votes | y |
 | Review bodies and PR comments | A list of their own in the Overview's General section, in time order, each with its author, its review state when it is a review, and its text — **no Reply or Resolve buttons**, because GitHub offers neither on them; answering is the general comment | Owner decision (2026-10-10): drawing them as threads with disabled buttons would fill the screen with buttons that never work | y |
 | Comment timing | Every comment — reply, anchored or general — posts immediately, never into a pending review | Owner decision (F5-Q2) | y |
-| Selection outside the diff | GitHub only anchors comments to lines of the PR's diff hunks; a selection not fully inside one becomes a **general comment** citing `path:Lstart–Lend` with the selected text in a fenced block | Owner decision (F5-Q1). That GitHub rejects anchors outside the hunks is known behaviour **not stated on the REST reference page — the Design spike verifies it** | n — verify at Design |
+| Selection outside the diff | GitHub anchors a comment only when **both ends** of its range lie on lines of the PR's diff hunks — in one hunk or in two different ones; any other selection becomes a **general comment** citing `path:Lstart–Lend` with the selected text in a fenced block | Owner decision (F5-Q1). T1 measured the rule (an end outside every hunk → 422 `could not be resolved`; a range from one hunk to another → accepted), and the owner chose GitHub's own rule over "inside one hunk" (2026-10-10) | y |
 | Telling the user | The composer shows, before posting, that the comment will be general and why; the preview shows the citation as it will appear | Owner decision (F5-Q7) | y |
 | A file with no patch | GitHub omits the patch for large or binary files; every selection in such a file counts as outside the diff | Without the hunks, an anchor cannot be known to be valid | y |
 | Create PR | GitHub's compare page on the target repository — the source's parent when the source is a fork, the source itself otherwise — from the target's default branch to `<source owner>:<branch>` | The fork flow's PR lands on the upstream, never on the fork | y |
@@ -78,7 +78,7 @@ for GitHub, with the same surfaces and the same guarantees, adjusted to how GitH
 | Project decision | **AD-027** (recorded 2026-09-19) already covers both providers: the app writes PR comments to Azure DevOps **and GitHub**, only on explicit user action, and probes never target this repository's upstream | One posture for both providers | y |
 | Branch base | `feature/files-pr-github` stacked on `feature/files-pr-ado` | Reuses every F4 surface | y |
 
-**Open questions:** one, logged above and owned by Design — confirming that GitHub rejects anchors outside the diff hunks, which decides the general-comment path's trigger.
+**Open questions:** none. The one Design owned — whether GitHub rejects anchors outside the diff hunks — was answered by T1 (design § Spike Findings, S1).
 
 ---
 
@@ -153,8 +153,8 @@ be told before posting when a rule turns my anchored comment into a general one.
 16. Each GitHub thread SHALL offer Reply, posting immediately <!-- ubiquitous -->
 17. Each GitHub thread SHALL offer **Resolve** when active and **Reopen** when resolved, in place of F4's status selector <!-- ubiquitous -->
 18. IF GitHub reports the viewer may not reply, resolve or reopen a thread THEN that action SHALL be disabled with the reason <!-- unwanted-behavior -->
-19. WHEN the user comments on a modified-side selection lying entirely within the file's diff hunks THEN the system SHALL post a thread anchored to those lines immediately, not into a pending review <!-- event-driven -->
-20. WHEN the user comments on a selection not lying entirely within the diff hunks THEN the composer SHALL state, before posting, that the comment will be posted as a general comment citing `path:Lstart–Lend`, and its preview SHALL show that citation <!-- event-driven -->
+19. WHEN the user comments on a modified-side selection whose first and last lines both lie in the file's diff hunks THEN the system SHALL post a thread anchored to those lines immediately, not into a pending review <!-- event-driven -->
+20. WHEN the user comments on a selection whose first or last line lies outside every diff hunk THEN the composer SHALL state, before posting, that the comment will be posted as a general comment citing `path:Lstart–Lend`, and its preview SHALL show that citation <!-- event-driven -->
 21. WHEN such a comment is posted THEN it SHALL be a general PR comment containing the citation and the selected text in a fenced code block <!-- event-driven -->
 22. IF GitHub provided no patch for the file THEN every selection in that file SHALL be treated as outside the diff hunks <!-- unwanted-behavior -->
 23. The Overview SHALL offer a general comment, posting immediately <!-- ubiquitous -->
@@ -180,7 +180,7 @@ plainly when GitHub is rate-limiting me.
 
 ## Edge Cases
 
-- WHEN the fork a PR came from has been deleted THEN the head side SHALL show that the head repository is unavailable instead of failing the whole PR
+- WHEN the fork a PR came from has been deleted THEN the head side SHALL be read from the base repository at the PR's head commit, and SHALL show that the head repository is unavailable — instead of failing the whole PR — only when that read fails too
 - IF a PR changes more files than GitHub returns (its 3000-file ceiling) THEN the tree SHALL say the list is incomplete
 - WHEN a thread's anchored line no longer exists but GitHub has not marked it outdated THEN it SHALL be listed in the Overview as outdated rather than drawn on a wrong line
 - IF a review body is empty (an approval with no text) THEN only the state SHALL be shown, with no empty comment

@@ -26,7 +26,7 @@ graph TD
     Client --> GW
     Client --> Model[main/github-pr-model.ts<br/>pure]
     Client --> Locate[main/pr-locate.ts<br/>branch · remotes · tracked remote]
-    Rules[shared/pr-diff-rules.ts<br/>hunks · inOneHunk · citation] --> Client
+    Rules[shared/pr-diff-rules.ts<br/>hunks · endsInDiff · citation] --> Client
     Rules --> View[renderer lib/pr-view.ts<br/>commentPlan]
     GW -->|execFile, no shell| Gh[gh.exe]
     GW -->|GraphQL: read + resolve| API[(api.github.com)]
@@ -38,8 +38,8 @@ graph TD
 | Axis | Choice | Rejected / why |
 | ---- | ------ | -------------- |
 | D1 API split (owner) | **GraphQL** reads the PR, its reviews, review threads (with `isResolved`, `isOutdated`, `subjectType`, `viewerCanReply/Resolve/Unresolve`) and PR comments in one paginated query, and runs `resolveReviewThread` / `unresolveReviewThread` — which exist **only** there. **REST** lists files (with the `patch` GraphQL does not return), reads file contents, and makes the three writes whose documented behaviour is to post immediately | All-GraphQL writes: a thread added by mutation without an explicit review may land in a pending review, against F5-Q2. All-REST is impossible: REST cannot resolve a thread |
-| D2 "Within the diff" (owner) | Every selected modified-side line inside **one** hunk of the file's patch | Lines spread over several hunks — anchors GitHub may refuse after the user has written the comment |
-| D3 Where the diff rules live | `parsePatchHunks`, `inOneHunk` and `citation` in **`src/shared/pr-diff-rules.ts`**: pure, in coverage, imported by main (the client) and the renderer (`commentPlan`) — one rule, no duplicate | In `main/github-pr-model.ts`: the renderer cannot import main, so `commentPlan` would re-implement the rule |
+| D2 "Within the diff" (owner, amended after T1) | The selection's **first and last** modified-side lines each lie in a hunk of the file's patch — the same hunk or two different ones. This is GitHub's own rule as T1 measured it (S1) | "Inside one hunk", the planned rule: it would turn into a general comment a range GitHub anchors. The owner chose GitHub's rule on 2026-10-10 |
+| D3 Where the diff rules live | `parsePatchHunks`, `endsInDiff` and `citation` in **`src/shared/pr-diff-rules.ts`**: pure, in coverage, imported by main (the client) and the renderer (`commentPlan`) — one rule, no duplicate | In `main/github-pr-model.ts`: the renderer cannot import main, so `commentPlan` would re-implement the rule |
 | D4 Review bodies and PR comments (owner, 2026-10-10) | `PrDetail.timeline`, a list of its own drawn in the Overview's General section, no buttons | As threads with disabled Reply / Resolve: buttons that never work |
 | Channels | `github-pr:*` beside F4's `ado-pr:*`, **mirroring F4's names and shapes**: `thread` = anchored, `comment` = general, requests carry `pr: PrRef`. The hook calls both `find`s in parallel and routes every later call by `pr.target.provider`. F4's `ado-pr:open-link` (nothing ADO in it) becomes `pr:open-link` | Renaming every F4 channel to `pr:*` — churn for no behaviour gained |
 | Invoking `gh` | `execFile('gh', ['auth', 'token'])`, `shell: false`, `windowsHide`, stdin closed, a timeout (**AD-059**) | **Verified**: `gh` here is a native `gh.exe` (`C:\Program Files\GitHub CLI\gh.exe`), not a `.cmd` shim like `code` (`shortcut-launcher.ts:65`), so no shell and no quoting surface. `ENOENT` → not installed; non-zero exit → not signed in |
@@ -74,6 +74,27 @@ where they build a value whose type changed.
 inside a plain view zone takes no clicks; the Comment bar is **always mounted** so a selection does
 not shift the editor; file-level threads are `general` with a `path` (`files.ts:308-319`), and
 GitHub's `subjectType: FILE` maps the same way.
+
+---
+
+## Spike Findings (T1, 2026-10-10)
+
+Measured on a throwaway draft PR whose base and head branches were orphan branches in the owner's
+fork (so no workflow ran), with `gh api` from a scratch script outside the repository. The file
+under test had 40 lines; lines 5 and 30 changed, giving new-side hunks 2–8 and 27–33; a 64-byte
+binary file was added. Cross-fork reads used GET only on the upstream. Every probe comment was
+deleted afterwards, the PR closed and its branches deleted. Names below are fictitious.
+
+| # | Question | Finding | Design consequence |
+| - | -------- | ------- | ------------------ |
+| S1 | Which anchors does GitHub accept? (the spec's open question) | **Accepted**: a changed line (5); a range over context lines of one hunk (3–7); the hunk's last context line (8); **a range from one hunk to the other (5–30)**. **Rejected, 422**: the first line after a hunk (9); a line in no hunk (18); a range with one end outside (5–18, 18–30, 1–4); both ends outside (12–20); a line of a binary file with no patch. Every rejection reads `Validation Failed` / `pull_request_review_thread.line` / `could not be resolved` | GitHub checks the two ends only. D2 amended to "both ends in a hunk"; owner chose it over "inside one hunk" |
+| S2 | Does a REST comment post immediately? | Yes. Each anchored comment and each reply creates its **own submitted review**, state `COMMENTED`, empty body; no `PENDING` review ever exists. Deleting the comment deletes that empty review too | FPRG-19's "not into a pending review" holds with REST. `timeline` must drop empty-body reviews, or every comment shows twice |
+| S3 | What do `latestReviews` and `reviewRequests` return? | `latestReviews` left out the PR author's six own `COMMENTED` reviews (empty list); `reviews` had all six | The author is never listed as a reviewer of their own PR |
+| S4 | Thread fields | A one-line thread reports `startLine` equal to `line` (REST says `start_line: null`), `startDiffSide: null`. A file-level thread (`subject_type: file`, accepted on the binary file) reports `subjectType: FILE` **with `line: 1`**. `resolveReviewThread` / `unresolveReviewThread` work and are idempotent; on a resolved thread `viewerCanResolve` is false and `viewerCanUnresolve` true, and the reverse when active; `viewerCanReply` stays true | `toThreadViews` tests `FILE` before reading `line`; the toggle reads the permission that applies to the thread's state |
+| S5 | Outdated | After a second head commit changing line 5: the 5–5 thread and the 5–30 thread became `isOutdated: true` with `line` and `startLine` **null** and `originalLine` / `originalStartLine` kept; the 3–7 thread (line 5 inside it, ends unchanged) and the line-8 thread stayed current | Outdated threads are listed on `originalLine`; GitHub judges outdatedness by the ends too |
+| S6 | Merge base and contents on a fork PR | `GET /repos/{upstream}/compare/{baseSha}...{headSha}` resolves with the head sha of an open fork PR **and with a commit that exists only in the fork**; the `{owner}:{ref}` and `{owner}:{sha}` forms give the same merge base. `GET /repos/{upstream}/contents/{path}?ref={fork-only sha}` also returns the file | `mergeBase` keeps the sha form. The head side falls back to the base repository when the fork is gone (owner, 2026-10-10) |
+| S7 | Files and contents | A binary file's entry in `pulls/{n}/files` has **no `patch` key** (not `null`), `additions: 0`. `contents` returns `size`, `type: file`, `encoding: base64` with the content **wrapped by newlines** (1607 characters for 1184 bytes); a folder returns an array; a missing path 404s. Rate-limit headers: `x-ratelimit-limit/remaining/reset/resource/used`; `X-Github-Api-Version-Selected: 2022-11-28` | Strip newlines before decoding; treat an absent `patch` as no patch; `fileSide` rejects an array |
+| S8 | General comment with Issues disabled | The fork has Issues disabled; `POST /repos/{fork}/issues/{n}/comments` on its PR still worked | `generalComment` does not depend on the repository's Issues setting |
 
 ---
 
@@ -116,8 +137,8 @@ GitHub's `subjectType: FILE` maps the same way.
 | `createTarget(source)` | REST `GET /repos/{source}` → `parent` when `fork` is true, else the source; plus its `default_branch` | 08 |
 | `getPr(pr)` | One GraphQL query: PR fields, `latestReviews`, `reviewRequests`, `reviewThreads` (path, line, startLine, diffSide, startDiffSide, subjectType, isResolved, isOutdated, viewerCan*, comments with `databaseId`), PR `comments` — each connection paged with `first: 100` and `pageInfo` until exhausted | 09, 10, 13, 14, 17, 18 |
 | `files(pr)` | REST `GET /repos/{target}/pulls/{n}/files?per_page=100&page=…`, all pages; keeps `patch`, `status`, `previous_filename`; stops at GitHub's 3000-file ceiling and flags it | 11, 22 |
-| `mergeBase(target, baseSha, headSha)` | REST `GET /repos/{target}/compare/{baseSha}...{headSha}` → `merge_base_commit.sha` **[spike: cross-fork head sha resolves in the base repository]** | 12 |
-| `fileSide(repo, path, ref)` | REST `GET /repos/{repo}/contents/{path}?ref={ref}`: `size` read first, content decoded only when ≤ 1 MB and not binary; the head side uses the **head repository**, unavailable when the fork is gone | 12 |
+| `mergeBase(target, baseSha, headSha)` | REST `GET /repos/{target}/compare/{baseSha}...{headSha}` → `merge_base_commit.sha` — resolves with a fork's head sha (S6) | 12 |
+| `fileSide(repo, path, ref)` | REST `GET /repos/{repo}/contents/{path}?ref={ref}`: `size` read first, content decoded only when ≤ 1 MB and not binary (base64 wrapped with newlines, S7); the head side uses the **head repository**, then the base repository at the same commit when the fork is gone (S6, owner 2026-10-10), and is unavailable only when both fail | 12 |
 | `reply(pr, rootCommentId, body)` | REST `POST /repos/{target}/pulls/{n}/comments/{id}/replies` | 16 |
 | `setResolved(threadNodeId, resolved)` | GraphQL `resolveReviewThread` / `unresolveReviewThread` | 17 |
 | `anchoredComment(pr, headSha, anchor, body)` | REST `POST /repos/{target}/pulls/{n}/comments` with `commit_id`, `path`, `line`, `side: RIGHT`, `start_line`, `start_side` for a range | 19 |
@@ -126,14 +147,14 @@ GitHub's `subjectType: FILE` maps the same way.
 #### `src/shared/pr-diff-rules.ts` (new — pure, unit-tested, D3)
 
 - `parsePatchHunks(patch): Hunk[]` — each `@@ -a,b +c,d @@` header gives the new-side range `c … c+d−1`; `d` omitted means 1; `d = 0` means no new-side lines (FPRG-19, 22)
-- `inOneHunk(startLine, endLine, hunks): boolean` — D2; `null` hunks (no patch) → always false (FPRG-22)
+- `endsInDiff(startLine, endLine, hunks): boolean` — D2: `startLine` and `endLine` each inside some hunk's new-side range; `null` hunks (no patch) → always false (FPRG-19, 20, 22)
 - `citation(path, startLine, endLine, text): string` — `` `path:Lstart–Lend` `` followed by the selected text fenced with a fence longer than any backtick run inside it, so a selection containing ` ``` ` cannot break out (FPRG-20, 21)
 
 #### `src/main/github-pr-model.ts` (new — pure, unit-tested)
 
-- `toThreadViews(threads)` — `isOutdated` → `outdated`; `subjectType: FILE` → `general` with its path; `isResolved` → `resolution: 'resolved'`; `diffSide` / `startDiffSide` → side; `viewerCan*` → `can`; `rootCommentId` = the first comment's `databaseId` (FPRG-13, 14, 17, 18)
-- `reviewerStates(latestReviews, reviewRequests)` — latest state per reviewer onto the extended `ReviewerState`; pending own reviews excluded; requested users and teams without a review listed as `no-vote` (FPRG-09)
-- `timeline(reviews, comments)` — review bodies and PR comments merged into `PrTimelineEntry[]` in time order; empty review bodies dropped (FPRG-10)
+- `toThreadViews(threads)` — checked in this order: `subjectType: FILE` → `general` with its path (GitHub still reports `line: 1` for it, S4); `isOutdated` → `outdated` on `originalLine` (`line` is null then, S5); otherwise `placed` from `startLine` (equal to `line` for one line, S4) to `line` on `diffSide`. `isResolved` → `resolution: 'resolved'`; `viewerCanReply` → `can.reply`, `viewerCanResolve` → `can.resolve`, `viewerCanUnresolve` → `can.reopen`; `rootCommentId` = the first comment's `databaseId` (FPRG-13, 14, 17, 18)
+- `reviewerStates(latestReviews, reviewRequests)` — latest state per reviewer onto the extended `ReviewerState`; pending own reviews excluded (`latestReviews` already leaves out the PR author's own, S3); requested users and teams without a review listed as `no-vote` (FPRG-09)
+- `timeline(reviews, comments)` — review bodies and PR comments merged into `PrTimelineEntry[]` in time order; empty review bodies dropped — every comment posted outside a review creates one (S2) (FPRG-10)
 - `sourceOwner(remotes, tracked)` and GitHub-remote selection over `locateBranch`'s result (FPRG-06)
 
 #### `src/main/remote-url.ts` (extended)
@@ -159,6 +180,7 @@ GitHub's `subjectType: FILE` maps the same way.
 | ---- | ------ | --- |
 | `lib/use-pull-request.ts` (F4, neutral after N1–N5) | Calls `ado-pr:find` and `github-pr:find` in parallel into `searches`; routes by `pr.target.provider`; per-PR caches keyed by `prKey` | 07, 25 |
 | `lib/pr-view.ts` (F4) | `commentPlan(pr, file, selection)` → `anchored` or `general` with the banner text, using `shared/pr-diff-rules.ts` — the only place the D2 rule meets the UI | 19, 20, 22 |
+| `components/PrThread.tsx` reasons | The toggle reads `can.resolve` on an active thread and `can.reopen` on a resolved one — GitHub sets the other one false by state, not by permission (S4) — so "no permission" shows only when the one that applies is false | 18 |
 | `lib/use-github-status.ts` (new) | `github:status` on mount and on focus (5 s debounce); hidden on `no-github-remote` | 02, 05 |
 | `components/TopBar.tsx` | `gh` chip beside `az`; install link opened by main | 02, 03, 04 |
 | `components/PrThread.tsx` (F4) | GitHub action: Resolve / Reopen toggle; every action disabled with its reason per `can` | 17, 18 |
@@ -212,9 +234,9 @@ export interface PrTimelineEntry {
 | No GitHub remote anywhere | `github:status` → `no-github-remote` | No chip (FPRG-02) |
 | Branch tracks no GitHub remote | `findPrs` → `none`, no request | "Not pushed to GitHub" on GitHub's line (FPRG-06) |
 | Rate limited | `rate-limited` with reset time | Message with the reset time; no retry (FPRG-26) |
-| Fork deleted | `head.repo` null | Head side: "head repository unavailable"; rest of the PR works (edge case) |
+| Fork deleted | `head.repo` null | Head side read from the base repository at the head commit; "head repository unavailable" only when that fails too; rest of the PR works (edge case) |
 | 3000-file ceiling | `files` flags truncation | "List incomplete" in the tree (edge case) |
-| 422 on an anchored comment | Should not happen after `inOneHunk`; if it does, `WriteResult` with GitHub's message | Inline in the composer, text kept |
+| 422 on an anchored comment | Should not happen after `endsInDiff`; if it does (GitHub's `pull_request_review_thread.line` … `could not be resolved`, S1), `WriteResult` with GitHub's message | Inline in the composer, text kept |
 | No permission to reply / resolve / reopen | `can.*` false | Disabled action with reason (FPRG-18) |
 | Write while token expired | 401 → `not-signed-in` | Composer keeps text; chip updates |
 | One provider fails | Its own `PrSearch` | Its line says why; the other provider's PRs stay in the picker (FPRG-07) |
@@ -225,9 +247,9 @@ export interface PrTimelineEntry {
 
 | Concern | Location | Impact | Mitigation |
 | ------- | -------- | ------ | ---------- |
-| **The out-of-hunk rejection is known behaviour, not documented on the reference page** | spec open question | The general-comment path could trigger when GitHub would have accepted, or vice versa | T1 posts one anchored comment inside a hunk, one on an expanded context line, and one spanning two hunks on the scratch PR |
+| ~~The out-of-hunk rejection is known behaviour, not documented on the reference page~~ | spec open question | — | **Closed by T1** (S1): measured and D2 amended |
 | **Probing this repository's upstream would notify real maintainers** | T1, T27 | Noise to strangers; a public artefact | Writes only on a draft PR whose base and head are both in the owner's fork (owner, 2026-10-10); `gh pr create` there always passes `--repo` and `--base`, since its default base is the upstream; coordinates from environment variables; the smoke refuses to write when the PR's base repository is `obogoni/playground` |
-| Cross-fork `compare` with a fork's head sha | `mergeBase` | Wrong or failing base side for fork PRs | T1 measures it read-only on an existing fork → upstream PR; fallback is `compare/{base}...{headOwner}:{headRef}` |
+| ~~Cross-fork `compare` with a fork's head sha~~ | `mergeBase` | — | **Closed by T1** (S6): the sha form resolves in the base repository, even for a commit that exists only in the fork |
 | The N1–N6 refactor regresses Azure DevOps | T2–T6 | F4 breaks for its users | F4's tests stay green; F4's smoke re-run read-only after T6 if the owner's sandbox PR is still open, else at T27 time |
 | GraphQL connection limits | `getPr` | Threads or comments silently cut at 100 | Every connection paged to `hasNextPage: false`; a 150-thread fake response is a unit test (lesson L-128: confirm the connection pages before writing the case) |
 | Fence injection in citations | `citation` | A selected ` ``` ` closing the quote early and turning the rest into live markdown | Fence longer than the longest backtick run in the selection; unit-tested, and rendered through `renderMarkdown` in `pr-view.test.ts` |
@@ -242,14 +264,14 @@ export interface PrTimelineEntry {
 | Layer | Test type | What it proves |
 | ----- | --------- | -------------- |
 | N1–N6 refactor | existing F4 tests (edited only where a value's type changed) + unit for `prKey` / `prLabel` / `revisionBanner` / `locateBranch` | No Azure DevOps behaviour changed |
-| `shared/pr-diff-rules.ts` | unit (pure) | Hunk parsing incl. `d` omitted and `d = 0`; D2 inside / across / no patch; citation fences |
+| `shared/pr-diff-rules.ts` | unit (pure) | Hunk parsing incl. `d` omitted and `d = 0`; D2 both ends in one hunk / in two hunks / one end outside / no patch; citation fences |
 | `github-pr-model.ts` | unit (pure) | Thread mapping incl. outdated, file-level and permissions; reviewer states; timeline order and empty bodies; source owner |
 | `github-gateway.ts` | unit (fake runner + fake `fetch`) | `ENOENT`, non-zero exit and success; rate-limit detection from REST headers and GraphQL errors; headers sent; 401 |
 | `GitHubPrClient` | unit (fake `fetch`) | Exact URLs and bodies; files and GraphQL connections paged to the end; the head side read from the head repository; writes only when called, one request each |
 | `remote-url.ts` additions | unit (pure) | PR and compare URLs, encoding, https-only |
 | `pr-view.ts` `commentPlan` | unit (pure) | Anchored vs general with the exact banner and citation; the citation renders as one code block |
 | Components, hooks, chip | none — hand-verified + CDP smoke | Per `TESTING.md` |
-| Spike | manual, the owner's fork | The **[spike]** items |
+| Spike | manual, the owner's fork | The **[spike]** items — done, § Spike Findings |
 
 ---
 

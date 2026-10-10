@@ -109,14 +109,14 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] **Out-of-hunk anchors**: an anchored comment inside a hunk, one on a context line outside every hunk, and one spanning two hunks — recorded which GitHub accepts and the exact error of the others (the spec's open question)
-- [ ] **Immediate posting**: the REST anchored comment and reply are visible without submitting a review (read back by REST and GraphQL: no `PENDING` review exists)
-- [ ] **Resolve / unresolve**: `resolveReviewThread` and `unresolveReviewThread` on a probe thread, and the `viewerCan*` values before and after
-- [ ] **Merge base on a fork PR** (GET only, on the upstream): `compare/{baseSha}...{headSha}` in the base repository with the fork's head sha — recorded whether it resolves; if not, the `{headOwner}:{headRef}` form
-- [ ] **Files and patches**: the `patch` field's hunk headers on a file with two hunks; what a binary file returns
-- [ ] Every probe comment is deleted afterwards, the draft PR closed and its throwaway branches deleted
-- [ ] **No write is sent to `obogoni/playground`**
-- [ ] If a finding contradicts the design, it is amended in this commit; if out-of-hunk anchors turn out to be accepted, the spec's FPRG-19..22 are revisited with the owner before T2
+- [x] **Out-of-hunk anchors**: an anchored comment inside a hunk, one on a context line outside every hunk, and one spanning two hunks — recorded which GitHub accepts and the exact error of the others (the spec's open question)
+- [x] **Immediate posting**: the REST anchored comment and reply are visible without submitting a review (read back by REST and GraphQL: no `PENDING` review exists)
+- [x] **Resolve / unresolve**: `resolveReviewThread` and `unresolveReviewThread` on a probe thread, and the `viewerCan*` values before and after
+- [x] **Merge base on a fork PR** (GET only, on the upstream): `compare/{baseSha}...{headSha}` in the base repository with the fork's head sha — recorded whether it resolves; if not, the `{headOwner}:{headRef}` form
+- [x] **Files and patches**: the `patch` field's hunk headers on a file with two hunks; what a binary file returns
+- [x] Every probe comment is deleted afterwards, the draft PR closed and its throwaway branches deleted
+- [x] **No write is sent to `obogoni/playground`**
+- [x] If a finding contradicts the design, it is amended in this commit; if out-of-hunk anchors turn out to be accepted, the spec's FPRG-19..22 are revisited with the owner before T2 — **done 2026-10-10**: a range from one hunk to another is accepted (S1); the owner chose GitHub's rule, both ends in a hunk, and the head-side fallback to the base repository (S6)
 
 **Tests**: manual
 **Gate**: manual
@@ -320,7 +320,7 @@ T25 → T26 → T27
 
 ### T10: Know which lines are in the diff
 
-**What**: Create `src/shared/pr-diff-rules.ts` with `parsePatchHunks(patch)` and `inOneHunk(startLine, endLine, hunks)`, applying the rule T1 confirmed (design D2, D3).
+**What**: Create `src/shared/pr-diff-rules.ts` with `parsePatchHunks(patch)` and `endsInDiff(startLine, endLine, hunks)`, applying the rule T1 measured: both ends of the range in a hunk (design D2, D3, S1).
 **Where**: `src/shared/pr-diff-rules.ts`
 **Depends on**: T9
 **Reuses**: Nothing — new pure logic.
@@ -332,7 +332,7 @@ T25 → T26 → T27
 
 - [ ] `@@ -10,4 +12,6 @@` → new-side 12–17; `@@ -1 +1 @@` (counts omitted) → 1–1; `@@ -5,3 +4,0 @@` → no new-side lines
 - [ ] A patch with three hunks yields three ranges in order
-- [ ] A selection inside one hunk → true; across two hunks → false; on a line in no hunk → false
+- [ ] Both ends in one hunk → true; ends in two different hunks (5–30 over hunks 2–8 and 27–33) → true; the line after a hunk (9) → false; one end outside (5–18, 18–30) → false; both ends outside → false
 - [ ] `null` hunks (no patch) → always false
 - [ ] `pr-diff-rules.test.ts` created
 - [ ] Gate passes: `npm test`
@@ -380,10 +380,10 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] `isOutdated` → `outdated`; `subjectType: FILE` → `general` with its path; `isResolved` → `resolution: 'resolved'`; `diffSide LEFT` → left side
+- [ ] `subjectType: FILE` with `line: 1` → `general` with its path (S4); `isOutdated` with `line: null` → `outdated` on `originalLine` (S5); a one-line thread with `startLine` equal to `line` → one-line `placed`; `isResolved` → `resolution: 'resolved'`; `diffSide LEFT` → left side
 - [ ] `viewerCanReply / Resolve / Unresolve` carried onto `can`; `rootCommentId` is the first comment's `databaseId`
 - [ ] Latest review per reviewer wins; a pending own review is excluded; a requested team with no review appears as `no-vote`
-- [ ] Review bodies and PR comments merge in time order; an empty review body adds no entry
+- [ ] Review bodies and PR comments merge in time order; an empty `COMMENTED` review — the one every comment posted outside a review creates (S2) — adds no entry
 - [ ] `github-pr-model.test.ts` created
 - [ ] Gate passes: `npm test`
 - [ ] Test count: 3089 + 9 = **3098**
@@ -436,7 +436,7 @@ T25 → T26 → T27
 - [ ] `getPr` pages every GraphQL connection to `hasNextPage: false` — a 150-thread fake yields 150 threads (lesson L-128)
 - [ ] `files` pages to the end, keeps `patch` as parsed hunks, and flags the 3000-file ceiling
 - [ ] `mergeBase` uses the form T1 confirmed
-- [ ] `fileSide` reads the head side from the **head** repository, returns unavailable when the fork is gone, and never decodes content above 1 MB or for a binary
+- [ ] `fileSide` reads the head side from the **head** repository, then from the base repository at the same commit when the fork is gone (S6), and returns unavailable only when both fail; it strips the base64 line breaks (S7), rejects a folder's array, and never decodes content above 1 MB or for a binary
 - [ ] **No read method issues POST, PATCH, PUT or DELETE, and no GraphQL mutation** — asserted over every read test
 - [ ] `github-pr.test.ts` created
 - [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
@@ -498,10 +498,10 @@ T25 → T26 → T27
 
 ### T17: Decide anchored or general
 
-**What**: Add `commentPlan(pr, file, selection)` to `pr-view.ts` — `anchored` for an ADO PR or a GitHub selection inside one hunk; `general` with the banner text and the citation otherwise.
+**What**: Add `commentPlan(pr, file, selection)` to `pr-view.ts` — `anchored` for an ADO PR or a GitHub selection whose both ends lie in a hunk; `general` with the banner text and the citation otherwise.
 **Where**: `src/renderer/src/lib/pr-view.ts`
 **Depends on**: T16
-**Reuses**: `inOneHunk` and `citation` from `shared/pr-diff-rules.ts` (D3); `renderMarkdown`.
+**Reuses**: `endsInDiff` and `citation` from `shared/pr-diff-rules.ts` (D3); `renderMarkdown`.
 **Requirement**: FPRG-19, 20, 21, 22
 
 **Tools**: MCP: NONE · Skill: NONE
@@ -509,7 +509,7 @@ T25 → T26 → T27
 **Done when**:
 
 - [ ] An ADO PR is always `anchored` — F4's behaviour unchanged
-- [ ] GitHub inside one hunk → `anchored`; across hunks, outside, or no patch → `general`
+- [ ] GitHub with both ends in a hunk, the same or two different → `anchored`; an end outside every hunk, or no patch → `general`
 - [ ] The banner names `path:Lstart–Lend` and says GitHub only anchors comments to diff lines
 - [ ] The citation of a selection containing ` ``` ` renders through `renderMarkdown` as one code block and no live content
 - [ ] Gate passes: `npm test`
@@ -651,7 +651,7 @@ T25 → T26 → T27
 **Done when**:
 
 - [ ] ADO threads still show the status selector
-- [ ] A thread the viewer cannot resolve shows the toggle disabled with the reason
+- [ ] A thread the viewer cannot resolve shows the toggle disabled with the reason; the toggle reads `can.resolve` on an active thread and `can.reopen` on a resolved one, never the other (S4)
 - [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
 - [ ] Test count: **3122** (unchanged)
 
@@ -699,7 +699,7 @@ T25 → T26 → T27
 
 - [ ] A selection in an expanded unchanged region opens the composer with the general banner
 - [ ] A file without a patch never offers an anchored comment
-- [ ] A fork PR whose fork is gone shows "head repository unavailable" on the head side only
+- [ ] A fork PR whose fork is gone still shows its head side, read from the base repository; "head repository unavailable" appears on the head side only when that read fails too
 - [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
 - [ ] Phase gate passes: `npx electron-vite build`
 - [ ] Test count: **3122** (unchanged)

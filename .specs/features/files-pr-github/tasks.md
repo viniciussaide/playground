@@ -698,11 +698,11 @@ T25 → T26 → T27
 **Done when**:
 
 - [ ] A selection in an expanded unchanged region opens the composer with the general banner
-- [ ] A file without a patch never offers an anchored comment
+- [x] A file without a patch never offers an anchored comment
 - [ ] A fork PR whose fork is gone still shows its head side, read from the base repository; "head repository unavailable" appears on the head side only when that read fails too
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Phase gate passes: `npx electron-vite build`
-- [ ] Test count: **3122** (unchanged)
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Phase gate passes: `npx electron-vite build`
+- [x] Test count: **3122** (unchanged)
 
 **Tests**: none
 **Gate**: build

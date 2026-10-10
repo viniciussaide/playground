@@ -50,12 +50,17 @@ export interface DiffZone {
   content: ReactNode
 }
 
-/** A selection on the modified side, as Monaco reports it: 1-based lines and columns. */
+/**
+ * A selection on the modified side, as Monaco reports it: 1-based lines and
+ * columns, and the text it covers, read from the model — what a general
+ * comment on GitHub quotes (FPRG-21).
+ */
 export interface ModifiedSelection {
   startLine: number
   startColumn: number
   endLine: number
   endColumn: number
+  text: string
 }
 
 /**
@@ -356,7 +361,12 @@ export function DiffViewer({
                 startLine: selection.startLineNumber,
                 startColumn: selection.startColumn,
                 endLine: selection.endLineNumber,
-                endColumn: selection.endColumn
+                endColumn: selection.endColumn,
+                text:
+                  editor
+                    .getModifiedEditor()
+                    .getModel()
+                    ?.getValueInRange(selection, monaco.editor.EndOfLinePreference.LF) ?? ''
               }
         )
       })

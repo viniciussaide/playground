@@ -354,13 +354,19 @@ export function usePullRequest({
       const at: SidesRevision = { revision: state.detail?.revision ?? '' }
       if (state.detail?.ado) at.ado = state.detail.ado
       patch(wt, (s) => ({ sides: { ...s.sides, [key]: { ...at, sides: null } } }))
-      api
-        .invoke('ado-pr:file-sides', {
-          worktreePath: wt,
-          pr: { target: pr.target, id: pr.id },
-          path: file.path,
-          oldPath: file.oldPath
-        })
+      const request = {
+        worktreePath: wt,
+        pr: { target: pr.target, id: pr.id },
+        path: file.path,
+        oldPath: file.oldPath
+      }
+      // GitHub reads the head side from the head repository, then from the
+      // base repository when the fork is gone (FPRG-12, edge case).
+      const read =
+        pr.target.provider === 'github'
+          ? api.invoke('github-pr:file-sides', request)
+          : api.invoke('ado-pr:file-sides', request)
+      read
         .catch(
           (err: unknown): DiffSides => ({
             original: { kind: 'error', message: messageOf(err) },
@@ -481,35 +487,22 @@ export function usePullRequest({
       content: string
     ): Promise<WriteResult> => {
       if (!detail) return noPr()
-      // An Azure DevOps thread names the iteration on screen and the file's
-      // change tracking id (FPRA-27); both are Azure DevOps' own.
-      const changeTrackingId = file.changeTrackingId
-      if (at.ado === undefined || changeTrackingId === undefined) return notAdo()
-      const iteration = at.ado.iteration
       const pr = refOf(detail)
-      return write(
-        () =>
-          api.invoke('ado-pr:thread', {
-            pr,
-            iteration,
-            changeTrackingId,
-            selection,
-            content
-          }),
-        (d) => ({
-          ...d,
-          threads: [
-            ...d.threads,
-            ownThread(content, {
-              kind: 'placed',
-              path: file.path,
-              side: 'right',
-              startLine: Math.min(selection.startLine, selection.endLine),
-              endLine: Math.max(selection.startLine, selection.endLine)
-            })
-          ]
-        })
-      )
+      const send = threadSender(pr, file, selection, at, content)
+      if (send === null) return notAdo()
+      return write(send, (d) => ({
+        ...d,
+        threads: [
+          ...d.threads,
+          ownThread(content, {
+            kind: 'placed',
+            path: file.path,
+            side: 'right',
+            startLine: Math.min(selection.startLine, selection.endLine),
+            endLine: Math.max(selection.startLine, selection.endLine)
+          })
+        ]
+      }))
     },
     [detail, write]
   )
@@ -587,6 +580,30 @@ export function usePullRequest({
     createPr,
     openLink
   }
+}
+
+/**
+ * The write that posts an anchored thread on the provider the pull request
+ * names, or null when what it needs is missing. GitHub anchors it at the head
+ * commit on screen, which is a GitHub PR's revision (FPRG-19, design N2);
+ * Azure DevOps at the iteration on screen and the file's change tracking id
+ * (FPRA-27).
+ */
+function threadSender(
+  pr: PrRef,
+  file: PrFile,
+  selection: PrSelection,
+  at: SidesRevision,
+  content: string
+): (() => Promise<WriteResult>) | null {
+  if (pr.target.provider === 'github') {
+    const headSha = at.revision
+    return () => api.invoke('github-pr:thread', { pr, headSha, selection, content })
+  }
+  const changeTrackingId = file.changeTrackingId
+  if (at.ado === undefined || changeTrackingId === undefined) return null
+  const iteration = at.ado.iteration
+  return () => api.invoke('ado-pr:thread', { pr, iteration, changeTrackingId, selection, content })
 }
 
 /** How one reload came about (FPRA-33, FPRG-26). */

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
-import type { PrSelection } from '../../../shared/files'
+import type { CommentPlan, PrSelection } from '../../../shared/files'
 import { tabKeyOf } from '../lib/diff-view'
-import { prKey, zonesForFile } from '../lib/pr-view'
+import { commentPlan, prKey, zonesForFile } from '../lib/pr-view'
 import type { PrDiffTab as PrDiffTabState, UseFiles } from '../lib/use-files'
 import type { SidesRevision } from '../lib/use-pull-request'
 import { CommentComposer } from './CommentComposer'
@@ -10,10 +10,15 @@ import { DiffViewer, type DiffHandle, type DiffZone, type ModifiedSelection } fr
 import { PrThread } from './PrThread'
 import './PrDiffTab.css'
 
-/** A new thread being written: the selection it is anchored to, and the revision it was made on. */
+/**
+ * A new comment being written: the selection it is about, the revision it was
+ * made on, and how it will post — anchored, or on GitHub as a general comment
+ * citing the lines (FPRG-19..22).
+ */
 interface Draft {
   selection: PrSelection
   at: SidesRevision
+  plan: CommentPlan
 }
 
 /**
@@ -28,7 +33,11 @@ interface Draft {
  * A selection on the modified side offers Comment, which opens a composer
  * under the selection anchored to its lines and columns at the iteration on
  * screen (FPRA-27). The viewer reports no selection of the original side, so
- * there is never a Comment there (FPRA-28).
+ * there is never a Comment there (FPRA-28). On GitHub, `commentPlan` decides
+ * first: a selection whose ends are not both in the file's hunks — one in an
+ * expanded unchanged region, or any in a file GitHub sent no patch for —
+ * opens the composer with the general-comment banner, and posts as a general
+ * comment citing the lines (FPRG-19..22).
  */
 export function PrDiffTab({
   files,
@@ -68,6 +77,11 @@ export function PrDiffTab({
       .catch((err: unknown) => onToast(err instanceof Error ? err.message : String(err)))
   }
 
+  // The file as the pull request on screen lists it, so a GitHub file carries
+  // the hunks its plan is decided by (FPRG-22).
+  const file =
+    (ours ? detail.files.find((shown) => shown.path === tab.path) : undefined) ?? tab.file
+
   const placed = zonesForFile(ours ? detail.threads : [], tab.path)
   const zones: DiffZone[] = [
     ...placed.left.map(({ afterLine, thread }) => ({
@@ -102,8 +116,12 @@ export function PrDiffTab({
       content: (
         <CommentComposer
           autoFocus
+          plan={draft.plan}
           onPost={(content) =>
-            pr.startThread(tab.file, draft.selection, draft.at, content).then((result) => {
+            (draft.plan.kind === 'general'
+              ? pr.comment(content)
+              : pr.startThread(file, draft.selection, draft.at, content)
+            ).then((result) => {
               if (result.ok) setDraft(null)
               return result
             })
@@ -119,7 +137,12 @@ export function PrDiffTab({
     if (!selection || !entry) return
     const at: SidesRevision = { revision: entry.revision }
     if (entry.ado) at.ado = entry.ado
-    setDraft({ selection: { path: tab.path, ...selection }, at })
+    const { text, ...lines } = selection
+    setDraft({
+      selection: { path: tab.path, ...lines },
+      at,
+      plan: commentPlan(tab.pr, file, { startLine: lines.startLine, endLine: lines.endLine, text })
+    })
   }
 
   if (!entry?.sides) return <div className="file-tabs-note">Loading…</div>

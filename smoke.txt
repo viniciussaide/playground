@@ -32,7 +32,7 @@ line 31: fictitious text for the smoke
 line 32: fictitious text for the smoke
 line 33: fictitious text for the smoke
 line 34: fictitious text for the smoke
-line 35: fictitious text for the smoke
+line 35: changed by a third commit
 line 36: fictitious text for the smoke
 line 37: fictitious text for the smoke
 line 38: fictitious text for the smoke

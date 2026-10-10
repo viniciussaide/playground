@@ -20,8 +20,8 @@ import { tabKeyOf } from './diff-view'
 import { prKey, revisionBanner } from './pr-view'
 import { useLatestCallback } from './use-latest-callback'
 
-/** How long a focus reload waits out another focus (FPRA-33), as App does for its own. */
-const FOCUS_RELOAD_MS = 5000
+/** How long a focus reload waits out another focus (FPRA-33, FPRG-05), as App does for its own. */
+export const FOCUS_RELOAD_MS = 5000
 
 /**
  * The revision that was latest when a PR diff's sides were asked for: what a

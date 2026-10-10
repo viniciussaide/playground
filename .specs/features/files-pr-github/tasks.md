@@ -534,9 +534,9 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] No `gh` process when no registered repository has a GitHub remote
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: **3122** (unchanged)
+- [x] No `gh` process when no registered repository has a GitHub remote
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: **3122** (unchanged)
 
 **Tests**: none
 **Gate**: full

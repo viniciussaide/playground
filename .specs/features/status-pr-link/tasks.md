@@ -102,9 +102,11 @@ T7 → T8 → T9
 
 **Done when**:
 
-- [ ] Tests for each mark from Azure DevOps-shaped reviewers (votes, groups, required) and GitHub-shaped ones (`changes-requested`, `commented`, `dismissed`); rejected beats changes beats approved; approved-with-suggestions counts as approved; no votes → `null`; groups and required flags do not change the mark
-- [ ] Gate check passes: `npm test`
-- [ ] Test count: baseline + the new tests
+- [x] Tests for each mark from Azure DevOps-shaped reviewers (votes, groups, required) and GitHub-shaped ones (`changes-requested`, `commented`, `dismissed`); rejected beats changes beats approved; approved-with-suggestions counts as approved; no votes → `null`; groups and required flags do not change the mark
+- [x] Gate check passes: `npm test` (full gate run: typecheck, lint 18 warnings, tests)
+- [x] Test count: 3122 + 9 = 3131
+
+**Done** 2026-10-10. The state labels moved from `PrOverview.tsx` into `pr-status.ts` (`REVIEWER_STATES`), so the Overview and the tooltip read one map.
 
 **Tests**: unit
 **Gate**: quick
@@ -292,6 +294,7 @@ T7 → T8 → T9
 
 ### T9: Owner check against a real PR
 
+**Owner (2026-10-10)**: Azure DevOps: the draft PR in the employer org that F4 used is still open. GitHub: a draft PR opened on this project for the purpose (its creation is a write: go-ahead at that moment).
 **What**: With the PRs the owner names at this task, the owner selects their worktree: the chip shows the PR and its mark; the chip opens Pull request mode; ↗ opens the browser; a branch without a PR shows `Create PR` and it opens the creation page. The read-only sections of the F4/F5 smokes run against the same PRs (T4's regression check).
 **Where**: `.specs/features/status-pr-link/tasks.md` (result)
 **Depends on**: T8

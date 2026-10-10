@@ -116,11 +116,11 @@ repository, branch, changes and sync state; the PR is the missing piece of that 
 | SPRL-01 | P1: see — AC 1 | Tasks | In Tasks |
 | SPRL-02 | P1: see — AC 2 | Tasks | In Tasks |
 | SPRL-03 | P1: see — AC 3 | Tasks | In Tasks |
-| SPRL-04 | P1: see — AC 4 | Tasks | In Tasks |
-| SPRL-05 | P1: see — AC 5 | Tasks | In Tasks |
-| SPRL-06 | P1: see — AC 6 | Tasks | In Tasks |
-| SPRL-07 | P1: see — AC 7 | Tasks | In Tasks |
-| SPRL-08 | P1: see — AC 8 | Tasks | In Tasks |
+| SPRL-04 | P1: see — AC 4 | T1 | Implemented |
+| SPRL-05 | P1: see — AC 5 | T1 | Implemented |
+| SPRL-06 | P1: see — AC 6 | T1 | Implemented |
+| SPRL-07 | P1: see — AC 7 | T1 | Implemented |
+| SPRL-08 | P1: see — AC 8 | T1 | Implemented |
 | SPRL-09 | P1: see — AC 9 | Tasks | In Tasks |
 | SPRL-10 | P1: reach — AC 10 | Tasks | In Tasks |
 | SPRL-11 | P1: reach — AC 11 | Tasks | In Tasks |

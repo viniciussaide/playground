@@ -556,7 +556,7 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] The three states read differently in both themes
+- [x] The three states read differently in both themes — T27 smoke R11 (each state: R2, R9, R10)
 - [x] The install link opens through main, never through the template's window-open handler
 - [x] Gate passes: `npm run typecheck && npm run lint && npm test`
 - [x] Test count: **3122** (unchanged)
@@ -579,10 +579,10 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] A provider that fails shows its own state without hiding the other's PRs
-- [ ] Choosing a PR of one provider does not reset the other's cache (edge case)
-- [ ] A rate-limited GitHub shows its reset time and is not retried until the next user-driven reload
-- [ ] F4's ADO-only behaviour is unchanged when no GitHub remote exists
+- [ ] A provider that fails shows its own state without hiding the other's PRs — open: no branch is searched on both providers at once (§ Fixes found during Execute, "one branch, one provider")
+- [ ] Choosing a PR of one provider does not reset the other's cache (edge case) — open: same reason
+- [ ] A rate-limited GitHub shows its reset time and is not retried until the next user-driven reload — open: a smoke cannot exhaust GitHub's limit on purpose; the gateway's unit tests are the only evidence
+- [ ] F4's ADO-only behaviour is unchanged when no GitHub remote exists — open: needs an Azure DevOps pull request; F4's sandbox worktree was removed after F4 shipped, so `smoke-files-pr-ado.mjs` was not re-run
 - [x] Gate passes: `npm run typecheck && npm run lint && npm test`
 - [x] Test count: **3122** (unchanged)
 
@@ -604,7 +604,7 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] ADO and GitHub PRs of one branch are distinguishable at a glance
+- [ ] ADO and GitHub PRs of one branch are distinguishable at a glance — open: the GitHub half is proven (W3: every option reads `GitHub · #n`, marked `data-provider="github"`), but no branch lists an Azure DevOps PR beside a GitHub one (§ Fixes found during Execute, "one branch, one provider")
 - [x] Gate passes: `npm run typecheck && npm run lint && npm test`
 - [x] Test count: **3122** (unchanged)
 
@@ -627,7 +627,7 @@ T25 → T26 → T27
 **Done when**:
 
 - [x] Outdated GitHub threads are listed as outdated
-- [ ] An approval with no body shows its state and no empty comment
+- [ ] An approval with no body shows its state and no empty comment — open: one account cannot approve its own PR, and the upstream PR read has no review; W6 proves only that reviews with no body add no timeline entry
 - [x] Timeline entries carry no Reply or Resolve
 - [x] Gate passes: `npm run typecheck && npm run lint && npm test`
 - [x] Test count: **3122** (unchanged)
@@ -673,8 +673,8 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] The banner is visible before the first keystroke, not only after posting
-- [ ] Preview shows citation + text as one rendered comment
+- [x] The banner is visible before the first keystroke, not only after posting — T27 smoke W21
+- [x] Preview shows citation + text as one rendered comment — T27 smoke W22
 - [x] Anchored plans look exactly as in F4
 - [x] Gate passes: `npm run typecheck && npm run lint && npm test`
 - [x] Test count: **3122** (unchanged)
@@ -697,9 +697,9 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] A selection in an expanded unchanged region opens the composer with the general banner
+- [x] A selection in an expanded unchanged region opens the composer with the general banner — T27 smoke W21, posted as W23
 - [x] A file without a patch never offers an anchored comment
-- [ ] A fork PR whose fork is gone still shows its head side, read from the base repository; "head repository unavailable" appears on the head side only when that read fails too
+- [ ] A fork PR whose fork is gone still shows its head side, read from the base repository; "head repository unavailable" appears on the head side only when that read fails too — open: needs a fork deleted under an open PR; the smoke proves only the head side read from a live fork (R7)
 - [x] Gate passes: `npm run typecheck && npm run lint && npm test`
 - [x] Phase gate passes: `npx electron-vite build`
 - [x] Test count: **3122** (unchanged)
@@ -745,12 +745,14 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] Refuses `--allow-writes` when the PR's base repository is `obogoni/playground`, and when the PR is not a draft
-- [ ] Read checks: the chip; the fork → upstream PR found; the provider glyph; reviewer states; the timeline without buttons; outdated listed; resolved collapsed; a comment with a `javascript:` link inert
-- [ ] With `--allow-writes`: reply; resolve and reopen; an anchored comment inside a hunk landing on its lines on github.com; a selection outside the diff showing the banner and posting a general comment with the citation — all deleted afterwards
-- [ ] Coordinates from environment variables only
-- [ ] Each check falsified once against a broken build before it is trusted (lessons L-031, L-052, L-073)
-- [ ] Numbered pass/fail line per check; all pass against a live dev app
+- [x] Refuses `--allow-writes` when the PR's base repository is `obogoni/playground`, and when the PR is not a draft — R1/W1 (the refusal against fictitious fixtures, every run). The upstream is the fork's parent as GitHub reports it, so no owner is named in the script; a repository that is not a fork is refused before any push, and each opened PR is read back and refused before any comment unless it is a draft based on and headed in the fork (a broken build that reads the opened draft as not a draft aborted with "the pull request is not a draft" before any comment, its PR closed and branches deleted)
+- [x] Read checks: the chip (R2, W2, and R8–R11 for the other states and focus); the fork → upstream PR found (R3); the provider glyph (W3); reviewer states (R5); the timeline without buttons (W6); outdated listed (W8); resolved collapsed (W9, W14); a comment with a `javascript:` link inert (W10)
+- [x] With `--allow-writes`: reply (W16); resolve and reopen (W17, W18); an anchored comment inside a hunk landing on its lines on github.com (W19, and across two hunks W20); a selection outside the diff showing the banner and posting a general comment with the citation (W21–W23) — all deleted afterwards (each run's cleanup reads back 0 comments left, its PRs closed, its branches gone)
+- [x] Coordinates from environment variables only — `SMOKE_PR_WORKTREE` (read-only) and `SMOKE_GH_FORK` (writes); the script names no owner, repository, branch or number, and prints none
+- [x] Each check falsified once against a broken build before it is trusted (lessons L-031, L-052, L-073) — 14 mutant rounds; every check went red against a mutant that named it, and only the named checks did (one round was redone: its mutant made both sides identical and broke more than it named; the first Reopen check passed a mutant because Resolve had already failed; it now requires the thread resolved, on screen and on GitHub, just before the click)
+- [x] Numbered pass/fail line per check; all pass against a live dev app — read-only 11/11 (3 SKIP: the upstream PR has one PR, no timeline, no thread), `--allow-writes` 26/26 (1 SKIP: the fork's draft has no reviewers)
+
+Check numbers cited in this file: R*n* and W*n* are check *n* of the read-only and the `--allow-writes` run of the committed script (2026-10-10). The smoke is also the evidence for FPRG-05 (R8) and FPRG-25 (W25, W26).
 
 **Tests**: manual
 **Gate**: manual
@@ -893,4 +895,6 @@ All 26 mapped; none unmapped.
 
 ## Fixes found during Execute
 
-- **3000-file ceiling not shown** (found in batch 4's report, 2026-10-10): main set `PrDetail.github.filesIncomplete`, but no task drew it, so the spec's edge case "the tree SHALL say the list is incomplete" had no reader. `PullRequestFiles` (`FileTree.tsx`) now shows "List incomplete: GitHub returns at most 3000 files of a pull request." above the rows (`.pr-files-incomplete`). Renderer only, no unit test per the matrix; T27 checks it is absent on a normal PR.
+- **3000-file ceiling not shown** (found in batch 4's report, 2026-10-10): main set `PrDetail.github.filesIncomplete`, but no task drew it, so the spec's edge case "the tree SHALL say the list is incomplete" had no reader. `PullRequestFiles` (`FileTree.tsx`) now shows "List incomplete: GitHub returns at most 3000 files of a pull request." above the rows (`.pr-files-incomplete`). Renderer only, no unit test per the matrix; T27 checks it is absent on a normal PR (R6, W11).
+- **A thread on the last line before a folded region was not drawn** (found by T27's smoke, 2026-10-10; fixed in `456c07a`): Monaco ties a view zone at a line's end to the line after it and hides the zone when that line is folded, so a thread — or a new comment's composer — under a hunk's last context line, right above the "N hidden lines" strip, never showed, on either provider. `DiffViewer` now anchors each zone at its line's first column (drawn exactly while its own line is; still hidden inside a folded region, #130), and keeps an empty line's zone drawn, since an empty line has no column past the first. No unit test (components are smoke-verified); W14 covers both an empty line (8) and a non-empty one (33), and each half went red when its part of the fix was removed.
+- **One branch, one provider** (found by T27, 2026-10-10; not fixed — needs the owner): a branch is searched on GitHub only when it tracks a GitHub remote (the source owner comes from it, `findPrs` returns `none` otherwise), and on Azure DevOps only when it tracks an Azure DevOps remote (`sourceRemote`). A branch tracks one remote, so no worktree can list an Azure DevOps PR beside a GitHub one, and the other provider never fails while one finds PRs. FPRG-07's "one picker" for both providers, the edge case "choosing one in the picker SHALL not affect the other's cached state", the spec's success criterion "a branch with PRs on both providers lists both in one picker", T20's first two boxes and T21's box cannot happen as built. The picker itself works across several PRs of one provider (W3).

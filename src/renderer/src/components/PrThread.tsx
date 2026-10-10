@@ -69,12 +69,47 @@ function AdoStatusSelect({
 }
 
 /**
- * The status control each provider offers, chosen by the thread's provider:
- * Azure DevOps' selector here. F5 adds GitHub's Resolve / Reopen toggle as an
- * entry, and the thread around it stays as it is.
+ * GitHub's Resolve / Reopen toggle (FPRG-17): a GitHub thread has no statuses,
+ * only resolved or not, so an active thread offers Resolve and a resolved one
+ * Reopen. When the viewer may not, the toggle is disabled and says why
+ * (FPRG-18); the reason is the permission that applies to the thread's state
+ * (T1, S4).
  */
-const STATUS_CONTROLS: Partial<Record<PrProvider, (props: StatusControlProps) => JSX.Element>> = {
-  'azure-devops': AdoStatusSelect
+function GitHubResolveToggle({
+  thread,
+  busy,
+  deniedReason,
+  onSetState
+}: StatusControlProps): JSX.Element {
+  const open = thread.resolution === 'active'
+  return (
+    <>
+      {deniedReason && <span className="pr-thread-denied">{deniedReason}</span>}
+      <button
+        type="button"
+        className="pr-thread-resolve"
+        data-action={open ? 'resolve' : 'reopen'}
+        disabled={busy || deniedReason !== null}
+        title={deniedReason ?? (open ? 'Resolve this thread' : 'Reopen this thread')}
+        onClick={(event) => {
+          event.stopPropagation()
+          onSetState({ provider: 'github', resolved: open })
+        }}
+      >
+        {open ? 'Resolve' : 'Reopen'}
+      </button>
+    </>
+  )
+}
+
+/**
+ * The status control each provider offers, chosen by the thread's provider:
+ * Azure DevOps' selector (FPRA-26) and GitHub's Resolve / Reopen toggle
+ * (FPRG-17). The thread around it stays as it is.
+ */
+const STATUS_CONTROLS: Record<PrProvider, (props: StatusControlProps) => JSX.Element> = {
+  'azure-devops': AdoStatusSelect,
+  github: GitHubResolveToggle
 }
 
 interface PrThreadProps {
@@ -192,13 +227,7 @@ export function PrThread({
           ) : (
             <span className="pr-thread-location">{location}</span>
           ))}
-        {Control ? (
-          <Control thread={thread} busy={busy} deniedReason={denied.state} onSetState={setState} />
-        ) : (
-          <span className="pr-thread-resolution">
-            {thread.resolution === 'active' ? 'Active' : 'Resolved'}
-          </span>
-        )}
+        <Control thread={thread} busy={busy} deniedReason={denied.state} onSetState={setState} />
       </div>
       {statusError && (
         <div className="pr-thread-error" role="alert">

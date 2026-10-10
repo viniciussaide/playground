@@ -650,10 +650,10 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] ADO threads still show the status selector
-- [ ] A thread the viewer cannot resolve shows the toggle disabled with the reason; the toggle reads `can.resolve` on an active thread and `can.reopen` on a resolved one, never the other (S4)
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: **3122** (unchanged)
+- [x] ADO threads still show the status selector
+- [x] A thread the viewer cannot resolve shows the toggle disabled with the reason; the toggle reads `can.resolve` on an active thread and `can.reopen` on a resolved one, never the other (S4)
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: **3122** (unchanged)
 
 **Tests**: none
 **Gate**: full

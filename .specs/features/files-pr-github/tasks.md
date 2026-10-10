@@ -279,14 +279,14 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] `ENOENT` → `not-installed`; a non-zero exit → `not-signed-in`; success → `ok`, the token kept in memory only
-- [ ] The token never appears in a returned value, an error message or a log line (asserted over every path)
-- [ ] Requests send `Authorization: Bearer`, `X-GitHub-Api-Version: 2022-11-28`
-- [ ] A 403 with `x-ratelimit-remaining: 0`, a 429, and a GraphQL `RATE_LIMITED` error each return `rate-limited` with `resetAt`; a 401 drops the token and returns `not-signed-in`
-- [ ] Nothing throws
-- [ ] `github-gateway.test.ts` created
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: 3065 + 9 = **3074**
+- [x] `ENOENT` → `not-installed`; a non-zero exit → `not-signed-in`; success → `ok`, the token kept in memory only
+- [x] The token never appears in a returned value, an error message or a log line (asserted over every path)
+- [x] Requests send `Authorization: Bearer`, `X-GitHub-Api-Version: 2022-11-28`
+- [x] A 403 with `x-ratelimit-remaining: 0`, a 429, and a GraphQL `RATE_LIMITED` error each return `rate-limited` with `resetAt`; a 401 drops the token and returns `not-signed-in`
+- [x] Nothing throws
+- [x] `github-gateway.test.ts` created
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: 3065 + 9 = **3074**
 
 **Tests**: unit
 **Gate**: full

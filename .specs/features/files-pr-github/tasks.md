@@ -486,9 +486,9 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] Every handler delegates; no token reaches the renderer
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: **3116** (unchanged)
+- [x] Every handler delegates; no token reaches the renderer
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: **3116** (unchanged)
 
 **Tests**: none
 **Gate**: full

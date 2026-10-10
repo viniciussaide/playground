@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { endsInDiff, parsePatchHunks } from './pr-diff-rules'
+import { citation, endsInDiff, parsePatchHunks } from './pr-diff-rules'
 
 /**
  * The spike's file (design S1): 40 lines, lines 5 and 30 changed, so GitHub's
@@ -99,5 +99,37 @@ describe('endsInDiff', () => {
   it('refuses every range of a file with no patch', () => {
     expect(endsInDiff(5, 5, null)).toBe(false)
     expect(endsInDiff(1, 1, null)).toBe(false)
+  })
+})
+
+// FPRG-20, 21: a selection outside the diff posts as a general comment that
+// names its lines and quotes them in a fence nothing inside can close.
+describe('citation', () => {
+  it('names the path and the lines, then fences the selected text', () => {
+    const text = ['const a = 1', 'const b = 2', 'const c = 3'].join('\n')
+
+    expect(citation('src/a.ts', 10, 12, text)).toBe(
+      ['`src/a.ts:L10–L12`', '', '```', 'const a = 1', 'const b = 2', 'const c = 3', '```'].join(
+        '\n'
+      )
+    )
+  })
+
+  it('fences with more backticks than any run in the text', () => {
+    const three = citation('src/a.ts', 10, 12, ['before', '```', 'after'].join('\n'))
+    const four = citation('src/a.ts', 10, 12, ['before', '````js', 'after'].join('\n'))
+
+    expect(three).toBe(
+      ['`src/a.ts:L10–L12`', '', '````', 'before', '```', 'after', '````'].join('\n')
+    )
+    expect(four).toBe(
+      ['`src/a.ts:L10–L12`', '', '`````', 'before', '````js', 'after', '`````'].join('\n')
+    )
+  })
+
+  it('names a single line once', () => {
+    expect(citation('src/a.ts', 10, 10, 'const a = 1')).toBe(
+      ['`src/a.ts:L10`', '', '```', 'const a = 1', '```'].join('\n')
+    )
   })
 })

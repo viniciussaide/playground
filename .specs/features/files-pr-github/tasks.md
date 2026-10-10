@@ -356,11 +356,11 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] Output starts with `` `src/a.ts:L10–L12` `` and fences the text
-- [ ] Text containing ` ``` ` is fenced with four backticks; text containing ` ```` ` with five — the quote can never be closed from inside
-- [ ] A single-line selection reads `:L10`
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 3086 + 3 = **3089** (the "renders as one code block" check lives in T17, where the renderer's `renderMarkdown` is importable)
+- [x] Output starts with `` `src/a.ts:L10–L12` `` and fences the text
+- [x] Text containing ` ``` ` is fenced with four backticks; text containing ` ```` ` with five — the quote can never be closed from inside
+- [x] A single-line selection reads `:L10`
+- [x] Gate passes: `npm test`
+- [x] Test count: 3086 + 3 = **3089** (the "renders as one code block" check lives in T17, where the renderer's `renderMarkdown` is importable)
 
 **Tests**: unit
 **Gate**: quick

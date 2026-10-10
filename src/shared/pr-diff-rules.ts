@@ -39,3 +39,18 @@ export function endsInDiff(startLine: number, endLine: number, hunks: Hunk[] | n
     hunks.some((hunk) => line >= hunk.newStart && line <= hunk.newEnd)
   return inHunk(startLine) && inHunk(endLine)
 }
+
+/**
+ * What a general comment quotes when its selection lies outside the diff
+ * (FPRG-20, 21): `path:Lstart–Lend` (`:Lstart` for one line), then the
+ * selected text in a fence one backtick longer than the longest run inside
+ * it, never shorter than three, so no line of the selection can close it.
+ */
+export function citation(path: string, startLine: number, endLine: number, text: string): string {
+  const first = Math.min(startLine, endLine)
+  const last = Math.max(startLine, endLine)
+  const lines = first === last ? `L${first}` : `L${first}–L${last}`
+  const longestRun = Math.max(0, ...(text.match(/`+/g) ?? []).map((run) => run.length))
+  const fence = '`'.repeat(Math.max(3, longestRun + 1))
+  return `\`${path}:${lines}\`\n\n${fence}\n${text}\n${fence}`
+}

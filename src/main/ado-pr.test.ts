@@ -296,7 +296,8 @@ describe('AdoPrClient.getPr (FPRA-09/10)', () => {
             isRequired: false
           }
         ],
-        iteration: 3,
+        revision: '3',
+        ado: { iteration: 3 },
         files: [{ path: 'src/app.ts', status: 'modified', changeTrackingId: 1 }],
         threads: []
       }

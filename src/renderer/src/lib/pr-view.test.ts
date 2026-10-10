@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest'
 import type { AdoThreadStatus, PrRef, PrThreadPlace, PrThreadView } from '../../../shared/files'
 import { tabKeyOf } from './diff-view'
 import {
-  newIterationBanner,
   OFFERED_STATUSES,
   overviewGroups,
   prKey,
   prLabel,
+  revisionBanner,
   statusLabel,
   zonesForFile
 } from './pr-view'
@@ -152,15 +152,27 @@ describe('zonesForFile (FPRA-18)', () => {
   })
 })
 
-describe('newIterationBanner (FPRA-34)', () => {
+describe('revisionBanner (FPRA-34, FPRG-25)', () => {
   it('shows when the latest iteration is newer than the one on screen', () => {
-    expect(newIterationBanner(3, 4)).toBe(true)
+    expect(revisionBanner('3', '4')).toBe(true)
   })
 
-  it('does not show for the same iteration, an older one, or before anything is on screen', () => {
-    expect(newIterationBanner(4, 4)).toBe(false)
-    expect(newIterationBanner(4, 3)).toBe(false)
-    expect(newIterationBanner(null, 4)).toBe(false)
+  it('does not show for the same iteration, or before anything is on screen', () => {
+    expect(revisionBanner('4', '4')).toBe(false)
+    expect(revisionBanner(null, '4')).toBe(false)
+  })
+
+  // A revision is opaque and only compared (design N2). F4's "an older
+  // iteration shows no banner" cannot be kept: an iteration only grows, so
+  // the case never arises, and a GitHub head commit has no order at all.
+  it('shows for any revision other than the one on screen, a changed head commit included', () => {
+    const head = '0f2b9c1d4e6a8b3c5d7e9f0a1b2c3d4e5f6a7b8c'
+    const pushed = '9e8d7c6b5a40312f1e0d9c8b7a6f5e4d3c2b1a09'
+
+    expect(revisionBanner(head, pushed)).toBe(true)
+    expect(revisionBanner(head, head)).toBe(false)
+    expect(revisionBanner(null, pushed)).toBe(false)
+    expect(revisionBanner('4', '3')).toBe(true)
   })
 })
 

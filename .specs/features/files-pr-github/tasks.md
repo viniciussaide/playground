@@ -162,10 +162,10 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] `revisionBanner(null, x)` is false; `(a, a)` false; `(a, b)` true — F4's cases kept as text
-- [ ] An ADO new thread still carries its iteration and `changeTrackingId` (existing `ado-pr.test.ts` body assertions unedited)
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: 3060 + 1 = **3061**
+- [x] `revisionBanner(null, x)` is false; `(a, a)` false; `(a, b)` true — F4's cases kept as text
+- [x] An ADO new thread still carries its iteration and `changeTrackingId` (existing `ado-pr.test.ts` body assertions unedited)
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: 3060 + 1 = **3061**
 
 **Tests**: unit
 **Gate**: full

@@ -3,7 +3,7 @@ import type { AdoThreadStatus, PrRef, PrThreadView } from '../../../shared/files
 /**
  * Pure decisions behind the Pull request mode's views (F4): which Overview
  * group a thread is listed in, how a thread status reads, where a thread is
- * drawn in a diff, and when a newer iteration deserves a banner.
+ * drawn in a diff, and when a newer revision deserves a banner.
  */
 
 /**
@@ -132,10 +132,12 @@ export function zonesForFile(
 }
 
 /**
- * Whether a reload found an iteration newer than the one the open diffs show,
- * so the view offers to reload them (FPRA-34). Nothing on screen yet is no
- * reason for a banner.
+ * Whether a reload found a revision other than the one the open diffs show,
+ * so the view offers to reload them (FPRA-34, FPRG-25). Revisions are opaque
+ * — an Azure DevOps iteration as text, a GitHub head commit — so only a
+ * difference counts; iterations only grow, so on Azure DevOps a different one
+ * is F4's newer one. Nothing on screen yet is no reason for a banner.
  */
-export function newIterationBanner(onScreen: number | null, latest: number): boolean {
-  return onScreen !== null && latest > onScreen
+export function revisionBanner(onScreen: string | null, latest: string): boolean {
+  return onScreen !== null && latest !== onScreen
 }

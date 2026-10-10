@@ -205,7 +205,8 @@ export class AdoPrClient {
           isGroup: reviewer.isContainer === true,
           isRequired: reviewer.isRequired === true
         })),
-        iteration: iteration.value.id,
+        revision: String(iteration.value.id),
+        ado: { iteration: iteration.value.id },
         files: files.value,
         threads: threads.value
       }

@@ -16,18 +16,26 @@ import type {
 import type { LaunchResult } from '../../../shared/shortcuts'
 import { api } from './api'
 import { tabKeyOf } from './diff-view'
-import { newIterationBanner, prKey } from './pr-view'
+import { prKey, revisionBanner } from './pr-view'
 import { useLatestCallback } from './use-latest-callback'
 
 /** How long a focus reload waits out another focus (FPRA-33), as App does for its own. */
 const FOCUS_RELOAD_MS = 5000
 
-/** One PR file's two sides, and the iteration that was latest when they were asked for. */
-export interface PrSidesEntry {
+/**
+ * The revision that was latest when a PR diff's sides were asked for: what a
+ * new thread on that diff is anchored against (FPRA-27; T1, S2).
+ */
+export interface SidesRevision {
+  revision: string
+  /** Azure DevOps' own: the iteration a new thread names (FPRA-27). */
+  ado?: { iteration: number }
+}
+
+/** One PR file's two sides, and the revision that was latest when they were asked for. */
+export interface PrSidesEntry extends SidesRevision {
   /** null while the read is in flight. */
   sides: DiffSides | null
-  /** What a new thread on this diff is anchored against (FPRA-27; T1, S2). */
-  iteration: number
 }
 
 /** Why a pull request could not be read: the "run `az login`" state, or an error. */
@@ -48,8 +56,8 @@ interface WorktreePr {
   /** A reload failed while a pull request was on screen; it stays on screen (edge case). */
   notice: string | null
   loading: boolean
-  /** The iteration the open PR diffs were read at (FPRA-34). */
-  onScreen: number | null
+  /** The revision the open PR diffs were read at (FPRA-34, FPRG-25). */
+  onScreen: string | null
   /** PR diff sides by tab key (`pr:<prKey>:<path>`). */
   sides: Record<string, PrSidesEntry>
 }
@@ -74,25 +82,32 @@ export interface UsePullRequest {
   failure: PrFailure | null
   notice: string | null
   loading: boolean
-  /** A reload found a newer iteration than the open diffs show (FPRA-34). */
+  /** A reload found another revision than the open diffs show (FPRA-34, FPRG-25). */
   newIteration: boolean
   /** Shows one of several pull requests, remembered for this worktree (FPRA-04). */
   choose: (pr: PrRef) => void
   /** The refresh button: search again and read the pull request again (FPRA-33). */
   refresh: () => void
-  /** The banner's action: the open diffs re-read at the latest iteration (FPRA-34). */
+  /** The banner's action: the open diffs re-read at the latest revision (FPRA-34). */
   reloadDiffs: () => void
   /** The sides one PR diff tab shows, by its tab key. */
   sidesFor: (key: string) => PrSidesEntry | undefined
-  /** Reads one file's two sides from the provider, once per iteration (FPRA-16). */
+  /** Reads one file's two sides from the provider, once per revision (FPRA-16). */
   readSides: (pr: PrRef, file: PrFile) => void
   /** The four writes (FPRA-25/26/27/29); each is called only from a user's click (FPRA-32). */
-  reply: (threadId: number, rootCommentId: number, content: string) => Promise<WriteResult>
-  setStatus: (threadId: number, status: Exclude<AdoThreadStatus, 'unknown'>) => Promise<WriteResult>
+  reply: (
+    threadId: PrThreadView['id'],
+    rootCommentId: number,
+    content: string
+  ) => Promise<WriteResult>
+  setStatus: (
+    threadId: PrThreadView['id'],
+    status: Exclude<AdoThreadStatus, 'unknown'>
+  ) => Promise<WriteResult>
   startThread: (
     file: PrFile,
     selection: PrSelection,
-    iteration: number,
+    at: SidesRevision,
     content: string
   ) => Promise<WriteResult>
   comment: (content: string) => Promise<WriteResult>
@@ -185,7 +200,7 @@ export function usePullRequest({
         const detail = result.detail
         patch(wt, (state) => {
           const samePr = state.detail !== null && sameRef(refOf(state.detail), detail)
-          // Diffs read at an older iteration stay as they are until the banner
+          // Diffs read at an older revision stay as they are until the banner
           // is answered; with none open there is nothing to be behind.
           const hasDiffs = Object.keys(state.sides).some((key) =>
             key.startsWith(`pr:${prKey(detail)}:`)
@@ -195,7 +210,7 @@ export function usePullRequest({
             failure: null,
             notice: null,
             loading: false,
-            onScreen: samePr && hasDiffs ? state.onScreen : detail.iteration
+            onScreen: samePr && hasDiffs ? state.onScreen : detail.revision
           }
         })
         return
@@ -264,11 +279,11 @@ export function usePullRequest({
       if (!state.detail) return {}
       const prefix = `pr:${prKey(state.detail)}:`
       // Dropping the sides is the re-read: an open PR diff asks for sides it
-      // does not hold, at the iteration that is latest now.
+      // does not hold, at the revision that is latest now.
       const sides = Object.fromEntries(
         Object.entries(state.sides).filter(([key]) => !key.startsWith(prefix))
       )
-      return { sides, onScreen: state.detail.iteration }
+      return { sides, onScreen: state.detail.revision }
     })
   }, [worktreePath, patch])
 
@@ -279,8 +294,9 @@ export function usePullRequest({
       const state = live.current.byWorktree[wt] ?? EMPTY
       const key = tabKeyOf({ kind: 'pr-diff', pr, path: file.path })
       if (state.sides[key]) return
-      const iteration = state.detail?.iteration ?? 0
-      patch(wt, (s) => ({ sides: { ...s.sides, [key]: { sides: null, iteration } } }))
+      const at: SidesRevision = { revision: state.detail?.revision ?? '' }
+      if (state.detail?.ado) at.ado = state.detail.ado
+      patch(wt, (s) => ({ sides: { ...s.sides, [key]: { ...at, sides: null } } }))
       api
         .invoke('ado-pr:file-sides', {
           worktreePath: wt,
@@ -299,7 +315,7 @@ export function usePullRequest({
           patch(wt, (s) => {
             // A reload of the diffs dropped this entry while it was in flight.
             if (!s.sides[key]) return {}
-            return { sides: { ...s.sides, [key]: { sides, iteration } } }
+            return { sides: { ...s.sides, [key]: { ...at, sides } } }
           })
         )
     },
@@ -329,8 +345,13 @@ export function usePullRequest({
   const detail = here.detail
 
   const reply = useCallback(
-    (threadId: number, rootCommentId: number, content: string): Promise<WriteResult> => {
+    (
+      threadId: PrThreadView['id'],
+      rootCommentId: number,
+      content: string
+    ): Promise<WriteResult> => {
       if (!detail) return noPr()
+      if (typeof threadId !== 'number') return notAdo()
       const pr = refOf(detail)
       return write(
         () => api.invoke('ado-pr:reply', { pr, threadId, rootCommentId, content }),
@@ -348,8 +369,12 @@ export function usePullRequest({
   )
 
   const setStatus = useCallback(
-    (threadId: number, status: Exclude<AdoThreadStatus, 'unknown'>): Promise<WriteResult> => {
+    (
+      threadId: PrThreadView['id'],
+      status: Exclude<AdoThreadStatus, 'unknown'>
+    ): Promise<WriteResult> => {
       if (!detail) return noPr()
+      if (typeof threadId !== 'number') return notAdo()
       const pr = refOf(detail)
       return write(
         () => api.invoke('ado-pr:status', { pr, threadId, status }),
@@ -370,17 +395,22 @@ export function usePullRequest({
     (
       file: PrFile,
       selection: PrSelection,
-      iteration: number,
+      at: SidesRevision,
       content: string
     ): Promise<WriteResult> => {
       if (!detail) return noPr()
+      // An Azure DevOps thread names the iteration on screen and the file's
+      // change tracking id (FPRA-27); both are Azure DevOps' own.
+      const changeTrackingId = file.changeTrackingId
+      if (at.ado === undefined || changeTrackingId === undefined) return notAdo()
+      const iteration = at.ado.iteration
       const pr = refOf(detail)
       return write(
         () =>
           api.invoke('ado-pr:thread', {
             pr,
             iteration,
-            changeTrackingId: file.changeTrackingId,
+            changeTrackingId,
             selection,
             content
           }),
@@ -438,7 +468,7 @@ export function usePullRequest({
     failure: here.failure,
     notice: here.notice,
     loading: here.loading,
-    newIteration: detail !== null && newIterationBanner(here.onScreen, detail.iteration),
+    newIteration: detail !== null && revisionBanner(here.onScreen, detail.revision),
     choose,
     refresh,
     reloadDiffs,
@@ -506,6 +536,11 @@ function ownThread(content: string, place: PrThreadView['place']): PrThreadView 
 
 function noPr(): Promise<WriteResult> {
   return Promise.resolve({ ok: false, message: 'No pull request is open.' })
+}
+
+/** A write only Azure DevOps takes, asked of something that is not Azure DevOps'. */
+function notAdo(): Promise<WriteResult> {
+  return Promise.resolve({ ok: false, message: 'This pull request is not on Azure DevOps.' })
 }
 
 function messageOf(err: unknown): string {

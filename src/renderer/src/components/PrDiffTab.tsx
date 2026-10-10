@@ -4,15 +4,16 @@ import type { PrSelection } from '../../../shared/files'
 import { tabKeyOf } from '../lib/diff-view'
 import { prKey, zonesForFile } from '../lib/pr-view'
 import type { PrDiffTab as PrDiffTabState, UseFiles } from '../lib/use-files'
+import type { SidesRevision } from '../lib/use-pull-request'
 import { CommentComposer } from './CommentComposer'
 import { DiffViewer, type DiffHandle, type DiffZone, type ModifiedSelection } from './DiffViewer'
 import { PrThread } from './PrThread'
 import './PrDiffTab.css'
 
-/** A new thread being written: the selection it is anchored to, and the iteration it was made on. */
+/** A new thread being written: the selection it is anchored to, and the revision it was made on. */
 interface Draft {
   selection: PrSelection
-  iteration: number
+  at: SidesRevision
 }
 
 /**
@@ -46,7 +47,7 @@ export function PrDiffTab({
   const [selection, setSelection] = useState<ModifiedSelection | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
 
-  // Read once per iteration: the banner's reload drops the entry, and the
+  // Read once per revision: the banner's reload drops the entry, and the
   // tab reads again.
   const { readSides } = pr
   useEffect(() => {
@@ -102,7 +103,7 @@ export function PrDiffTab({
         <CommentComposer
           autoFocus
           onPost={(content) =>
-            pr.startThread(tab.file, draft.selection, draft.iteration, content).then((result) => {
+            pr.startThread(tab.file, draft.selection, draft.at, content).then((result) => {
               if (result.ok) setDraft(null)
               return result
             })
@@ -116,7 +117,9 @@ export function PrDiffTab({
 
   const comment = (): void => {
     if (!selection || !entry) return
-    setDraft({ selection: { path: tab.path, ...selection }, iteration: entry.iteration })
+    const at: SidesRevision = { revision: entry.revision }
+    if (entry.ado) at.ado = entry.ado
+    setDraft({ selection: { path: tab.path, ...selection }, at })
   }
 
   if (!entry?.sides) return <div className="file-tabs-note">Loading…</div>

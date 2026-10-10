@@ -321,7 +321,8 @@ export type PrThreadPlace =
  * provider that has none.
  */
 export interface PrThreadView {
-  id: number
+  /** Azure DevOps numbers its threads; GitHub names one by a node id (FPRG-17). */
+  id: number | string
   /**
    * The comment a reply answers (FPRA-25): the thread's first comment, read
    * before deleted comments are dropped, so it holds even when that comment
@@ -330,13 +331,21 @@ export interface PrThreadView {
   rootCommentId: number
   resolution: 'active' | 'resolved'
   providerStatus?: AdoThreadStatus
+  /**
+   * What the viewer may do on this thread, as the provider reports it
+   * (FPRG-18). Absent means everything is allowed, which is Azure DevOps.
+   */
+  can?: { reply: boolean; resolve: boolean; reopen: boolean }
   comments: PrComment[]
   place: PrThreadPlace
 }
 
-/** One changed file of a pull request, with the id a new thread on it must carry (FPRA-15/27). */
+/**
+ * One changed file of a pull request (FPRA-15). On Azure DevOps it carries the
+ * id a new thread on it must be anchored with (FPRA-27).
+ */
 export interface PrFile extends ChangedPath {
-  changeTrackingId: number
+  changeTrackingId?: number
 }
 
 /** A pull request's lifecycle; anything but `active` is no longer the branch's PR (edge case). */
@@ -353,8 +362,14 @@ export interface PrDetail extends PrSummary {
   /** Without `refs/heads/`. */
   sourceBranch: string
   reviewers: Reviewer[]
-  /** The latest iteration, which every thread position and new anchor refers to (FPRA-16/18). */
-  iteration: number
+  /**
+   * The pull request's latest revision, opaque and only ever compared for
+   * equality: Azure DevOps' latest iteration as text, GitHub's head commit
+   * (FPRA-34, FPRG-25).
+   */
+  revision: string
+  /** Azure DevOps' own: the latest iteration, which every thread position and new anchor refers to (FPRA-16/18). */
+  ado?: { iteration: number }
   files: PrFile[]
   threads: PrThreadView[]
 }

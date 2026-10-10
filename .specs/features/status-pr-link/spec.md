@@ -122,10 +122,10 @@ repository, branch, changes and sync state; the PR is the missing piece of that 
 | SPRL-07 | P1: see — AC 7 | T1 | Implemented |
 | SPRL-08 | P1: see — AC 8 | T1 | Implemented |
 | SPRL-09 | P1: see — AC 9 | T3, T4 | Implemented |
-| SPRL-10 | P1: reach — AC 10 | Tasks | In Tasks |
+| SPRL-10 | P1: reach — AC 10 | T5 | Implemented |
 | SPRL-11 | P1: reach — AC 11 | Tasks | In Tasks |
 | SPRL-12 | P1: reach — AC 12 | T2 | Implemented |
-| SPRL-13 | P1: reach — AC 13 | Tasks | In Tasks |
+| SPRL-13 | P1: reach — AC 13 | T5 | Implemented |
 | SPRL-14 | P1: reach — AC 14 | Tasks | In Tasks |
 | SPRL-15 | P1: no PR — AC 15 | T2 | Implemented |
 | SPRL-16 | P1: no PR — AC 16 | T2 | Implemented |

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import type { JSX, MouseEvent } from 'react'
 import type { AppConfig, SessionView } from '../../../shared/config'
+import type { PrRef } from '../../../shared/files'
 import type { SyncState } from '../../../shared/git'
 import type { WorkspaceNode } from '../../../shared/tree'
 import { barTargetFor, splitBranch, syncSectionFor } from '../lib/status-bar'
@@ -26,6 +27,8 @@ interface StatusBarProps {
    * uncommitted-changes mode (FXPL-31, superseding STBR-30/32).
    */
   onOpenChanges: (worktreeId: string) => void
+  /** Open one pull request of this worktree in the Files direction's Pull request mode (SPRL-10, 13). */
+  onOpenPullRequest: (worktreeId: string, pr: PrRef) => void
   /** Refresh the tree after a successful operation (STBR-25). */
   onRefreshTree: () => void
 }

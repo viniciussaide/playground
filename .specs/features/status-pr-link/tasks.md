@@ -213,7 +213,9 @@ T7 → T8 → T9
 
 **Done when**:
 
-- [ ] Gate check passes: `npm run typecheck && npm run lint && npm test` and `npx electron-vite build`
+- [x] Gate check passes: `npm run typecheck && npm run lint && npm test` and `npx electron-vite build`
+
+**Done** 2026-10-10, 3158 tests, lint 18, build green. `openPullRequest(worktreeId, pr)` in App: one config patch (direction Files, that worktree's mode `pull-request`), then `prLookup.choose`. It reaches `StatusBar` as `onOpenPullRequest`, declared on the props in this task and used by T6.
 
 **Tests**: none
 **Gate**: build

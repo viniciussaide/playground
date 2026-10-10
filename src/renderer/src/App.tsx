@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ComponentProps, JSX } from 'react'
 import type { AgentDef } from '../../shared/agents'
 import type { ActivityState, AppConfig } from '../../shared/config'
+import type { PrRef } from '../../shared/files'
 import { DEFAULT_CONFIG } from '../../shared/config'
 import type { PinnedTaskView, TasksSnapshot } from '../../shared/tasks'
 import { taskIdFromBranch } from '../../shared/tasks'
@@ -261,6 +262,27 @@ function App(): JSX.Element {
         [worktreeId]: { ...filesStateFor(current, worktreeId), mode: 'uncommitted' }
       }
     })
+  }
+
+  /**
+   * The status bar's PR chip lands in the Files direction on that worktree, in
+   * Pull request mode, showing that pull request (SPRL-10, 13). Direction and
+   * mode go in one config patch, as in `openChangedFiles`; the pick goes to
+   * the shared lookup, which reads that pull request.
+   */
+  const openPullRequest = (worktreeId: string, pr: PrRef): void => {
+    const current = ui ?? DEFAULT_CONFIG.ui
+    const worktree = findWorktree(tree, worktreeId)
+    if (!worktree) return
+    setSelectedId(worktreeId)
+    update({
+      direction: 'files',
+      files: {
+        ...current.files,
+        [worktreeId]: { ...filesStateFor(current, worktreeId), mode: 'pull-request' }
+      }
+    })
+    prLookup.choose(worktree.worktree.path, pr)
   }
 
   const refreshTasks = useCallback((): void => {
@@ -639,6 +661,7 @@ function App(): JSX.Element {
           direction={ui.direction}
           onToast={setToast}
           onOpenChanges={openChangedFiles}
+          onOpenPullRequest={openPullRequest}
           onRefreshTree={refreshTree}
         />
       </PerfProfiler>

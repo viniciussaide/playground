@@ -557,9 +557,9 @@ T25 → T26 → T27
 **Done when**:
 
 - [ ] The three states read differently in both themes
-- [ ] The install link opens through main, never through the template's window-open handler
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: **3122** (unchanged)
+- [x] The install link opens through main, never through the template's window-open handler
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: **3122** (unchanged)
 
 **Tests**: none
 **Gate**: full

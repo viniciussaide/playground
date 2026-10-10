@@ -30,7 +30,7 @@ for GitHub, with the same surfaces and the same guarantees, adjusted to how GitH
 ## Goals
 
 - [ ] A GitHub PR — including the fork → upstream PR of this very workflow — is found with no configuration
-- [ ] GitHub and Azure DevOps PRs of one branch appear side by side in one picker
+- [ ] A branch's PRs are found on the provider of the remote it tracks, each marked with its provider in the picker
 - [ ] Every review comment reads next to its line, and the review's verdicts are visible
 - [ ] Replying, resolving and commenting from a selection work within GitHub's rules, and the app says so when a rule changes what will happen
 - [ ] The `gh` CLI's state is visible at a glance, with the right fix for each failure
@@ -58,7 +58,7 @@ for GitHub, with the same surfaces and the same guarantees, adjusted to how GitH
 | Chip visibility | Only while a registered repository has a GitHub remote; re-checked on focus with the 5 s debounce. Decided in main — the renderer holds no remote URLs — so `github:status` answers `no-github-remote` too | Epic Q13 | y |
 | Which PRs | For each GitHub remote as target: open PRs whose head is `<source owner>:<branch>`, the source owner being the owner of the GitHub remote the branch tracks (`branch.<name>.remote`, as F4 reads it) | Epic Q14; finds this repository's own fork-flow PRs (`<fork owner>:feature/x` → the upstream's `main`) | y |
 | A branch tracking no GitHub remote | No GitHub search; the mode says the branch is not pushed to GitHub, and Create PR is not offered for GitHub | Without a source owner the `head` filter cannot be written (lesson L-127) | y |
-| Both providers | One search across Azure DevOps and GitHub, one picker, each PR marked with its provider | Owner decision (F5-Q5): no priority rule may hide a real PR | y |
+| Both providers | Both searches run, one picker, each PR marked with its provider. Each provider searches a branch only through the remote the branch tracks — GitHub by FPRG-06, Azure DevOps by F4's `sourceRemote` — so a branch lists one provider's PRs | Owner decision (F5-Q5, amended 2026-10-10 after T27 found that a branch tracks one remote): a repository mirrored on both providers is rare, and no Azure DevOps sandbox exists to prove a mixed picker | y |
 | PR diff sides | Base side = the file at the merge base of the PR's base and head, read from the **base** repository; head side = the file at the PR's head commit, read from the **head** repository — the fork, for a fork PR — and, when the fork is gone, from the base repository at the same commit | For a fork PR the head commit may exist only in the fork. T1 measured that the base repository serves a fork-only commit too (a fork shares its network's objects); the owner chose the fallback (2026-10-10) | y |
 | Files | The PR's file list, every page | GitHub pages it (at most 100 per page) | y |
 | Threads | GitHub's review threads: path, line, start line, side, `isResolved`, `isOutdated`, and the viewer's permissions to reply, resolve and unresolve | Verified in GitHub's GraphQL schema by introspection. **The REST API has no way to resolve or unresolve a thread** (checked in GitHub's REST reference) | y |
@@ -113,7 +113,7 @@ including one from my fork to the upstream, so that the fork workflow needs no c
 **Acceptance Criteria**:
 
 6. WHILE in Pull request mode the system SHALL search every GitHub remote for open PRs whose head is the branch in the GitHub repository it tracks, including a fork's branch opened against an upstream; IF the branch tracks no GitHub remote THEN it SHALL search no GitHub repository and SHALL say the branch is not pushed to GitHub <!-- state-driven -->
-7. The system SHALL list PRs found on GitHub and on Azure DevOps in one picker, each marked with its provider <!-- ubiquitous -->
+7. The system SHALL list the branch's PRs in one picker, each marked with its provider; a branch is searched on a provider only through the remote it tracks, so it lists the PRs of that one provider <!-- ubiquitous -->
 8. IF no PR is found on any provider THEN **Create PR** SHALL offer, for GitHub, the compare page of the target repository — the source's parent for a fork — from its default branch to `<source owner>:<branch>` <!-- unwanted-behavior -->
 
 **Independent Test**: This repository's `feature/status-bar`, pushed to the fork with a PR open on the upstream, is found; a branch with no PR offers the upstream's compare page.
@@ -184,7 +184,7 @@ plainly when GitHub is rate-limiting me.
 - IF a PR changes more files than GitHub returns (its 3000-file ceiling) THEN the tree SHALL say the list is incomplete
 - WHEN a thread's anchored line no longer exists but GitHub has not marked it outdated THEN it SHALL be listed in the Overview as outdated rather than drawn on a wrong line
 - IF a review body is empty (an approval with no text) THEN only the state SHALL be shown, with no empty comment
-- WHEN the same branch has a GitHub PR and an Azure DevOps PR THEN choosing one in the picker SHALL not affect the other's cached state
+- A branch tracks one remote, so it never lists a GitHub PR beside an Azure DevOps one (owner decision, 2026-10-10); each provider's search state is still kept apart (T5)
 - WHEN a GitHub PR and an Azure DevOps PR share a number THEN their tabs, picker entries and caches SHALL stay apart (GitHub reads `#7`, Azure DevOps `!7`)
 - WHILE no registered repository has a GitHub remote, an Azure DevOps PR SHALL look and behave exactly as F4 shipped it
 
@@ -192,43 +192,43 @@ plainly when GitHub is rate-limiting me.
 
 ## Requirement Traceability
 
-| Requirement ID | Story | Phase | Status |
+| Requirement ID | Story | Tasks | Status |
 | -------------- | ----- | ----- | ------ |
-| FPRG-01 | P1: Know whether GitHub is reachable | Design | Pending |
-| FPRG-02 | P1: Know whether GitHub is reachable | Design | Pending |
-| FPRG-03 | P1: Know whether GitHub is reachable | Design | Pending |
-| FPRG-04 | P1: Know whether GitHub is reachable | Design | Pending |
-| FPRG-05 | P1: Know whether GitHub is reachable | Design | Pending |
-| FPRG-06 | P1: Find the branch's GitHub PR | Design | Pending |
-| FPRG-07 | P1: Find the branch's GitHub PR | Design | Pending |
-| FPRG-08 | P1: Find the branch's GitHub PR | Design | Pending |
-| FPRG-09 | P1: Read the GitHub PR | Design | Pending |
-| FPRG-10 | P1: Read the GitHub PR | Design | Pending |
-| FPRG-11 | P1: Read the GitHub PR | Design | Pending |
-| FPRG-12 | P1: Read the GitHub PR | Design | Pending |
-| FPRG-13 | P1: Read the GitHub PR | Design | Pending |
-| FPRG-14 | P1: Read the GitHub PR | Design | Pending |
-| FPRG-15 | P1: Read the GitHub PR | Design | Pending |
-| FPRG-16 | P2: Answer a GitHub review | Design | Pending |
-| FPRG-17 | P2: Answer a GitHub review | Design | Pending |
-| FPRG-18 | P2: Answer a GitHub review | Design | Pending |
-| FPRG-19 | P2: Answer a GitHub review | Design | Pending |
-| FPRG-20 | P2: Answer a GitHub review | Design | Pending |
-| FPRG-21 | P2: Answer a GitHub review | Design | Pending |
-| FPRG-22 | P2: Answer a GitHub review | Design | Pending |
-| FPRG-23 | P2: Answer a GitHub review | Design | Pending |
-| FPRG-24 | P2: Answer a GitHub review | Design | Pending |
-| FPRG-25 | P2: Stay current within GitHub's limits | Design | Pending |
-| FPRG-26 | P2: Stay current within GitHub's limits | Design | Pending |
+| FPRG-01 | P1: Know whether GitHub is reachable | T7, T8, T27 | Implemented |
+| FPRG-02 | P1: Know whether GitHub is reachable | T16, T18, T19, T27 | Implemented |
+| FPRG-03 | P1: Know whether GitHub is reachable | T8, T19, T27 | Implemented |
+| FPRG-04 | P1: Know whether GitHub is reachable | T5, T8, T19, T20, T27 | Implemented |
+| FPRG-05 | P1: Know whether GitHub is reachable | T18, T27 | Implemented |
+| FPRG-06 | P1: Find the branch's GitHub PR | T6, T13, T14, T16, T27 | Implemented |
+| FPRG-07 | P1: Find the branch's GitHub PR | T2, T5, T7, T14, T20, T21, T27 | Implemented |
+| FPRG-08 | P1: Find the branch's GitHub PR | T9, T14, T16, T27 | Implemented |
+| FPRG-09 | P1: Read the GitHub PR | T7, T12, T14, T22, T27 | Implemented |
+| FPRG-10 | P1: Read the GitHub PR | T7, T12, T14, T22, T27 | Implemented |
+| FPRG-11 | P1: Read the GitHub PR | T14, T27 | Implemented |
+| FPRG-12 | P1: Read the GitHub PR | T1, T14, T25, T27 | Implemented |
+| FPRG-13 | P1: Read the GitHub PR | T3, T12, T14, T25, T27 | Implemented |
+| FPRG-14 | P1: Read the GitHub PR | T12, T14, T22, T27 | Implemented |
+| FPRG-15 | P1: Read the GitHub PR | T22, T27 | Implemented |
+| FPRG-16 | P2: Answer a GitHub review | T15, T23, T27 | Implemented |
+| FPRG-17 | P2: Answer a GitHub review | T4, T12, T15, T23, T27 | Implemented |
+| FPRG-18 | P2: Answer a GitHub review | T3, T4, T12, T23, T27 | Implemented |
+| FPRG-19 | P2: Answer a GitHub review | T1, T7, T10, T15, T17, T25, T27 | Implemented |
+| FPRG-20 | P2: Answer a GitHub review | T1, T10, T11, T17, T24, T25, T27 | Implemented |
+| FPRG-21 | P2: Answer a GitHub review | T11, T15, T17, T24, T25, T27 | Implemented |
+| FPRG-22 | P2: Answer a GitHub review | T1, T10, T17, T25, T27 | Implemented |
+| FPRG-23 | P2: Answer a GitHub review | T15, T27 | Implemented |
+| FPRG-24 | P2: Answer a GitHub review | T15, T16, T26, T27 | Implemented |
+| FPRG-25 | P2: Stay current within GitHub's limits | T3, T20, T27 | Implemented |
+| FPRG-26 | P2: Stay current within GitHub's limits | T5, T8, T20, T27 | Implemented |
 
-**Coverage:** 26 total, 0 mapped to tasks yet (Design not run), 0 unmapped
+**Coverage:** 26 total, 26 mapped to tasks, 0 unmapped
 
 ---
 
 ## Success Criteria
 
 - [ ] This repository's own fork → upstream PRs are found and read with no configuration
-- [ ] A branch with PRs on both providers lists both in one picker
+- [ ] A branch's PRs are listed in one picker, each marked with its provider
 - [ ] Resolve / Reopen works where GitHub allows it and is disabled, with a reason, where it does not
 - [ ] An out-of-diff selection is never posted as an anchored comment, and the user is told before posting
 - [ ] `gh` missing and `gh` signed out read differently in the chip

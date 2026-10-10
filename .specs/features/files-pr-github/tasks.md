@@ -583,8 +583,8 @@ T25 → T26 → T27
 - [ ] Choosing a PR of one provider does not reset the other's cache (edge case)
 - [ ] A rate-limited GitHub shows its reset time and is not retried until the next user-driven reload
 - [ ] F4's ADO-only behaviour is unchanged when no GitHub remote exists
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: **3122** (unchanged)
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: **3122** (unchanged)
 
 **Tests**: none
 **Gate**: full

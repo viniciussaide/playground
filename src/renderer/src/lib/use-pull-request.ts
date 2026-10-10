@@ -87,9 +87,15 @@ interface WorktreePr {
   onScreen: string | null
   /** PR diff sides by tab key (`pr:<prKey>:<path>`). */
   sides: Record<string, PrSidesEntry>
+  /**
+   * Providers that answered "rate limited" since the last reload the user
+   * asked for; no reload that happens on its own asks them again (FPRG-26).
+   */
+  limited: PrProvider[]
 }
 
 const EMPTY: WorktreePr = {
+  limited: [],
   searches: {},
   chosen: null,
   detail: null,
@@ -189,82 +195,106 @@ export function usePullRequest({
 
   /**
    * One reload: the search when asked for, then the pull request it points at.
-   * A pull request on screen that the search no longer lists is read once
-   * more, so a pull request completed or abandoned elsewhere says so instead
-   * of turning into "no pull request" (edge case). `chosen` is a pick made
-   * just now, which the state read here does not hold yet.
+   * Both providers are searched at once, each into its own entry, so one that
+   * fails hides none of the other's pull requests (FPRG-07); every later call
+   * goes to the provider the pull request names. A pull request on screen
+   * that the search no longer lists is read once more, so a pull request
+   * completed or abandoned elsewhere says so instead of turning into "no pull
+   * request" (edge case). `chosen` is a pick made just now, which the state
+   * read here does not hold yet.
+   *
+   * A provider that answered "rate limited" keeps that answer through every
+   * reload that happens on its own — a focus, a write — and is asked again
+   * only on one the user asked for: entering the mode, a pick, Refresh
+   * (FPRG-26).
    */
-  const load = useLatestCallback(
-    async (wt: string, withSearch: boolean, afterWrite: boolean, chosen?: PrRef): Promise<void> => {
-      const ticket = (loads.current.get(wt) ?? 0) + 1
-      loads.current.set(wt, ticket)
-      const stale = (): boolean => loads.current.get(wt) !== ticket
-      const before = live.current.byWorktree[wt] ?? EMPTY
-      patch(wt, () => ({ loading: true }))
+  const load = useLatestCallback(async (wt: string, how: LoadHow): Promise<void> => {
+    const ticket = (loads.current.get(wt) ?? 0) + 1
+    loads.current.set(wt, ticket)
+    const stale = (): boolean => loads.current.get(wt) !== ticket
+    const before = live.current.byWorktree[wt] ?? EMPTY
+    const limited = new Set(how.userDriven ? [] : before.limited)
+    patch(wt, () => ({ loading: true, limited: [...limited] }))
 
-      let searches = before.searches
-      if (withSearch) {
-        const ado = await api
-          .invoke('ado-pr:find', { worktreePath: wt })
-          .catch((err: unknown): PrSearch => ({ kind: 'error', message: messageOf(err) }))
-        if (stale()) return
-        searches = { 'azure-devops': ado }
-        patch(wt, () => ({ searches }))
-      }
-
-      const shown = before.detail
-      const pr =
-        currentOf(foundPrs(searches), chosen ?? before.chosen) ?? (shown ? refOf(shown) : null)
-      if (pr === null) {
-        patch(wt, () => ({ detail: null, failure: null, notice: null, loading: false }))
-        return
-      }
-
-      const result = await api
-        .invoke('ado-pr:get', { worktreePath: wt, pr })
-        .catch((err: unknown): PrDetailResult => ({ kind: 'error', message: messageOf(err) }))
+    let searches = before.searches
+    if (how.search) {
+      const ask = (provider: PrProvider): Promise<PrSearch | undefined> =>
+        limited.has(provider)
+          ? Promise.resolve(before.searches[provider])
+          : findOn(provider, wt).catch(
+              (err: unknown): PrSearch => ({ kind: 'error', message: messageOf(err) })
+            )
+      const answers = await Promise.all(PROVIDERS.map(ask))
       if (stale()) return
-
-      if (result.kind === 'ok') {
-        const detail = result.detail
-        patch(wt, (state) => {
-          const samePr = state.detail !== null && sameRef(refOf(state.detail), detail)
-          // Diffs read at an older revision stay as they are until the banner
-          // is answered; with none open there is nothing to be behind.
-          const hasDiffs = Object.keys(state.sides).some((key) =>
-            key.startsWith(`pr:${prKey(detail)}:`)
-          )
-          return {
-            detail,
-            failure: null,
-            notice: null,
-            loading: false,
-            onScreen: samePr && hasDiffs ? state.onScreen : detail.revision
-          }
-        })
-        return
-      }
-
-      const failure: PrFailure = { ...result, provider: pr.target.provider }
-      patch(wt, (state) => {
-        // What is on screen stays, with a notice, rather than being replaced
-        // by an error about a refresh (edge case).
-        if (state.detail !== null && sameRef(refOf(state.detail), pr)) {
-          const why = failureText(failure)
-          return {
-            loading: false,
-            notice: `${afterWrite ? 'Posted, but the' : 'The'} pull request could not be refreshed: ${why}`
-          }
-        }
-        return { detail: null, failure, notice: null, loading: false }
+      searches = {}
+      PROVIDERS.forEach((provider, i) => {
+        const answer = answers[i]
+        if (answer === undefined) return
+        searches[provider] = answer
+        if (answer.kind === 'rate-limited') limited.add(provider)
       })
+      patch(wt, () => ({ searches, limited: [...limited] }))
     }
-  )
+
+    const shown = before.detail
+    const pr =
+      currentOf(foundPrs(searches), how.chosen ?? before.chosen) ?? (shown ? refOf(shown) : null)
+    if (pr === null) {
+      patch(wt, () => ({ detail: null, failure: null, notice: null, loading: false }))
+      return
+    }
+    // FPRG-26: what is on screen, or the rate limit it said, stays as it is.
+    if (limited.has(pr.target.provider)) {
+      patch(wt, () => ({ loading: false }))
+      return
+    }
+
+    const result = await getOn(wt, pr).catch(
+      (err: unknown): PrDetailResult => ({ kind: 'error', message: messageOf(err) })
+    )
+    if (stale()) return
+    if (result.kind === 'rate-limited') limited.add(pr.target.provider)
+
+    if (result.kind === 'ok') {
+      const detail = result.detail
+      patch(wt, (state) => {
+        const samePr = state.detail !== null && sameRef(refOf(state.detail), detail)
+        // Diffs read at an older revision stay as they are until the banner
+        // is answered; with none open there is nothing to be behind.
+        const hasDiffs = Object.keys(state.sides).some((key) =>
+          key.startsWith(`pr:${prKey(detail)}:`)
+        )
+        return {
+          detail,
+          failure: null,
+          notice: null,
+          loading: false,
+          onScreen: samePr && hasDiffs ? state.onScreen : detail.revision
+        }
+      })
+      return
+    }
+
+    const failure: PrFailure = { ...result, provider: pr.target.provider }
+    patch(wt, (state) => {
+      // What is on screen stays, with a notice, rather than being replaced
+      // by an error about a refresh (edge case).
+      if (state.detail !== null && sameRef(refOf(state.detail), pr)) {
+        const why = failureText(failure)
+        return {
+          loading: false,
+          limited: [...limited],
+          notice: `${how.afterWrite ? 'Posted, but the' : 'The'} pull request could not be refreshed: ${why}`
+        }
+      }
+      return { detail: null, failure, notice: null, loading: false, limited: [...limited] }
+    })
+  })
 
   // FPRA-33: entering the mode, or arriving at another worktree while in it.
   useEffect(() => {
     if (!active || !worktreePath) return
-    void load(worktreePath, true, false)
+    void load(worktreePath, { search: true, userDriven: true })
   }, [active, worktreePath, load])
 
   // FPRA-33: the window regaining focus, debounced against focus flapping.
@@ -279,7 +309,7 @@ export function usePullRequest({
       if (now - lastFocusAt.current < FOCUS_RELOAD_MS) return
       lastFocusAt.current = now
       const { active: on, worktreePath: wt } = target.current
-      if (on && wt) void load(wt, true, false)
+      if (on && wt) void load(wt, { search: true, userDriven: false })
     }
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
@@ -291,13 +321,13 @@ export function usePullRequest({
       const wt = worktreePath
       const chosen = refOf(pr)
       patch(wt, () => ({ chosen }))
-      void load(wt, false, false, chosen)
+      void load(wt, { search: false, userDriven: true, chosen })
     },
     [worktreePath, patch, load]
   )
 
   const refresh = useCallback((): void => {
-    if (worktreePath) void load(worktreePath, true, false)
+    if (worktreePath) void load(worktreePath, { search: true, userDriven: true })
   }, [worktreePath, load])
 
   const reloadDiffs = useCallback((): void => {
@@ -363,7 +393,7 @@ export function usePullRequest({
       )
       if (!result.ok) return result
       patch(wt, (state) => (state.detail ? { detail: apply(state.detail) } : {}))
-      void load(wt, false, true)
+      void load(wt, { search: false, userDriven: false, afterWrite: true })
       return result
     },
     [worktreePath, patch, load]
@@ -378,19 +408,23 @@ export function usePullRequest({
       content: string
     ): Promise<WriteResult> => {
       if (!detail) return noPr()
-      if (typeof threadId !== 'number') return notAdo()
       const pr = refOf(detail)
-      return write(
-        () => api.invoke('ado-pr:reply', { pr, threadId, rootCommentId, content }),
-        (d) => ({
-          ...d,
-          threads: d.threads.map((thread) =>
-            thread.id === threadId
-              ? { ...thread, comments: [...thread.comments, ownComment(content)] }
-              : thread
-          )
-        })
-      )
+      // GitHub answers the root comment alone (FPRG-16); Azure DevOps names the thread too.
+      const send =
+        pr.target.provider === 'github'
+          ? () => api.invoke('github-pr:reply', { pr, rootCommentId, content })
+          : typeof threadId === 'number'
+            ? () => api.invoke('ado-pr:reply', { pr, threadId, rootCommentId, content })
+            : null
+      if (send === null) return notAdo()
+      return write(send, (d) => ({
+        ...d,
+        threads: d.threads.map((thread) =>
+          thread.id === threadId
+            ? { ...thread, comments: [...thread.comments, ownComment(content)] }
+            : thread
+        )
+      }))
     },
     [detail, write]
   )
@@ -398,11 +432,32 @@ export function usePullRequest({
   const setThreadState = useCallback(
     (thread: PrThreadView, intent: ThreadStateIntent): Promise<WriteResult> => {
       if (!detail) return noPr()
-      // Only Azure DevOps' status is sent yet; GitHub's resolve comes with its client.
       const threadId = thread.id
-      if (intent.provider !== 'azure-devops' || typeof threadId !== 'number') return notAdo()
-      const { status } = intent
       const pr = refOf(detail)
+      if (intent.provider === 'github') {
+        // GitHub names a thread by its node id (FPRG-17).
+        if (typeof threadId !== 'string') return notGitHub()
+        const { resolved } = intent
+        return write(
+          () => api.invoke('github-pr:resolve', { pr, threadId, resolved }),
+          (d) => ({
+            ...d,
+            threads: d.threads.map((shown) =>
+              shown.id === threadId
+                ? {
+                    ...shown,
+                    resolution: resolutionOf(intent),
+                    // GitHub offers the way back once a thread changed state,
+                    // to whoever changed it, until the reload says (T1, S4).
+                    can: shown.can && { ...shown.can, resolve: !resolved, reopen: resolved }
+                  }
+                : shown
+            )
+          })
+        )
+      }
+      if (typeof threadId !== 'number') return notAdo()
+      const { status } = intent
       return write(
         () => api.invoke('ado-pr:status', { pr, threadId, status }),
         (d) => ({
@@ -463,6 +518,17 @@ export function usePullRequest({
     (content: string): Promise<WriteResult> => {
       if (!detail) return noPr()
       const pr = refOf(detail)
+      // On GitHub a general comment is a PR comment, read back in the timeline
+      // with no Reply or Resolve (FPRG-23, D4); on Azure DevOps a general thread.
+      if (pr.target.provider === 'github') {
+        return write(
+          () => api.invoke('github-pr:comment', { pr, content }),
+          (d) => ({
+            ...d,
+            timeline: [...(d.timeline ?? []), { author: 'You', at: Date.now(), content }]
+          })
+        )
+      }
       return write(
         () => api.invoke('ado-pr:comment', { pr, content }),
         (d) => ({ ...d, threads: [...d.threads, ownThread(content, { kind: 'general' })] })
@@ -473,17 +539,19 @@ export function usePullRequest({
 
   const openInBrowser = useCallback((): Promise<LaunchResult> => {
     if (!worktreePath || !detail) return Promise.resolve({ ok: false, error: 'No pull request.' })
-    return api.invoke('ado-pr:open', { worktreePath, pr: refOf(detail) })
+    const pr = refOf(detail)
+    return pr.target.provider === 'github'
+      ? api.invoke('github-pr:open', { worktreePath, pr })
+      : api.invoke('ado-pr:open', { worktreePath, pr })
   }, [worktreePath, detail])
 
   const createPr = useCallback(
     (provider: PrProvider): Promise<LaunchResult> => {
       if (!worktreePath) return Promise.resolve({ ok: false, error: 'No worktree is selected.' })
-      // Only Azure DevOps' create page is opened yet; GitHub's comes with its client.
-      if (provider !== 'azure-devops') {
-        return Promise.resolve({ ok: false, error: `${providerName(provider)} is not wired yet.` })
-      }
-      return api.invoke('ado-pr:open', { worktreePath, create: true })
+      // GitHub's compare page on the target repository (FPRG-08); main builds it.
+      return provider === 'github'
+        ? api.invoke('github-pr:open', { worktreePath, create: true })
+        : api.invoke('ado-pr:open', { worktreePath, create: true })
     },
     [worktreePath]
   )
@@ -519,6 +587,35 @@ export function usePullRequest({
     createPr,
     openLink
   }
+}
+
+/** How one reload came about (FPRA-33, FPRG-26). */
+interface LoadHow {
+  /** Search the providers again before reading the pull request. */
+  search: boolean
+  /** The user asked for it — entering the mode, a pick, Refresh — not a focus or a write. */
+  userDriven: boolean
+  /** It follows a successful write, which its notice says. */
+  afterWrite?: boolean
+  /** A pick made just now, which the state does not hold yet. */
+  chosen?: PrRef
+}
+
+/** The providers searched, in the order their pull requests are listed (FPRG-07). */
+const PROVIDERS: readonly PrProvider[] = ['azure-devops', 'github']
+
+/** One provider's search for the worktree's branch (FPRA-02, FPRG-06). */
+function findOn(provider: PrProvider, worktreePath: string): Promise<PrSearch> {
+  return provider === 'github'
+    ? api.invoke('github-pr:find', { worktreePath })
+    : api.invoke('ado-pr:find', { worktreePath })
+}
+
+/** One pull request in full, from the provider it names. */
+function getOn(worktreePath: string, pr: PrRef): Promise<PrDetailResult> {
+  return pr.target.provider === 'github'
+    ? api.invoke('github-pr:get', { worktreePath, pr })
+    : api.invoke('ado-pr:get', { worktreePath, pr })
 }
 
 /** Every pull request the providers' searches found, in the providers' order (FPRG-07). */
@@ -598,6 +695,11 @@ function noPr(): Promise<WriteResult> {
 /** A write only Azure DevOps takes, asked of something that is not Azure DevOps'. */
 function notAdo(): Promise<WriteResult> {
   return Promise.resolve({ ok: false, message: 'This pull request is not on Azure DevOps.' })
+}
+
+/** A write only GitHub takes, asked of something that is not GitHub's. */
+function notGitHub(): Promise<WriteResult> {
+  return Promise.resolve({ ok: false, message: 'This pull request is not on GitHub.' })
 }
 
 function messageOf(err: unknown): string {

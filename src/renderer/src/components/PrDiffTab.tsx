@@ -89,7 +89,7 @@ export function PrDiffTab({
         thread={thread}
         provider={tab.pr.target.provider}
         onReply={(content) => pr.reply(thread.id, thread.rootCommentId, content)}
-        onSetStatus={(status) => pr.setStatus(thread.id, status)}
+        onSetState={(intent) => pr.setThreadState(thread, intent)}
         onOpenLink={openLink}
       />
     )

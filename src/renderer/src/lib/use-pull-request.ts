@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type {
-  AdoThreadStatus,
   DiffSides,
   PrComment,
   PrDetail,
@@ -11,6 +10,7 @@ import type {
   PrSelection,
   PrSummary,
   PrThreadView,
+  ThreadStateIntent,
   WriteResult
 } from '../../../shared/files'
 import type { LaunchResult } from '../../../shared/shortcuts'
@@ -100,10 +100,8 @@ export interface UsePullRequest {
     rootCommentId: number,
     content: string
   ) => Promise<WriteResult>
-  setStatus: (
-    threadId: PrThreadView['id'],
-    status: Exclude<AdoThreadStatus, 'unknown'>
-  ) => Promise<WriteResult>
+  /** A thread's new state, in its provider's terms (FPRA-26, FPRG-17). */
+  setThreadState: (thread: PrThreadView, intent: ThreadStateIntent) => Promise<WriteResult>
   startThread: (
     file: PrFile,
     selection: PrSelection,
@@ -368,22 +366,22 @@ export function usePullRequest({
     [detail, write]
   )
 
-  const setStatus = useCallback(
-    (
-      threadId: PrThreadView['id'],
-      status: Exclude<AdoThreadStatus, 'unknown'>
-    ): Promise<WriteResult> => {
+  const setThreadState = useCallback(
+    (thread: PrThreadView, intent: ThreadStateIntent): Promise<WriteResult> => {
       if (!detail) return noPr()
-      if (typeof threadId !== 'number') return notAdo()
+      // Only Azure DevOps' status is sent yet; GitHub's resolve comes with its client.
+      const threadId = thread.id
+      if (intent.provider !== 'azure-devops' || typeof threadId !== 'number') return notAdo()
+      const { status } = intent
       const pr = refOf(detail)
       return write(
         () => api.invoke('ado-pr:status', { pr, threadId, status }),
         (d) => ({
           ...d,
-          threads: d.threads.map((thread) =>
-            thread.id === threadId
-              ? { ...thread, providerStatus: status, resolution: resolutionOf(status) }
-              : thread
+          threads: d.threads.map((shown) =>
+            shown.id === threadId
+              ? { ...shown, providerStatus: status, resolution: resolutionOf(intent) }
+              : shown
           )
         })
       )
@@ -475,7 +473,7 @@ export function usePullRequest({
     sidesFor,
     readSides,
     reply,
-    setStatus,
+    setThreadState,
     startThread,
     comment,
     openInBrowser,
@@ -506,11 +504,13 @@ function sameRef(a: PrRef, b: PrRef): boolean {
 }
 
 /**
- * Azure DevOps' resolved statuses, as main reads them: Active, Pending and a
- * thread with no status are open (FPRA-20).
+ * Whether a thread is open or done once a state change is applied (FPRA-20).
+ * Azure DevOps' Active and Pending are open, as main reads them; its other
+ * statuses are resolved. GitHub's thread is resolved or not.
  */
-function resolutionOf(status: AdoThreadStatus): PrThreadView['resolution'] {
-  return status === 'active' || status === 'pending' || status === 'unknown' ? 'active' : 'resolved'
+export function resolutionOf(intent: ThreadStateIntent): PrThreadView['resolution'] {
+  if (intent.provider === 'github') return intent.resolved ? 'resolved' : 'active'
+  return intent.status === 'active' || intent.status === 'pending' ? 'active' : 'resolved'
 }
 
 /**

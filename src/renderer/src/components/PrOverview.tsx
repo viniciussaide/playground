@@ -163,7 +163,7 @@ export function PrOverview({ pr, onOpenDiff, onToast }: PrOverviewProps): JSX.El
         location={location}
         onActivate={open ? () => onOpenDiff(open.file, open.at) : undefined}
         onReply={(content) => pr.reply(thread.id, thread.rootCommentId, content)}
-        onSetStatus={(status) => pr.setStatus(thread.id, status)}
+        onSetState={(intent) => pr.setThreadState(thread, intent)}
         onOpenLink={openLink}
       />
     )

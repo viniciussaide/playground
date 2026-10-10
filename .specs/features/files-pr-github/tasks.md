@@ -185,10 +185,10 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] An ADO thread's selector offers and sends exactly what F4 did (`ado-pr:status` body unchanged)
-- [ ] A thread with `can.reply === false` shows Reply disabled with its reason
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: **3061** (unchanged)
+- [x] An ADO thread's selector offers and sends exactly what F4 did (`ado-pr:status` body unchanged)
+- [x] A thread with `can.reply === false` shows Reply disabled with its reason
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: **3061** (unchanged)
 
 **Tests**: none
 **Gate**: full

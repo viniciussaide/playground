@@ -290,6 +290,14 @@ export type AdoThreadStatus =
   | 'pending'
   | 'unknown'
 
+/**
+ * What a thread's state control asks for, in its own provider's terms: one of
+ * Azure DevOps' statuses (FPRA-26), or GitHub's resolved or not (FPRG-17).
+ */
+export type ThreadStateIntent =
+  | { provider: 'azure-devops'; status: Exclude<AdoThreadStatus, 'unknown'> }
+  | { provider: 'github'; resolved: boolean }
+
 /** One visible comment of a thread; deleted comments never get this far (FPRA-21). */
 export interface PrComment {
   id: number

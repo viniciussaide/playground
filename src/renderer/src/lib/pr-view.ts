@@ -1,10 +1,31 @@
-import type { AdoThreadStatus, PrThreadView } from '../../../shared/files'
+import type { AdoThreadStatus, PrRef, PrThreadView } from '../../../shared/files'
 
 /**
  * Pure decisions behind the Pull request mode's views (F4): which Overview
  * group a thread is listed in, how a thread status reads, where a thread is
  * drawn in a diff, and when a newer iteration deserves a banner.
  */
+
+/**
+ * What identifies one pull request in the renderer — the picker's options,
+ * the hook's caches, a PR diff tab — with its provider in it, so an Azure
+ * DevOps `!7` and a GitHub `#7` never share one (FPRG-07, edge case).
+ * Repository names compare without case, as both providers treat them.
+ */
+export function prKey(ref: PrRef): string {
+  const target = ref.target
+  const repository =
+    target.provider === 'azure-devops'
+      ? [target.org, target.project, target.repo]
+      : [target.owner, target.repo]
+  const path = repository.map((part) => encodeURIComponent(part.toLowerCase())).join('/')
+  return `${target.provider}:${path}/${ref.id}`
+}
+
+/** How a pull request's number reads: `!7` on Azure DevOps, `#7` on GitHub, as each spells it. */
+export function prLabel(ref: PrRef): string {
+  return `${ref.target.provider === 'github' ? '#' : '!'}${ref.id}`
+}
 
 /** The Overview's thread groups (FPRA-11, 13, 19, 20). */
 export interface OverviewGroups {

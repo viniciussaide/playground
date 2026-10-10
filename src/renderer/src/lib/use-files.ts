@@ -97,15 +97,13 @@ export interface DiffSpot {
 }
 
 /**
- * One open PR diff (FPRA-16), keyed by its pull request's number and its path.
+ * One open PR diff (FPRA-16), keyed by its pull request and its path.
  * Its sides are read from the provider and held by `files.pr`, not here.
  */
 export interface PrDiffTab {
   kind: 'pr-diff'
-  /** The pull request it was opened from; picking another one later leaves it on this one. */
+  /** The pull request it was opened from, which the tab key carries; picking another one later leaves it on this one. */
   pr: PrRef
-  /** The pull request's number, which the tab key carries. */
-  id: number
   path: string
   /** The PR's entry for the file: its status, a rename's old path, its change tracking id. */
   file: PrFile
@@ -777,7 +775,7 @@ export function useFiles({
       if (!worktreePath || !detail) return
       const ref: PrRef = { target: detail.target, id: detail.id }
       const now = Date.now()
-      const key = tabKeyOf({ kind: 'pr-diff', id: ref.id, path: file.path })
+      const key = tabKeyOf({ kind: 'pr-diff', pr: ref, path: file.path })
       patchFiles(worktreePath, (s) => {
         // As for every other tab, an open PR diff focuses rather than
         // duplicating; a thread's activation still moves it to its line.
@@ -792,7 +790,6 @@ export function useFiles({
         const tab: PrDiffTab = {
           kind: 'pr-diff',
           pr: ref,
-          id: ref.id,
           path: file.path,
           file,
           reveal: at,

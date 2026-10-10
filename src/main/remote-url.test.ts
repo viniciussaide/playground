@@ -111,7 +111,12 @@ describe('commitUrl', () => {
 })
 
 describe('prUrl and createPrUrl', () => {
-  const widget = { org: 'acme', project: 'platform', repo: 'widget' }
+  const widget = {
+    provider: 'azure-devops' as const,
+    org: 'acme',
+    project: 'platform',
+    repo: 'widget'
+  }
 
   it("addresses a pull request's page (FPRA-14)", () => {
     expect(prUrl(widget, 42)).toBe('https://dev.azure.com/acme/platform/_git/widget/pullrequest/42')

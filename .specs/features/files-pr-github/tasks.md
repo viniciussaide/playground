@@ -136,13 +136,13 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] `pr.target.provider` is the only provider field; `grep` finds no `PrSummary.provider` reader left
-- [ ] `prKey` of ADO `!7` and GitHub `#7` differ; `prLabel` reads `!7` and `#7`
-- [ ] No `!{` hard-coded label remains in `PrPicker` / `PrOverview`; the F4 smoke's selectors still match (lesson L-053: grep `scripts/` when renaming UI)
-- [ ] F4 tests pass, edited only where they build a `PrTarget`
-- [ ] Lint warning baseline recorded in the commit body
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: 3058 + 2 = **3060**
+- [x] `pr.target.provider` is the only provider field; `grep` finds no `PrSummary.provider` reader left
+- [x] `prKey` of ADO `!7` and GitHub `#7` differ; `prLabel` reads `!7` and `#7`
+- [x] No `!{` hard-coded label remains in `PrPicker` / `PrOverview`; the F4 smoke's selectors still match (lesson L-053: grep `scripts/` when renaming UI)
+- [x] F4 tests pass, edited only where they build a `PrTarget`
+- [x] Lint warning baseline recorded in the commit body
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: 3058 + 2 = **3060**
 
 **Tests**: unit
 **Gate**: full

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { JSX, ReactNode } from 'react'
 import type { PrFile, PrThreadView, ReviewerState } from '../../../shared/files'
-import { overviewGroups } from '../lib/pr-view'
+import { overviewGroups, prLabel } from '../lib/pr-view'
 import { relativeTime } from '../lib/relative-time'
 import { useSharedNow } from '../lib/shared-tick'
 import type { DiffSpot } from '../lib/use-files'
@@ -142,7 +142,7 @@ export function PrOverview({ pr, onOpenDiff, onToast }: PrOverviewProps): JSX.El
     return state(
       <>
         <p className="pr-overview-title-line">
-          !{detail.id} {detail.title}
+          {prLabel(detail)} {detail.title}
         </p>
         <p>This pull request was completed or abandoned.</p>
       </>
@@ -159,7 +159,7 @@ export function PrOverview({ pr, onOpenDiff, onToast }: PrOverviewProps): JSX.El
       <PrThread
         key={thread.id}
         thread={thread}
-        provider={detail.provider}
+        provider={detail.target.provider}
         location={location}
         onActivate={open ? () => onOpenDiff(open.file, open.at) : undefined}
         onReply={(content) => pr.reply(thread.id, thread.rootCommentId, content)}
@@ -199,7 +199,7 @@ export function PrOverview({ pr, onOpenDiff, onToast }: PrOverviewProps): JSX.El
 
       <header className="pr-overview-header">
         <h2 className="pr-overview-title">
-          <span className="pr-overview-id">!{detail.id}</span> {detail.title}
+          <span className="pr-overview-id">{prLabel(detail)}</span> {detail.title}
           {detail.isDraft && <span className="pr-overview-badge">Draft</span>}
         </h2>
         <div className="pr-overview-meta">

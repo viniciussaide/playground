@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import type { AdoThreadStatus, PrThreadPlace, PrThreadView } from '../../../shared/files'
+import type { AdoThreadStatus, PrRef, PrThreadPlace, PrThreadView } from '../../../shared/files'
+import { tabKeyOf } from './diff-view'
 import {
   newIterationBanner,
   OFFERED_STATUSES,
   overviewGroups,
+  prKey,
+  prLabel,
   statusLabel,
   zonesForFile
 } from './pr-view'
@@ -158,5 +161,32 @@ describe('newIterationBanner (FPRA-34)', () => {
     expect(newIterationBanner(4, 4)).toBe(false)
     expect(newIterationBanner(4, 3)).toBe(false)
     expect(newIterationBanner(null, 4)).toBe(false)
+  })
+})
+
+describe('prKey and prLabel (FPRG-07)', () => {
+  const ado = (id: number, org = 'acme'): PrRef => ({
+    target: { provider: 'azure-devops', org, project: 'platform', repo: 'widget' },
+    id
+  })
+  const github = (id: number): PrRef => ({
+    target: { provider: 'github', owner: 'acme', repo: 'widget' },
+    id
+  })
+
+  it('keeps pull requests with one number apart across providers and repositories, case aside', () => {
+    expect(prKey(ado(7))).not.toBe(prKey(github(7)))
+    expect(prKey(ado(7))).not.toBe(prKey(ado(7, 'contoso')))
+    expect(prKey(ado(7))).not.toBe(prKey(ado(8)))
+    expect(prKey(ado(7))).toBe(prKey(ado(7, 'ACME')))
+    // Edge case: their PR diff tabs stay apart too.
+    expect(tabKeyOf({ kind: 'pr-diff', pr: ado(7), path: 'src/app.ts' })).not.toBe(
+      tabKeyOf({ kind: 'pr-diff', pr: github(7), path: 'src/app.ts' })
+    )
+  })
+
+  it('reads an Azure DevOps number as !7 and a GitHub one as #7', () => {
+    expect(prLabel(ado(7))).toBe('!7')
+    expect(prLabel(github(7))).toBe('#7')
   })
 })

@@ -300,8 +300,11 @@ export interface IpcContract {
     req: { worktreePath: string; pr: PrRef } | { worktreePath: string; create: true }
     res: LaunchResult
   }
-  /** Open a link from rendered markdown; main re-checks it is https and refuses anything else (FPRA-23). */
-  'ado-pr:open-link': { req: { href: string }; res: LaunchResult }
+  /**
+   * Open a link from rendered markdown, whichever provider wrote it; main
+   * re-checks it is https and refuses anything else (FPRA-23, FPRG-15).
+   */
+  'pr:open-link': { req: { href: string }; res: LaunchResult }
 }
 
 export type IpcChannel = keyof IpcContract

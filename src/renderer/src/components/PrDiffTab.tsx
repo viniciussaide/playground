@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import type { PrSelection } from '../../../shared/files'
 import { tabKeyOf } from '../lib/diff-view'
-import { zonesForFile } from '../lib/pr-view'
+import { prKey, zonesForFile } from '../lib/pr-view'
 import type { PrDiffTab as PrDiffTabState, UseFiles } from '../lib/use-files'
 import { CommentComposer } from './CommentComposer'
 import { DiffViewer, type DiffHandle, type DiffZone, type ModifiedSelection } from './DiffViewer'
@@ -56,7 +56,7 @@ export function PrDiffTab({
   // Threads and writes belong to the pull request shown; a tab left open on
   // another one keeps its sides and shows no threads it cannot answer.
   const detail = pr.detail
-  const ours = detail !== null && detail.id === tab.id && detail.status === 'active'
+  const ours = detail !== null && prKey(detail) === prKey(tab.pr) && detail.status === 'active'
 
   const openLink = (href: string): void => {
     void pr
@@ -86,7 +86,7 @@ export function PrDiffTab({
     content: (
       <PrThread
         thread={thread}
-        provider={detail?.provider ?? 'azure-devops'}
+        provider={tab.pr.target.provider}
         onReply={(content) => pr.reply(thread.id, thread.rootCommentId, content)}
         onSetStatus={(status) => pr.setStatus(thread.id, status)}
         onOpenLink={openLink}

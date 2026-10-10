@@ -222,12 +222,15 @@ export type RemoteRef =
 /** The provider a pull request lives on. F4 ships Azure DevOps; F5 adds GitHub to this same model. */
 export type PrProvider = 'azure-devops' | 'github'
 
-/** The repository a pull request targets, as `parseRemote` reduced its remote (FPRA-02). */
-export interface PrTarget {
-  org: string
-  project: string
-  repo: string
-}
+/**
+ * The repository a pull request targets, as `parseRemote` reduced its remote
+ * (FPRA-02). Its `provider` is the one place a pull request's provider is
+ * read from (FPRG-07).
+ */
+export type PrTarget = RemoteRef
+
+/** An Azure DevOps repository a pull request targets. */
+export type AdoTarget = Extract<PrTarget, { provider: 'azure-devops' }>
 
 /**
  * Names one pull request. The renderer only ever sends this back as intent:
@@ -241,7 +244,6 @@ export interface PrRef {
 
 /** One pull request the search found: what the picker names (FPRA-04). */
 export interface PrSummary extends PrRef {
-  provider: PrProvider
   title: string
   /** Without `refs/heads/`. */
   targetBranch: string

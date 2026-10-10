@@ -16,7 +16,7 @@ import type {
 import type { LaunchResult } from '../../../shared/shortcuts'
 import { api } from './api'
 import { tabKeyOf } from './diff-view'
-import { newIterationBanner } from './pr-view'
+import { newIterationBanner, prKey } from './pr-view'
 import { useLatestCallback } from './use-latest-callback'
 
 /** How long a focus reload waits out another focus (FPRA-33), as App does for its own. */
@@ -50,7 +50,7 @@ interface WorktreePr {
   loading: boolean
   /** The iteration the open PR diffs were read at (FPRA-34). */
   onScreen: number | null
-  /** PR diff sides by tab key (`pr:<id>:<path>`). */
+  /** PR diff sides by tab key (`pr:<prKey>:<path>`). */
   sides: Record<string, PrSidesEntry>
 }
 
@@ -188,7 +188,7 @@ export function usePullRequest({
           // Diffs read at an older iteration stay as they are until the banner
           // is answered; with none open there is nothing to be behind.
           const hasDiffs = Object.keys(state.sides).some((key) =>
-            key.startsWith(`pr:${detail.id}:`)
+            key.startsWith(`pr:${prKey(detail)}:`)
           )
           return {
             detail,
@@ -262,7 +262,7 @@ export function usePullRequest({
     if (!worktreePath) return
     patch(worktreePath, (state) => {
       if (!state.detail) return {}
-      const prefix = `pr:${state.detail.id}:`
+      const prefix = `pr:${prKey(state.detail)}:`
       // Dropping the sides is the re-read: an open PR diff asks for sides it
       // does not hold, at the iteration that is latest now.
       const sides = Object.fromEntries(
@@ -277,7 +277,7 @@ export function usePullRequest({
       if (!worktreePath) return
       const wt = worktreePath
       const state = live.current.byWorktree[wt] ?? EMPTY
-      const key = tabKeyOf({ kind: 'pr-diff', id: pr.id, path: file.path })
+      const key = tabKeyOf({ kind: 'pr-diff', pr, path: file.path })
       if (state.sides[key]) return
       const iteration = state.detail?.iteration ?? 0
       patch(wt, (s) => ({ sides: { ...s.sides, [key]: { sides: null, iteration } } }))
@@ -425,7 +425,7 @@ export function usePullRequest({
   }, [worktreePath])
 
   const openLink = useCallback(
-    (href: string): Promise<LaunchResult> => api.invoke('ado-pr:open-link', { href }),
+    (href: string): Promise<LaunchResult> => api.invoke('pr:open-link', { href }),
     []
   )
 
@@ -470,13 +470,9 @@ function refOf(pr: PrRef): PrRef {
   return { target: pr.target, id: pr.id }
 }
 
+/** One pull request, by `prKey`: its provider, repository — without case — and number. */
 function sameRef(a: PrRef, b: PrRef): boolean {
-  return (
-    a.id === b.id &&
-    a.target.org.toLowerCase() === b.target.org.toLowerCase() &&
-    a.target.project.toLowerCase() === b.target.project.toLowerCase() &&
-    a.target.repo.toLowerCase() === b.target.repo.toLowerCase()
-  )
+  return prKey(a) === prKey(b)
 }
 
 /**

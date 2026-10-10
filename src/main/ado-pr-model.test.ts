@@ -115,7 +115,12 @@ describe('pickRemoteRepos (FPRA-02/06)', () => {
         { name: 'origin', url: 'https://github.com/acme/widget.git' },
         { name: 'fork', url: 'https://acme@dev.azure.com/acme/platform/_git/widget' }
       ])
-    ).toEqual([{ name: 'fork', target: { org: 'acme', project: 'platform', repo: 'widget' } }])
+    ).toEqual([
+      {
+        name: 'fork',
+        target: { provider: 'azure-devops', org: 'acme', project: 'platform', repo: 'widget' }
+      }
+    ])
   })
 
   it('yields none when no remote is on azure devops', () => {
@@ -130,8 +135,24 @@ describe('pickRemoteRepos (FPRA-02/06)', () => {
 
 describe('sourceRemote (FPRA-02)', () => {
   const repos = [
-    { name: 'origin', target: { org: 'acme', project: 'platform', repo: 'widget' } },
-    { name: 'fork', target: { org: 'acme', project: 'platform', repo: 'widget-fork' } }
+    {
+      name: 'origin',
+      target: {
+        provider: 'azure-devops' as const,
+        org: 'acme',
+        project: 'platform',
+        repo: 'widget'
+      }
+    },
+    {
+      name: 'fork',
+      target: {
+        provider: 'azure-devops' as const,
+        org: 'acme',
+        project: 'platform',
+        repo: 'widget-fork'
+      }
+    }
   ]
 
   it('is the azure devops remote the branch tracks, a fork included', () => {

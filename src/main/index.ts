@@ -545,7 +545,7 @@ app.whenReady().then(() => {
       shell.openExternal(url)
     )
   )
-  handle('ado-pr:open-link', ({ href }) => openPrLink(href, (url) => shell.openExternal(url)))
+  handle('pr:open-link', ({ href }) => openPrLink(href, (url) => shell.openExternal(url)))
 
   // Agent sessions (AM2). SessionManager owns every session's lifecycle,
   // persistence, and stream routing; emit is lazily bound to the live window.

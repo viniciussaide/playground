@@ -1,9 +1,9 @@
 import type {
+  AdoTarget,
   Anchor,
   PrComment,
   PrFile,
   PrSelection,
-  PrTarget,
   PrThreadPlace,
   ReviewerState
 } from '../shared/files'
@@ -29,7 +29,7 @@ export interface AdoChange {
 /** A remote on Azure DevOps, by name, with the repository it points at. */
 export interface AdoRemote {
   name: string
-  target: PrTarget
+  target: AdoTarget
 }
 
 /** A position in a file: 1-based line, 1-based UTF-16 column, as ADO writes it (T1, S1). */
@@ -124,10 +124,7 @@ export function pickRemoteRepos(remotes: { name: string; url: string }[]): AdoRe
   for (const remote of remotes) {
     const ref = parseRemote(remote.url)
     if (ref?.provider !== 'azure-devops') continue
-    repos.push({
-      name: remote.name,
-      target: { org: ref.org, project: ref.project, repo: ref.repo }
-    })
+    repos.push({ name: remote.name, target: ref })
   }
   return repos
 }

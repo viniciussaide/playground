@@ -8,7 +8,10 @@ import type { GitRunner } from './git'
 
 const UPSTREAM = 'https://dev.azure.com/acme/platform/_git/widget'
 const FORK = 'https://dev.azure.com/acme/platform/_git/widget-fork'
-const PR: PrRef = { target: { org: 'acme', project: 'platform', repo: 'widget' }, id: 42 }
+const PR: PrRef = {
+  target: { provider: 'azure-devops', org: 'acme', project: 'platform', repo: 'widget' },
+  id: 42
+}
 
 interface Sent {
   method: string
@@ -140,16 +143,19 @@ describe('AdoPrClient.findPrs (FPRA-02..08)', () => {
       kind: 'found',
       prs: [
         {
-          provider: 'azure-devops',
-          target: { org: 'acme', project: 'platform', repo: 'widget' },
+          target: { provider: 'azure-devops', org: 'acme', project: 'platform', repo: 'widget' },
           id: 42,
           title: 'Fix login redirect',
           targetBranch: 'main',
           isDraft: true
         },
         {
-          provider: 'azure-devops',
-          target: { org: 'acme', project: 'platform', repo: 'widget-fork' },
+          target: {
+            provider: 'azure-devops',
+            org: 'acme',
+            project: 'platform',
+            repo: 'widget-fork'
+          },
           id: 7,
           title: 'Try it',
           targetBranch: 'dev',
@@ -271,7 +277,6 @@ describe('AdoPrClient.getPr (FPRA-09/10)', () => {
     expect(result).toEqual({
       kind: 'ok',
       detail: {
-        provider: 'azure-devops',
         target: PR.target,
         id: 42,
         title: 'Fix login redirect',

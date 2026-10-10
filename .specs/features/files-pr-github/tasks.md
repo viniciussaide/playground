@@ -306,11 +306,11 @@ T25 → T26 → T27
 
 **Done when**:
 
-- [ ] `https://github.com/acme/widget/pull/7`
-- [ ] `https://github.com/acme/widget/compare/main...contoso:feature/x?expand=1`, with a `/` in the branch handled
-- [ ] Every output passes `isHttpsUrl`
-- [ ] Gate passes: `npm test`
-- [ ] Test count: 3074 + 4 = **3078**
+- [x] `https://github.com/acme/widget/pull/7`
+- [x] `https://github.com/acme/widget/compare/main...contoso:feature/x?expand=1`, with a `/` in the branch handled
+- [x] Every output passes `isHttpsUrl`
+- [x] Gate passes: `npm test`
+- [x] Test count: 3074 + 4 = **3078**
 
 **Tests**: unit
 **Gate**: quick

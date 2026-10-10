@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { RemoteRef } from '../shared/files'
-import { commitUrl, createPrUrl, parseRemote, prUrl } from './remote-url'
+import {
+  commitUrl,
+  createPrUrl,
+  githubCompareUrl,
+  githubPrUrl,
+  parseRemote,
+  prUrl
+} from './remote-url'
 import { isHttpsUrl } from './url-policy'
 
 // Every URL here is fictitious: this repository is public and the spec's
@@ -155,6 +162,45 @@ describe('prUrl and createPrUrl', () => {
     for (const ref of refs) {
       expect(isHttpsUrl(prUrl(ref, 42))).toBe(true)
       expect(isHttpsUrl(createPrUrl(ref, 'feature/probe'))).toBe(true)
+    }
+  })
+})
+
+describe('githubPrUrl and githubCompareUrl', () => {
+  const widget = { provider: 'github' as const, owner: 'acme', repo: 'widget' }
+
+  it("addresses a github pull request's page", () => {
+    expect(githubPrUrl(widget, 7)).toBe('https://github.com/acme/widget/pull/7')
+  })
+
+  // FPRG-08: the compare page goes from the target's default branch to
+  // <source owner>:<branch>, and a branch's `/` stays part of its name.
+  it("compares the default branch with the source owner's branch, slash included", () => {
+    const url = githubCompareUrl(widget, 'main', 'contoso', 'feature/x')
+
+    expect(url).toBe('https://github.com/acme/widget/compare/main...contoso:feature/x?expand=1')
+  })
+
+  it('encodes each branch segment, so no character ends the path early', () => {
+    const url = githubCompareUrl(widget, 'release/2.0', 'contoso', 'feature/a#b?c d')
+
+    expect(url).toBe(
+      'https://github.com/acme/widget/compare/release/2.0...contoso:feature/a%23b%3Fc%20d?expand=1'
+    )
+    const parsed = new URL(url)
+    expect(parsed.hash).toBe('')
+    expect(parsed.search).toBe('?expand=1')
+  })
+
+  // FPRG-08 goes through the https-only opener, so every recognized github
+  // remote, whatever its own scheme, must build addresses it accepts.
+  it('builds only addresses the https-only opener accepts', () => {
+    const refs = recognized.flatMap(([, ref]) => (ref.provider === 'github' ? [ref] : []))
+    expect(refs).toHaveLength(4)
+
+    for (const ref of refs) {
+      expect(isHttpsUrl(githubPrUrl(ref, 7))).toBe(true)
+      expect(isHttpsUrl(githubCompareUrl(ref, 'main', 'contoso', 'feature/x'))).toBe(true)
     }
   })
 })

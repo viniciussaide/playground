@@ -605,8 +605,8 @@ T25 → T26 → T27
 **Done when**:
 
 - [ ] ADO and GitHub PRs of one branch are distinguishable at a glance
-- [ ] Gate passes: `npm run typecheck && npm run lint && npm test`
-- [ ] Test count: **3122** (unchanged)
+- [x] Gate passes: `npm run typecheck && npm run lint && npm test`
+- [x] Test count: **3122** (unchanged)
 
 **Tests**: none
 **Gate**: full

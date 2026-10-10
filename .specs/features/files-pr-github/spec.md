@@ -194,34 +194,36 @@ plainly when GitHub is rate-limiting me.
 
 | Requirement ID | Story | Tasks | Status |
 | -------------- | ----- | ----- | ------ |
-| FPRG-01 | P1: Know whether GitHub is reachable | T7, T8, T27 | Implemented |
-| FPRG-02 | P1: Know whether GitHub is reachable | T16, T18, T19, T27 | Implemented |
-| FPRG-03 | P1: Know whether GitHub is reachable | T8, T19, T27 | Implemented |
-| FPRG-04 | P1: Know whether GitHub is reachable | T5, T8, T19, T20, T27 | Implemented |
-| FPRG-05 | P1: Know whether GitHub is reachable | T18, T27 | Implemented |
-| FPRG-06 | P1: Find the branch's GitHub PR | T6, T13, T14, T16, T27 | Implemented |
-| FPRG-07 | P1: Find the branch's GitHub PR | T2, T5, T7, T14, T20, T21, T27 | Implemented |
-| FPRG-08 | P1: Find the branch's GitHub PR | T9, T14, T16, T27 | Implemented |
-| FPRG-09 | P1: Read the GitHub PR | T7, T12, T14, T22, T27 | Implemented |
-| FPRG-10 | P1: Read the GitHub PR | T7, T12, T14, T22, T27 | Implemented |
-| FPRG-11 | P1: Read the GitHub PR | T14, T27 | Implemented |
-| FPRG-12 | P1: Read the GitHub PR | T1, T14, T25, T27 | Implemented |
-| FPRG-13 | P1: Read the GitHub PR | T3, T12, T14, T25, T27 | Implemented |
-| FPRG-14 | P1: Read the GitHub PR | T12, T14, T22, T27 | Implemented |
-| FPRG-15 | P1: Read the GitHub PR | T22, T27 | Implemented |
-| FPRG-16 | P2: Answer a GitHub review | T15, T23, T27 | Implemented |
-| FPRG-17 | P2: Answer a GitHub review | T4, T12, T15, T23, T27 | Implemented |
-| FPRG-18 | P2: Answer a GitHub review | T3, T4, T12, T23, T27 | Implemented |
-| FPRG-19 | P2: Answer a GitHub review | T1, T7, T10, T15, T17, T25, T27 | Implemented |
-| FPRG-20 | P2: Answer a GitHub review | T1, T10, T11, T17, T24, T25, T27 | Implemented |
-| FPRG-21 | P2: Answer a GitHub review | T11, T15, T17, T24, T25, T27 | Implemented |
-| FPRG-22 | P2: Answer a GitHub review | T1, T10, T17, T25, T27 | Implemented |
-| FPRG-23 | P2: Answer a GitHub review | T15, T27 | Implemented |
-| FPRG-24 | P2: Answer a GitHub review | T15, T16, T26, T27 | Implemented |
-| FPRG-25 | P2: Stay current within GitHub's limits | T3, T20, T27 | Implemented |
-| FPRG-26 | P2: Stay current within GitHub's limits | T5, T8, T20, T27 | Implemented |
+| FPRG-01 | P1: Know whether GitHub is reachable | T7, T8, T27 | Verified |
+| FPRG-02 | P1: Know whether GitHub is reachable | T16, T18, T19, T27 | Verified |
+| FPRG-03 | P1: Know whether GitHub is reachable | T8, T19, T27 | Verified |
+| FPRG-04 | P1: Know whether GitHub is reachable | T5, T8, T19, T20, T27 | Verified |
+| FPRG-05 | P1: Know whether GitHub is reachable | T18, T27 | Verified |
+| FPRG-06 | P1: Find the branch's GitHub PR | T6, T13, T14, T16, T27 | Verified |
+| FPRG-07 | P1: Find the branch's GitHub PR | T2, T5, T7, T14, T20, T21, T27 | Verified |
+| FPRG-08 | P1: Find the branch's GitHub PR | T9, T14, T16, T27 | Verified |
+| FPRG-09 | P1: Read the GitHub PR | T7, T12, T14, T22, T27 | Verified |
+| FPRG-10 | P1: Read the GitHub PR | T7, T12, T14, T22, T27 | Verified |
+| FPRG-11 | P1: Read the GitHub PR | T14, T27 | Verified |
+| FPRG-12 | P1: Read the GitHub PR | T1, T14, T25, T27 | Verified |
+| FPRG-13 | P1: Read the GitHub PR | T3, T12, T14, T25, T27 | Verified |
+| FPRG-14 | P1: Read the GitHub PR | T12, T14, T22, T27 | Verified |
+| FPRG-15 | P1: Read the GitHub PR | T22, T27 | Verified |
+| FPRG-16 | P2: Answer a GitHub review | T15, T23, T27 | Verified |
+| FPRG-17 | P2: Answer a GitHub review | T4, T12, T15, T23, T27 | Verified |
+| FPRG-18 | P2: Answer a GitHub review | T3, T4, T12, T23, T27 | Verified |
+| FPRG-19 | P2: Answer a GitHub review | T1, T7, T10, T15, T17, T25, T27 | Verified |
+| FPRG-20 | P2: Answer a GitHub review | T1, T10, T11, T17, T24, T25, T27 | Verified |
+| FPRG-21 | P2: Answer a GitHub review | T11, T15, T17, T24, T25, T27 | Verified |
+| FPRG-22 | P2: Answer a GitHub review | T1, T10, T17, T25, T27 | Verified |
+| FPRG-23 | P2: Answer a GitHub review | T15, T27 | Verified |
+| FPRG-24 | P2: Answer a GitHub review | T15, T16, T26, T27 | Verified |
+| FPRG-25 | P2: Stay current within GitHub's limits | T3, T20, T27 | Verified |
+| FPRG-26 | P2: Stay current within GitHub's limits | T5, T8, T20, T27 | Verified |
 
 **Coverage:** 26 total, 26 mapped to tasks, 0 unmapped
+
+Verified 2026-10-10 (`validation.md`, PASS). FPRG-18 and FPRG-26 rest on unit tests of their rule plus code reading of the renderer; that and the other follow-ups (F1-F9) and spec gaps (G1-G4) are listed in `validation.md`, none blocking.
 
 ---
 

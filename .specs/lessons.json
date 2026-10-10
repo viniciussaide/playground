@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 129,
+  "next_id": 133,
   "lessons": [
     {
       "id": "L-001",
@@ -2227,6 +2227,78 @@
       ],
       "created": "2026-10-10T14:46:20Z",
       "last_seen": "2026-10-10T14:46:20Z"
+    },
+    {
+      "id": "L-129",
+      "key": "surviving_mutant::when a provider model falls back on a null field give the null its own test case apart from the flag that usually accompanies it",
+      "text": "When a provider model falls back on a null field, give the null its own test case apart from the flag that usually accompanies it.",
+      "signal": "surviving_mutant",
+      "scope": "src/main",
+      "status": "candidate",
+      "features": [
+        "files-pr-github"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/main/github-pr-model.ts:126 (U11) (src/main)"
+      ],
+      "created": "2026-10-10T20:16:34Z",
+      "last_seen": "2026-10-10T20:16:34Z"
+    },
+    {
+      "id": "L-130",
+      "key": "surviving_mutant::a de duplication step needs a fixture that actually contains duplicates or removing it survives",
+      "text": "A de-duplication step needs a fixture that actually contains duplicates, or removing it survives.",
+      "signal": "surviving_mutant",
+      "scope": "src/main",
+      "status": "candidate",
+      "features": [
+        "files-pr-github"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "src/main/github-pr.ts:199 (U25) (src/main)"
+      ],
+      "created": "2026-10-10T20:16:34Z",
+      "last_seen": "2026-10-10T20:16:34Z"
+    },
+    {
+      "id": "L-131",
+      "key": "ac_gap::put a renderer only permission or retry gate in a pure helper so a unit test not code reading is its evidence",
+      "text": "Put a renderer-only permission or retry gate in a pure helper so a unit test, not code reading, is its evidence.",
+      "signal": "ac_gap",
+      "scope": "src/renderer",
+      "status": "candidate",
+      "features": [
+        "files-pr-github"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "FPRG-18, src/renderer/src/components/PrThread.tsx:135 (src/renderer)"
+      ],
+      "created": "2026-10-10T20:16:34Z",
+      "last_seen": "2026-10-10T20:16:34Z"
+    },
+    {
+      "id": "L-132",
+      "key": "spec_deviation::before promising one view across two providers check each provider s search input a branch tracks one remote so a per remote search can never yield both",
+      "text": "Before promising one view across two providers, check each provider's search input: a branch tracks one remote, so a per-remote search can never yield both.",
+      "signal": "spec_deviation",
+      "scope": ".specs",
+      "status": "candidate",
+      "features": [
+        "files-pr-github"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "FPRG-07, tasks.md Fixes found during Execute (.specs)"
+      ],
+      "created": "2026-10-10T20:16:34Z",
+      "last_seen": "2026-10-10T20:16:34Z"
     }
   ]
 }

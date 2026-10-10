@@ -12,6 +12,12 @@ And from F4, whose plan was amended at this spec so both providers share one mod
 Pull request mode, the Overview, threads in view zones, the composer, the inert markdown renderer,
 the https-only link path and the freshness rules. **F5 is what GitHub does differently.**
 
+**Reconciled with F4 as shipped (2026-10-10).** F4 shipped (PR #169) with the neutral model only in
+part: `provider`, `resolution` and a neutral `ReviewerState` exist, but the PR's target, the thread
+id, the iteration, the status intent, the search results and several texts are still Azure DevOps'
+own. The owner chose a refactor phase that makes them provider-neutral before any GitHub code
+(design § Reconciliation); it changes nothing the user sees on an Azure DevOps PR.
+
 ---
 
 ## Problem Statement
@@ -49,8 +55,9 @@ for GitHub, with the same surfaces and the same guarantees, adjusted to how GitH
 | --------------------- | -------------- | --------- | ---------- |
 | Auth | `gh auth token` through a minimal `GitHubGateway`; nothing stored | Epic Q11; mirrors `az` for ADO | y |
 | `gh` chip states | `gh · not installed` (with a link to the CLI's install page) and `gh · not signed in` (with "run `gh auth login`"), distinct | Owner decision (F5-Q6): `gh` is optional where `az` is assumed, so the two failures need two fixes | y |
-| Chip visibility | Only while a registered repository has a GitHub remote; re-checked on focus with the 5 s debounce | Epic Q13 | y |
-| Which PRs | For each GitHub remote as target: open PRs whose head is `<source owner>:<branch>`, the source owner being the owner of the remote the branch pushes to | Epic Q14; finds this repository's own fork-flow PRs (`<fork owner>:feature/x` → the upstream's `main`) | y |
+| Chip visibility | Only while a registered repository has a GitHub remote; re-checked on focus with the 5 s debounce. Decided in main — the renderer holds no remote URLs — so `github:status` answers `no-github-remote` too | Epic Q13 | y |
+| Which PRs | For each GitHub remote as target: open PRs whose head is `<source owner>:<branch>`, the source owner being the owner of the GitHub remote the branch tracks (`branch.<name>.remote`, as F4 reads it) | Epic Q14; finds this repository's own fork-flow PRs (`<fork owner>:feature/x` → the upstream's `main`) | y |
+| A branch tracking no GitHub remote | No GitHub search; the mode says the branch is not pushed to GitHub, and Create PR is not offered for GitHub | Without a source owner the `head` filter cannot be written (lesson L-127) | y |
 | Both providers | One search across Azure DevOps and GitHub, one picker, each PR marked with its provider | Owner decision (F5-Q5): no priority rule may hide a real PR | y |
 | PR diff sides | Base side = the file at the merge base of the PR's base and head, read from the **base** repository; head side = the file at the PR's head commit, read from the **head** repository — the fork, for a fork PR | For a fork PR the head commit may exist only in the fork | y |
 | Files | The PR's file list, every page | GitHub pages it (at most 100 per page) | y |
@@ -58,7 +65,8 @@ for GitHub, with the same surfaces and the same guarantees, adjusted to how GitH
 | Outdated | `isOutdated` threads are listed in the Overview as outdated and not drawn, matching FPRA-19 | GitHub reports it directly; nothing to infer | y |
 | Resolve control | A **Resolve / Reopen** toggle instead of F4's status selector | GitHub threads have no statuses, only resolved or not | y |
 | Permissions | An action the viewer may not perform is shown disabled with the reason | GitHub reports `viewerCanReply`, `viewerCanResolve`, `viewerCanUnresolve` per thread | y |
-| Reviews in the Overview | Each reviewer's latest review state (approved, changes requested, commented, dismissed) plus requested reviewers and teams who have not reviewed; review bodies appear among general comments in time order | Owner decision (F5-Q3); the GitHub equivalent of F4's votes | y |
+| Reviews in the Overview | Each reviewer's latest review state (approved, changes requested, commented, dismissed) plus requested reviewers and teams who have not reviewed; F4's `ReviewerState` is extended with GitHub's states, not duplicated | Owner decision (F5-Q3); the GitHub equivalent of F4's votes | y |
+| Review bodies and PR comments | A list of their own in the Overview's General section, in time order, each with its author, its review state when it is a review, and its text — **no Reply or Resolve buttons**, because GitHub offers neither on them; answering is the general comment | Owner decision (2026-10-10): drawing them as threads with disabled buttons would fill the screen with buttons that never work | y |
 | Comment timing | Every comment — reply, anchored or general — posts immediately, never into a pending review | Owner decision (F5-Q2) | y |
 | Selection outside the diff | GitHub only anchors comments to lines of the PR's diff hunks; a selection not fully inside one becomes a **general comment** citing `path:Lstart–Lend` with the selected text in a fenced block | Owner decision (F5-Q1). That GitHub rejects anchors outside the hunks is known behaviour **not stated on the REST reference page — the Design spike verifies it** | n — verify at Design |
 | Telling the user | The composer shows, before posting, that the comment will be general and why; the preview shows the citation as it will appear | Owner decision (F5-Q7) | y |
@@ -66,7 +74,7 @@ for GitHub, with the same surfaces and the same guarantees, adjusted to how GitH
 | Create PR | GitHub's compare page on the target repository — the source's parent when the source is a fork, the source itself otherwise — from the target's default branch to `<source owner>:<branch>` | The fork flow's PR lands on the upstream, never on the fork | y |
 | Markdown | F4's renderer (`markdown-it`, HTML disabled); GitHub bodies are always markdown | One inert renderer for all third-party content | y |
 | Rate limit | When GitHub reports the limit exhausted, the mode says so with the reset time and does not retry | No polling exists to make it worse; a loop would | y |
-| Probes during Design | Only on a **scratch repository the owner names** — never on this repository's upstream, whose PRs notify real maintainers | Outward writes; privacy guardrail | y |
+| Probes during Design | Only on a **scratch repository the owner names** — never on this repository's upstream, whose PRs notify real maintainers. The owner named **their own fork of this repository** (2026-10-10): writes go on a draft PR whose base and head both live in the fork, on throwaway branches; the cross-fork merge base is measured **read-only** (GET) on an existing fork → upstream PR | Outward writes; privacy guardrail. One account cannot fork its own repository, so the fork's own PRs are the write target | y |
 | Project decision | **AD-027** (recorded 2026-09-19) already covers both providers: the app writes PR comments to Azure DevOps **and GitHub**, only on explicit user action, and probes never target this repository's upstream | One posture for both providers | y |
 | Branch base | `feature/files-pr-github` stacked on `feature/files-pr-ado` | Reuses every F4 surface | y |
 
@@ -104,7 +112,7 @@ including one from my fork to the upstream, so that the fork workflow needs no c
 
 **Acceptance Criteria**:
 
-6. WHILE in Pull request mode the system SHALL search every GitHub remote for open PRs whose head is the branch in the repository it is pushed to, including a fork's branch opened against an upstream <!-- state-driven -->
+6. WHILE in Pull request mode the system SHALL search every GitHub remote for open PRs whose head is the branch in the GitHub repository it tracks, including a fork's branch opened against an upstream; IF the branch tracks no GitHub remote THEN it SHALL search no GitHub repository and SHALL say the branch is not pushed to GitHub <!-- state-driven -->
 7. The system SHALL list PRs found on GitHub and on Azure DevOps in one picker, each marked with its provider <!-- ubiquitous -->
 8. IF no PR is found on any provider THEN **Create PR** SHALL offer, for GitHub, the compare page of the target repository — the source's parent for a fork — from its default branch to `<source owner>:<branch>` <!-- unwanted-behavior -->
 
@@ -122,7 +130,7 @@ GitHub's reviews and outdated comments shown faithfully.
 **Acceptance Criteria**:
 
 9. The Overview of a GitHub PR SHALL show its number, title, author, draft state, base and head, creation date, each reviewer's latest review state, and requested reviewers and teams who have not reviewed <!-- ubiquitous -->
-10. The Overview SHALL list review bodies and PR comments as general comments in time order <!-- ubiquitous -->
+10. The Overview SHALL list review bodies and PR comments in its General section in time order, each with its author, its review state when it is a review, and its text, and SHALL offer no Reply or Resolve on them <!-- ubiquitous -->
 11. The PR's file tree SHALL list every changed file, across every page GitHub returns <!-- ubiquitous -->
 12. A GitHub PR diff SHALL read its base side from the base repository at the merge base and its head side from the head repository at the PR's head commit <!-- ubiquitous -->
 13. The PR diff SHALL draw each review thread under its line on its side, resolved threads collapsed <!-- ubiquitous -->
@@ -177,6 +185,8 @@ plainly when GitHub is rate-limiting me.
 - WHEN a thread's anchored line no longer exists but GitHub has not marked it outdated THEN it SHALL be listed in the Overview as outdated rather than drawn on a wrong line
 - IF a review body is empty (an approval with no text) THEN only the state SHALL be shown, with no empty comment
 - WHEN the same branch has a GitHub PR and an Azure DevOps PR THEN choosing one in the picker SHALL not affect the other's cached state
+- WHEN a GitHub PR and an Azure DevOps PR share a number THEN their tabs, picker entries and caches SHALL stay apart (GitHub reads `#7`, Azure DevOps `!7`)
+- WHILE no registered repository has a GitHub remote, an Azure DevOps PR SHALL look and behave exactly as F4 shipped it
 
 ---
 

@@ -11,9 +11,9 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Design**: inline. Two pure functions decide everything the bar shows — `reviewMark(reviewers)` and `prChip(lookup)`, which turns both providers' search results and details into one of `one`, `many`, `create`, `unknown`, `hidden` — so rendering is a switch. The lookup is lifted out of F4/F5's `usePullRequest` into a shared hook App mounts (T3, T4); see the reconciliation below for why it cannot be used as is.
 **Status**: Reconciled against the executed F4/F5 code 2026-10-10 — awaiting owner approval (planned 2026-09-22)
 
-**Branch**: `feature/status-pr-link`, rebased 2026-10-10 `--onto feature/files-pr-github 5010b69` (F5 as shipped in its PR, stacked on F4's PR; backup `backup/status-pr-link-prerebase`). When F4 and F5 merge upstream, rebase onto `origin/main` the same way.
+**Branch**: `feature/status-pr-link` off `origin/main` `a170e6b` (F4 and F5 merged upstream 2026-10-10), rebased `--onto origin/main 28adf84`; backup of the original plan branch `backup/status-pr-link-prerebase`.
 
-**Test baseline**: 3122 tests in 141 files (`npx vitest run`), lint 18 warnings, measured 2026-10-10 after the rebase.
+**Test baseline**: 3122 tests in 141 files (`npx vitest run`), lint 18 warnings, measured 2026-10-10 (the tree of `a170e6b` equals the F5 tip it was measured on).
 
 ### Reconciliation with the executed F4/F5 code (2026-10-10)
 

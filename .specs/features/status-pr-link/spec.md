@@ -37,7 +37,7 @@ repository, branch, changes and sync state; the PR is the missing piece of that 
 | Failure | A muted `PR ?` chip whose tooltip is the reason (sign-in needed, the error's message) for `auth`, `error` and `rate-limited` (until when); nothing for `no-remote` and `detached` | Owner decision (grill Q5) | y |
 | While loading | The previous cached chip stays; with no cache, nothing shows until the lookup answers | No flicker on focus refresh; no placeholder that could read as "no PR" | y |
 | Two providers disagree | Each provider's PRs count; one provider failing with the other finding PRs shows the found PRs, and the failure only in the menu's footer | F5 (FPRG-07): a failing provider never hides the other's PRs | y |
-| Base branch | `feature/status-pr-link` rebased 2026-10-10 onto the executed `feature/files-pr-github` (F5, stacked on F4; both in review upstream) | Owner decision (grill Q7). Executes only after F5 | y |
+| Base branch | `feature/status-pr-link` off `origin/main` after F4 and F5 merged upstream (2026-10-10) | Owner decision (grill Q7). Executes only after F5 | y |
 
 **Open questions:** none — all resolved or logged above.
 

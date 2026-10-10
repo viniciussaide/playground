@@ -265,8 +265,10 @@ T7 → T8 → T9
 
 **Done when**:
 
-- [ ] At 1100 px wide the bar does not wrap with a long branch and a `2 PRs` chip
-- [ ] Gate check passes: `npm run lint` and `npx electron-vite build`
+- [ ] At 1100 px wide the bar does not wrap with a long branch and a `2 PRs` chip — **checked at T8** (needs the live app)
+- [x] Gate check passes: `npm run lint` and `npx electron-vite build`
+
+**Done** 2026-10-10, lint 18, build green. The chip copies the sync trigger's metrics and never shrinks (the branch gives way first); marks are coloured with `--red`, `--amber`, `--green` on top of their glyph and label; the menu reuses the sync popover's surface, anchored right, 440 px wide, title and target branch truncating.
 
 **Tests**: none
 **Gate**: build

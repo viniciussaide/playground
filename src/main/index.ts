@@ -11,6 +11,7 @@ import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/icon.png?asset'
 import { readNotificationPrefs } from '../shared/notifications'
 import type { PeriodSnapshotFields } from '../shared/time'
+import type { TasksSnapshot } from '../shared/tasks'
 import { AdoGateway } from './ado-gateway'
 import { AdoPrClient, openPrLink } from './ado-pr'
 import { AgentStepRunner, type AgentChild, type AgentSpawn } from './agent-step-runner'
@@ -44,6 +45,7 @@ import { createMcpResultServer } from './mcp-result-server'
 import { purgePasteDir } from './paste-temp'
 import { checkCreatePaths } from './path-limits'
 import { ensurePromptsFolder, listPrompts } from './prompt-library'
+import { NODE_PRESET_FS, createPresetStore } from './agent-preset-store'
 import { findOnPath } from './path-lookup'
 import { startLoopDelayLog } from './perf-monitor'
 import { withPostCreateHook } from './post-create-hook'
@@ -80,6 +82,7 @@ import { scaffoldWorkflow } from './workflow-scaffold'
 import { changedFilesOf, createWorktree, removeWorktree, worktreeStatus } from './worktree-manager'
 import { workspaceTemplates } from './workspace-config'
 import { runAutoPin } from './worktree-tasks'
+import { runLinkedPin } from './linked-task-pin'
 import { WorkspaceRegistry } from './workspace-registry'
 
 const execFileAsync = promisify(execFile)
@@ -812,13 +815,25 @@ app.whenReady().then(() => {
   })
   const sessions = sessionManager
   hookServer.onEvent((sessionId, payload) => sessions.handleHookEvent(sessionId, payload))
+  // A link by id pins its task in the background, so the rail shows its title,
+  // type and state; the spawn and the link never wait for ADO (PRST-45..47, AD-064).
+  const linkedPin = {
+    pinLinked: (id: number) => taskBoard.pinLinked(id),
+    emit: (snapshot: TasksSnapshot) => emitToWindow('tasks:changed', { snapshot }),
+    logError: (err: unknown) => console.error('Pinning a linked task failed:', err)
+  }
   // The same path as the picker: persist, then the tracker closes and opens (ATSK-02, HTSK-12).
-  hookServer.onTaskLink((sessionId, task) => sessions.setTask(sessionId, task))
+  hookServer.onTaskLink((sessionId, task) => {
+    sessions.setTask(sessionId, task)
+    void runLinkedPin(task, linkedPin)
+  })
   namePoller.onListing((names) => sessions.applyNames(names))
   handle('sessions:list', () => sessions.list())
-  handle('sessions:spawn', ({ agentName, cwd, adhocCommand, task, prompt }) =>
-    sessions.spawn(agentName, cwd, adhocCommand, task, prompt)
-  )
+  handle('sessions:spawn', async ({ agentName, cwd, adhocCommand, task, prompt }) => {
+    const view = await sessions.spawn(agentName, cwd, adhocCommand, task, prompt)
+    void runLinkedPin(task, linkedPin)
+    return view
+  })
   // Returning the promise is load-bearing: ipcMain.handle awaits it, so the
   // renderer's `sessions:stop` only resolves once the PTY has really exited
   // (WRFT-05) — which is what lets a worktree removal start without racing
@@ -827,7 +842,11 @@ app.whenReady().then(() => {
   handle('sessions:respawn', ({ id }) => sessions.respawn(id))
   handle('sessions:rename', ({ id, title }) => sessions.rename(id, title))
   // Persist first, then the tracker closes and opens through the lifecycle (HTSK-12).
-  handle('sessions:set-task', ({ id, task }) => sessions.setTask(id, task))
+  handle('sessions:set-task', ({ id, task }) => {
+    const view = sessions.setTask(id, task)
+    void runLinkedPin(task, linkedPin)
+    return view
+  })
   handle('sessions:duplicate', ({ id }) => sessions.duplicate(id))
   handle('sessions:remove', ({ id }) => sessions.remove(id))
   handle('sessions:attach', ({ id }) => sessions.attach(id))
@@ -938,6 +957,24 @@ app.whenReady().then(() => {
     await ensurePromptsFolder(promptsRoot)
     await shell.openPath(promptsRoot)
   })
+
+  // Agent presets: one hand-editable file, re-read on every list and change
+  // (PRST-01, PRST-09). PLAYGROUND_PRESETS_FILE keeps the smoke off the real one.
+  const presets = createPresetStore(
+    process.env.PLAYGROUND_PRESETS_FILE ?? join(homedir(), '.playground', 'presets.json'),
+    NODE_PRESET_FS,
+    (path) => shell.openPath(path)
+  )
+  handle('agentPresets:list', () => presets.list())
+  handle('agentPresets:save', ({ preset, replace }) =>
+    presets.change({ kind: 'save', preset, replace })
+  )
+  handle('agentPresets:rename', ({ from, to }) => presets.change({ kind: 'rename', from, to }))
+  handle('agentPresets:move', ({ name, direction }) =>
+    presets.change({ kind: 'move', name, direction })
+  )
+  handle('agentPresets:delete', ({ name }) => presets.change({ kind: 'delete', name }))
+  handle('agentPresets:openFile', async () => ({ error: await presets.openFile() }))
 
   // Free the shared MCP result server's loopback port when the app quits (WF3-10).
   // Nothing awaits a quit handler, so a failed stop is logged, not left unhandled (RSTP-07).
